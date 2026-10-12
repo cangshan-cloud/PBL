@@ -105,6 +105,35 @@ class DatasetPersistenceTests(unittest.TestCase):
             self.assertEqual(published.status, "published")
             self.assertIsNotNone(published.published_at)
 
+    def test_publish_rejects_changed_or_missing_file_without_changing_draft(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            dataset = import_csv(
+                session,
+                content=VALID_CSV,
+                source_filename="daily.csv",
+                dataset_key="course_demo",
+                name="课程演示数据",
+                data_root=Path(self.temp_dir.name),
+            )
+            path = Path(dataset.storage_uri)
+            path.write_bytes(VALID_CSV.replace(b"10.5,1000", b"10.6,1000"))
+            with self.assertRaisesRegex(ValueError, "checksum mismatch"):
+                publish_dataset_version(session, dataset)
+            self.assertEqual(dataset.status, "draft")
+            self.assertIsNone(dataset.published_at)
+
+            path.unlink()
+            with self.assertRaises(FileNotFoundError):
+                publish_dataset_version(session, dataset)
+            self.assertEqual(dataset.status, "draft")
+            self.assertIsNone(dataset.published_at)
+
+            path.write_bytes(VALID_CSV)
+            self.assertEqual(publish_dataset_version(session, dataset).status, "published")
+            path.unlink()
+            with self.assertRaises(FileNotFoundError):
+                publish_dataset_version(session, dataset)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -192,6 +192,8 @@ def publish_dataset(dataset_id: str, _: User = Depends(require_roles(UserRole.AD
         raise HTTPException(404, "数据版本不存在")
     try:
         dataset = publish_dataset_version(session, dataset)
+    except FileNotFoundError as exc:
+        raise HTTPException(410, "数据文件已丢失，不能发布") from exc
     except ValueError as exc:
         raise HTTPException(409, str(exc)) from exc
     return DatasetVersionResponse.model_validate(dataset)

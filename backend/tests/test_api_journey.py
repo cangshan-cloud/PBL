@@ -16,6 +16,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.db import get_db
 from app.main import app
+from app.models import DatasetVersion
 
 
 SAMPLE_CSV = Path(__file__).resolve().parents[2] / "data" / "sample" / "daily_prices.csv"
@@ -56,6 +57,31 @@ class ApiJourneyTests(unittest.TestCase):
         response = self.client.post("/api/v1/auth/login", json={"username": username, "password": password})
         self.assertEqual(response.status_code, 200, response.text)
         return {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+    def test_publish_blocks_tampered_or_missing_draft(self):
+        admin = self.auth("admin", "admin12345")
+        original = b"trade_date,symbol,close\n2025-01-02,000001.SZ,10\n"
+        response = self.client.post(
+            "/api/v1/datasets/import", headers=admin,
+            data={"dataset_key": "tamper_test", "name": "完整性测试"},
+            files={"file": ("daily.csv", original, "text/csv")},
+        )
+        self.assertEqual(response.status_code, 201, response.text)
+        dataset_id = response.json()["id"]
+        with Session(self.engine) as session:
+            path = Path(session.get(DatasetVersion, dataset_id).storage_uri)
+
+        path.write_bytes(original.replace(b",10\n", b",11\n"))
+        publish_url = f"/api/v1/datasets/{dataset_id}/publish"
+        self.assertEqual(self.client.post(publish_url, headers=admin).status_code, 409)
+        self.assertEqual(self.client.get(f"/api/v1/datasets/{dataset_id}", headers=admin).json()["status"], "draft")
+
+        path.unlink()
+        self.assertEqual(self.client.post(publish_url, headers=admin).status_code, 410)
+        self.assertEqual(self.client.get(f"/api/v1/datasets/{dataset_id}", headers=admin).json()["status"], "draft")
+
+        path.write_bytes(original)
+        self.assertEqual(self.client.post(publish_url, headers=admin).status_code, 200)
 
     def test_upload_publish_research_report_and_role_boundaries(self):
         admin = self.auth("admin", "admin12345")

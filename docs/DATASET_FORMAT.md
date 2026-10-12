@@ -51,7 +51,7 @@ trade_date,symbol,open,high,low,close,volume
 1. 可选调用 `POST /api/v1/datasets/adapt/preview` 预览常见 A 股 CSV 的字段转换。
 2. `POST /api/v1/datasets/import`，使用multipart表单上传`dataset_key`、`name`和`file`；需要自动适配时增加 `normalize_cn_csv=true`。
 3. `GET /api/v1/datasets/{id}`查看质量报告和SHA-256校验和。
-4. `POST /api/v1/datasets/{id}/publish`发布版本。
+4. `POST /api/v1/datasets/{id}/publish`发布版本；发布前重新校验磁盘文件的 SHA-256，文件丢失返回 410、内容变化返回 409，失败时版本保持草稿状态。重复发布也会重新校验。
 5. `GET /api/v1/datasets/{id}/preview?limit=20`查看字段和数据样例。
 6. `GET /api/v1/datasets`查询全部版本。
 

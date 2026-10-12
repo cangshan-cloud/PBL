@@ -157,13 +157,19 @@ def validate_csv(content: bytes) -> ParsedDataset:
     )
 
 
-def preview_dataset(dataset: DatasetVersion, limit: int = 20) -> dict:
-    limit = max(1, min(limit, 100))
+def verify_dataset_file(dataset: DatasetVersion) -> Path:
     path = Path(dataset.storage_uri)
     if not path.is_file():
         raise FileNotFoundError("dataset file not found")
-    if hashlib.sha256(path.read_bytes()).hexdigest() != dataset.checksum:
-        raise ValueError("dataset checksum mismatch")
+    with path.open("rb") as handle:
+        if hashlib.file_digest(handle, "sha256").hexdigest() != dataset.checksum:
+            raise ValueError("dataset checksum mismatch")
+    return path
+
+
+def preview_dataset(dataset: DatasetVersion, limit: int = 20) -> dict:
+    limit = max(1, min(limit, 100))
+    path = verify_dataset_file(dataset)
     with path.open(encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
         columns = [column.strip() for column in (reader.fieldnames or [])]
@@ -237,10 +243,11 @@ def get_dataset_version(session: Session, dataset_id: str) -> DatasetVersion | N
 
 
 def publish_dataset_version(session: Session, dataset: DatasetVersion) -> DatasetVersion:
+    if dataset.status not in {"draft", "published"}:
+        raise ValueError(f"cannot publish dataset in status {dataset.status}")
+    verify_dataset_file(dataset)
     if dataset.status == "published":
         return dataset
-    if dataset.status != "draft":
-        raise ValueError(f"cannot publish dataset in status {dataset.status}")
     dataset.status = "published"
     dataset.published_at = datetime.now(timezone.utc)
     session.commit()
