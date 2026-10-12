@@ -7,7 +7,8 @@
 | ID | 日期 | 类型／状态 | 内容 | 记录 | 对应位置 |
 | --- | --- | --- | --- | --- | --- |
 | CHG-20261012-001 | 2026-10-12 | governance / implemented | 建立变更、决策记录与总索引；扩展讨论保持未决 | [记录](changes/2026-10-12-001-change-governance.md) | `docs/CHANGE_INDEX.md`、`docs/changes/TEMPLATE.md`、`README.md` |
-| DEC-20261012-001 | 2026-10-12 | decision-only / open | 扩展范围第一轮 grill-me：待队长回答后继续展开依赖分支 | [记录](changes/2026-10-12-002-extension-frontier.md) | `docs/EXTENSION_OPTIONS.md`、`docs/PRD.md`、`docs/REAL_A_SHARE_SAMPLE.md`（只读依据） |
+| DEC-20261012-001 | 2026-10-12 | decision-only / accepted | 扩展范围第一轮五项决定已获队长确认；具体扩展方案待后续轮次 | [记录](changes/2026-10-12-002-extension-frontier.md) | `docs/EXTENSION_OPTIONS.md`、`docs/PRD.md`、`docs/REAL_A_SHARE_SAMPLE.md`（只读依据） |
+| DEC-20261012-002 | 2026-10-12 | decision-only / open | 扩展范围第二轮：数据使用、证据标准与时间闸门 | [记录](changes/2026-10-12-003-extension-choice.md) | `tools/fetch_real_a_share_sample.py`、`backend/app/services/runs.py`（只读依据） |
 
 ## 历史基线
 
