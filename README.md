@@ -104,7 +104,9 @@ cd frontend && npm install && npm run dev
 make test
 ```
 
-每次推送和拉取请求会触发 [GitHub Actions CI](.github/workflows/ci.yml)，分别在 Linux 和 Windows 上执行后端测试、固定样例校验和前端生产构建。CI 不启动数据库或 Docker；完整 Compose 联调仍按 [`docs/ORBSTACK_DEPLOYMENT.md`](docs/ORBSTACK_DEPLOYMENT.md) 与 [`docs/MAC_E2E_ACCEPTANCE.md`](docs/MAC_E2E_ACCEPTANCE.md) 本地验收。
+每次推送和拉取请求会触发 [GitHub Actions CI](.github/workflows/ci.yml)，分别在 Linux 和 Windows 上执行后端测试、固定样例校验和前端生产构建。CI 只使用隔离的 SQLite 测试数据库，不启动 PostgreSQL、Redis 或 Docker；完整 Compose 联调仍按 [`docs/ORBSTACK_DEPLOYMENT.md`](docs/ORBSTACK_DEPLOYMENT.md) 与 [`docs/MAC_E2E_ACCEPTANCE.md`](docs/MAC_E2E_ACCEPTANCE.md) 本地验收。
+
+后端测试含一条隔离环境中的完整 API 旅程：管理员上传并发布 CSV、研究员运行因子、查看日志并下载复现包和报告，同时验证未登录、只读及其他研究员的权限。它不代替浏览器 UI 或 Windows 实机验收。
 
 ## 当前阶段边界
 
