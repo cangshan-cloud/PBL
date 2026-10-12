@@ -21,6 +21,7 @@
 | CHG-20261012-002 | 2026-10-12 | implementation / partial | 新增历史沪深 300 数据探针，真实两交易日验证通过 | [记录](changes/2026-10-12-013-hs300-feasibility-probe.md) | `tools/probe_hs300_history.py`、`backend/tests/test_hs300_probe.py`、`docs/HS300_DATA_FEASIBILITY.md` |
 | CHG-20261012-003 | 2026-10-12 | evidence-only / partial | 年初年末历史成员端点有 28 出/28 入 | [记录](changes/2026-10-12-014-hs300-endpoint-check.md) | `docs/HS300_DATA_FEASIBILITY.md`（无代码改动） |
 | CHG-20261013-001 | 2026-10-13 | implementation + evidence / partial | 全年历史成员采集与 12 月官方调整边界核验 | [记录](changes/2026-10-13-001-full-year-hs300-members.md) | `tools/fetch_hs300_members.py`、`tools/verify_hs300_members.py`、`tools/verify_hs300_official_2024.py`、`backend/tests/test_hs300_probe.py` |
+| CHG-20261013-002 | 2026-10-13 | implementation + evidence / partial | 历史成员对应价格与交易/ST 原始数据采集及复验完成；完整包待建 | [记录](changes/2026-10-13-002-hs300-price-status.md) | `tools/fetch_hs300_prices.py`、`tools/verify_hs300_prices.py`、`backend/tests/test_hs300_prices.py`、`docs/HS300_PRICE_STATUS.md` |
 
 ## 历史基线
 
