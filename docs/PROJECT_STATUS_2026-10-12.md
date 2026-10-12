@@ -17,7 +17,7 @@
 
 ## 当前验证
 
-- 后端：`make test`，73 项通过。其中 `test_api_journey.py` 在隔离的 SQLite 和临时数据目录中经真实 HTTP 路由自动验证 CSV 上传、质量预览、发布、研究执行、日志、复现包、报告下载和角色隔离。
+- 后端：`make test`，75 项通过。其中 `test_api_journey.py` 在隔离的 SQLite 和临时数据目录中经真实 HTTP 路由自动验证 CSV 上传、质量预览、发布、研究执行、日志、复现包、报告下载和角色隔离。
 - 研究计算：`make golden`，固定手算样本通过。
 - 前端：`npm run build --prefix frontend`，生产构建通过。
 - Mac 真实浏览器全流程及 OrbStack 异步验收：见 `MAC_E2E_ACCEPTANCE.md`；性能单次测量见 `PERFORMANCE_ACCEPTANCE.md`。上述记录不替代 Windows 验收。
@@ -28,7 +28,7 @@
 | --- | --- | --- |
 | Windows + WSL2 / Docker Desktop 离线运行 | 未取得 Windows 环境，不能宣称通过 | 到手后按同一 Compose 演示剧本验收并记录截图、日志、耗时 |
 | 浏览器管理员上传、预览、发布及新数据研究 | Mac 隔离浏览器环境已完成真实 UI 实测并保存截图；API 集成链路也通过 | 在 Windows / Compose 环境重做，不将 Mac SQLite 结果冒充容器化或 Windows 验收 |
-| 真实 A 股数据、历史成分、停牌/披露日期口径 | 主要使用虚拟和固定测试数据；存在研究偏差 | 成员 B/C 确定合规数据来源与字段字典，加入小规模脱敏/公开快照并独立验算 |
+| 真实 A 股数据、历史成分、停牌/披露日期口径 | 已自行取得 10 只股票、1,170 行的 BaoStock 本地样本并跑通五个因子；历史成分、PE 披露时点、数据再分发权仍未解决 | 见 `REAL_A_SHARE_SAMPLE.md`；成员 C 继续做独立公式验算，公开提交原始数据前先确认权利 |
 | Parquet、DuckDB、行业/市值中性化 | PRD 规划内容，当前实现以 CSV 与轻量计算为主 | 先评估课程是否硬性要求；否则经范围变更明确降级，不为追求技术栈影响准时验收 |
 | GitHub Actions 运行结果 | 工作流已推送，但本机无法读取 Actions 页面 | 在仓库 Actions 页核对 Linux/Windows 两个 Job；失败时优先修跨平台问题 |
 

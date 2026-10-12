@@ -7,6 +7,7 @@
 - `backend/`：FastAPI 接口、领域模型和纯 Python 研究计算核心。
 - `frontend/`：React + TypeScript 研究工作台。
 - `data/sample/`：固定演示数据。
+- `data/real/`：本地自行获取的真实 A 股小样本，默认不纳入 Git；来源与获取步骤见 [`docs/REAL_A_SHARE_SAMPLE.md`](docs/REAL_A_SHARE_SAMPLE.md)。
 - `docs/`：PRD、计划、学习路线和个人验收模板。
 - `docker-compose.yml`：Web、API、Worker、PostgreSQL、Redis 的统一编排。
 
