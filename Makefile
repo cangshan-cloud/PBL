@@ -1,4 +1,4 @@
-.PHONY: test golden benchmark-prd api web compose-check compose-up compose-down
+.PHONY: test golden benchmark-prd audit-data api web compose-check compose-up compose-down
 
 PYTHON ?= $(or $(firstword $(wildcard .venv/bin/python .venv/Scripts/python.exe)),python3)
 
@@ -10,6 +10,9 @@ golden:
 
 benchmark-prd:
 	$(PYTHON) tools/benchmark_prd_scale.py
+
+audit-data:
+	$(PYTHON) tools/audit_dataset_storage.py
 
 api:
 	cd backend && alembic upgrade head && python3 -m uvicorn app.main:app --reload --port 8000

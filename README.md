@@ -43,6 +43,8 @@ docker compose up --build
 
 导入发生磁盘写入或数据库提交错误时，会回滚数据库会话并清理本次新建的文件，避免普通失败路径留下孤儿数据。
 
+部署或演示前可运行 `make audit-data` 巡检数据版本：报告丢失、校验和变化及未登记的 CSV 文件，不会自动修改数据；容器中可运行 `docker compose exec api python -m app.services.storage_audit`。详见 [`docs/DATASET_FORMAT.md`](docs/DATASET_FORMAT.md)。
+
 管理员可以对 Tushare、BaoStock 和常见中文行情 CSV 执行字段映射预览与标准化导入。适配器只转换字段、日期和证券代码，不猜测成交量、换手率和市值单位；详见 [`docs/CN_DATA_ADAPTER.md`](docs/CN_DATA_ADAPTER.md)。
 
 质量详情包含字段完整率、缺失数量、数值范围和前20行预览。预览和发布前都会重新校验文件内容；草稿文件丢失或内容变化时不会发布。
