@@ -11,7 +11,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from app.db import Base
-from app.services.datasets import DatasetValidationError, publish_dataset_version, register_hs300_bundle
+from app.services.datasets import DatasetValidationError, preview_dataset, publish_dataset_version, register_hs300_bundle
 from app.services.historical_bundle import verify_historical_bundle
 
 
@@ -51,6 +51,9 @@ class HistoricalBundleRegistrationTests(unittest.TestCase):
             dataset = register_hs300_bundle(session, bundle_id=self.bundle_id, data_root=self.root / "runtime")
             self.assertEqual(dataset.status, "draft")
             self.assertEqual(dataset.quality_report["dataset_kind"], "hs300_bundle_v1")
+            preview = preview_dataset(dataset)
+            self.assertEqual(preview["columns"], ["item", "value"])
+            self.assertEqual(preview["rows"][0]["value"], self.bundle_id)
             self.assertEqual(publish_dataset_version(session, dataset).status, "published")
             with self.assertRaises(DatasetValidationError):
                 register_hs300_bundle(session, bundle_id=self.bundle_id, data_root=self.root / "runtime")

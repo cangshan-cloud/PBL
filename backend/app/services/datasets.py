@@ -173,7 +173,17 @@ def verify_dataset_file(dataset: DatasetVersion) -> Path:
 
 def preview_dataset(dataset: DatasetVersion, limit: int = 20) -> dict:
     if (dataset.quality_report or {}).get("dataset_kind") == "hs300_bundle_v1":
-        raise ValueError("historical bundle has no single-CSV preview")
+        verify_dataset_file(dataset)
+        report = dataset.quality_report or {}
+        rows = [
+            {"item": "bundle_id", "value": str(report.get("bundle_id", ""))},
+            {"item": "verified_files", "value": str(report.get("verified_files", ""))},
+            {"item": "member_trading_days", "value": str(report.get("member_trading_days", ""))},
+            {"item": "member_rows", "value": str(report.get("member_rows", ""))},
+            {"item": "price_rows", "value": str(dataset.row_count)},
+        ]
+        return {"dataset_id": dataset.id, "columns": ["item", "value"], "rows": rows,
+                "preview_count": len(rows), "total_rows": len(rows), "truncated": False}
     limit = max(1, min(limit, 100))
     path = verify_dataset_file(dataset)
     with path.open(encoding="utf-8-sig", newline="") as handle:
