@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+import json
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, Response
 from sqlalchemy.orm import Session
@@ -28,6 +30,7 @@ from app.services.comparisons import compare_runs, comparison_csv, comparison_ht
 from app.services.conclusions import build_run_conclusion
 from app.services.runs import create_composite_run, create_research_run, execute_research_run, get_run, list_run_logs, list_runs, request_cancellation, serialize_run
 from app.services.reports import get_report, list_reports, read_verified_report
+from app.services.reproducibility import build_reproducibility_bundle
 from app.tasks import celery_app, execute_research_run_task
 from app.services.users import create_user as create_user_record, ensure_bootstrap_users, list_users, update_user as update_user_record
 
@@ -251,6 +254,17 @@ def get_task(task_id: str, user: User = Depends(get_current_user), session: Sess
     if user.role == UserRole.RESEARCHER and run.experiment.created_by_id != user.id:
         raise HTTPException(403, "无权查看其他研究员的任务")
     return serialize_run(run)
+
+
+@app.get("/api/v1/research/tasks/{task_id}/reproducibility.json")
+def download_reproducibility_bundle(task_id: str, user: User = Depends(get_current_user), session: Session = Depends(get_db)) -> Response:
+    run = _task_for_user(task_id, user, session)
+    content = json.dumps(jsonable_encoder(build_reproducibility_bundle(run)), ensure_ascii=False, sort_keys=True, allow_nan=False)
+    return Response(
+        content=content,
+        media_type="application/json; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="factor-run-{task_id[:8]}.json"'},
+    )
 
 
 @app.get("/api/v1/research/tasks/{task_id}/conclusion")

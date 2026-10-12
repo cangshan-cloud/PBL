@@ -48,6 +48,8 @@ docker compose up --build
 
 “任务中心”展示全部历史Run并自动刷新运行状态。选择任务后可以查看数据版本、因子版本、后端源码指纹、完整参数、执行时间、错误摘要和结构化指标结果。Worker 会在执行前核对代码指纹；口径见 [`docs/CODE_VERSION.md`](docs/CODE_VERSION.md)。
 
+任务中心可下载 JSON 复现包，汇总数据校验和、因子公式与版本、参数、代码指纹、结果及摘要校验和、报告校验和和任务日志。复现包不包含原始数据或报告文件；跨机器重新计算仍需要相同数据和代码。
+
 任务中心同时展示持久化执行日志。等待任务可以立即取消，运行中任务采用Worker阶段间协作取消；失败或取消任务可以生成新的重试实验。具体状态机和接口权限见 [`docs/TASK_EXECUTION.md`](docs/TASK_EXECUTION.md)。
 
 “实验对比”支持选择 2—6 个成功任务，统一展示核心指标、相对基准差值和排名，并自动检查数据版本、分组数和共同日期。结果可导出为 Excel 友好的 CSV 或可打印的独立 HTML 报告。见 [`docs/EXPERIMENT_COMPARISON.md`](docs/EXPERIMENT_COMPARISON.md)。
@@ -113,5 +115,7 @@ make test
 第一次导师阶段汇报初稿见 [`docs/FIRST_MENTOR_REPORT.md`](docs/FIRST_MENTOR_REPORT.md)。
 
 Mac 本地端到端验收的已通过步骤、环境限制和复现方法见 [`docs/MAC_E2E_ACCEPTANCE.md`](docs/MAC_E2E_ACCEPTANCE.md)。
+
+截至 2026-10-12 的成果、PRD 差距与后续计划见 [`docs/PROJECT_STATUS_2026-10-12.md`](docs/PROJECT_STATUS_2026-10-12.md)。
 
 300 只股票、3 年日频的单因子性能基准可运行 `make benchmark-prd`；Mac 实测结果和计时边界见 [`docs/PERFORMANCE_ACCEPTANCE.md`](docs/PERFORMANCE_ACCEPTANCE.md)。

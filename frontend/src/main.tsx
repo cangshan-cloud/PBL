@@ -352,6 +352,17 @@ function App() {
     const anchor = document.createElement("a"); anchor.href = url; anchor.download = `factor-report-${selectedReport.run_id.slice(0, 8)}.html`; anchor.click(); URL.revokeObjectURL(url);
   }
 
+  async function downloadReproducibilityBundle() {
+    if (!selectedTask) return;
+    setNotice("");
+    try {
+      const response = await apiFetch(`/research/tasks/${selectedTask.id}/reproducibility.json`);
+      if (!response.ok) { const payload = await response.json(); throw new Error(errorMessage(payload, "复现包下载失败")); }
+      const url = URL.createObjectURL(await response.blob());
+      const anchor = document.createElement("a"); anchor.href = url; anchor.download = `factor-run-${selectedTask.id.slice(0, 8)}.json`; anchor.click(); URL.revokeObjectURL(url);
+    } catch (error) { setNotice(String(error)); }
+  }
+
   async function taskAction(action: "cancel" | "retry") {
     if (!selectedTask) return;
     setLoading(true); setNotice("");
@@ -457,7 +468,7 @@ function App() {
       <header><div><p className="eyebrow">RUN REGISTRY</p><h1>每次运行都有状态，也有来路</h1><p>查看任务进度、失败原因、版本绑定与不可变研究结果。</p></div><button onClick={() => loadTasks()} disabled={loading}>刷新任务</button></header>
       <section className="task-layout">
         <div className="card task-list">{tasks.map(item => <button key={item.id} className={selectedTask?.id === item.id ? "selected" : ""} onClick={() => setSelectedTaskId(item.id)}><span className={`status ${item.status}`}>{statusLabel(item.status)}</span><strong>{item.experiment_name ?? "研究任务"}</strong><small>{formatTime(item.queued_at)}</small><i><b style={{width: `${item.progress ?? 0}%`}} /></i></button>)}{!tasks.length && <div className="empty">尚无研究任务。</div>}</div>
-        <div className="card task-detail">{selectedTask ? <><div className="section-title"><div><p className="eyebrow">RUN · {selectedTask.id.slice(0, 8)}</p><h2>{selectedTask.experiment_name}</h2></div><div className="task-actions"><span className={`status ${selectedTask.status}`}>{statusLabel(selectedTask.status)}</span>{canResearch && (selectedTask.status === "pending" || selectedTask.status === "running") && <button onClick={() => taskAction("cancel")} disabled={loading || Boolean(selectedTask.cancellation_requested_at)}>{selectedTask.cancellation_requested_at ? "等待取消" : "取消任务"}</button>}{canResearch && (selectedTask.status === "failed" || selectedTask.status === "cancelled") && <button onClick={() => taskAction("retry")} disabled={loading}>重新运行</button>}</div></div>
+        <div className="card task-detail">{selectedTask ? <><div className="section-title"><div><p className="eyebrow">RUN · {selectedTask.id.slice(0, 8)}</p><h2>{selectedTask.experiment_name}</h2></div><div className="task-actions"><span className={`status ${selectedTask.status}`}>{statusLabel(selectedTask.status)}</span><button onClick={downloadReproducibilityBundle}>下载复现包</button>{canResearch && (selectedTask.status === "pending" || selectedTask.status === "running") && <button onClick={() => taskAction("cancel")} disabled={loading || Boolean(selectedTask.cancellation_requested_at)}>{selectedTask.cancellation_requested_at ? "等待取消" : "取消任务"}</button>}{canResearch && (selectedTask.status === "failed" || selectedTask.status === "cancelled") && <button onClick={() => taskAction("retry")} disabled={loading}>重新运行</button>}</div></div>
           {selectedTask.error_summary && <p className="error">{selectedTask.error_summary}</p>}
           <div className="repro-grid"><span><label>数据版本</label><b>{selectedTask.dataset_version}</b><small>{selectedTask.dataset_version_id}</small></span><span><label>因子版本</label><b>{selectedTask.factor_version}</b><small>{selectedTask.factor_version_id}</small></span><span><label>代码版本</label><b>{selectedTask.code_version}</b><small>实验创建时固定</small></span><span><label>执行时间</label><b>{formatTime(selectedTask.started_at)}</b><small>结束：{formatTime(selectedTask.finished_at)}</small></span></div>
           <h3>研究参数</h3><pre>{JSON.stringify(selectedTask.parameters, null, 2)}</pre>
