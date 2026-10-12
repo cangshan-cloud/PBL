@@ -1,0 +1,73 @@
+services:
+  web:
+    build: ./frontend
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000/api/v1
+    ports: ["127.0.0.1:5173:5173"]
+    depends_on:
+      api: {condition: service_healthy}
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-factorlab}:${POSTGRES_PASSWORD:-factorlab}@db:5432/${POSTGRES_DB:-factorlab}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      TASK_EXECUTION_MODE: celery
+      DATA_ROOT: /data/runtime
+      JWT_SECRET: ${JWT_SECRET:-development-only-change-me}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-admin12345}
+      BOOTSTRAP_RESEARCHER_PASSWORD: ${BOOTSTRAP_RESEARCHER_PASSWORD:-research12345}
+      BOOTSTRAP_VIEWER_PASSWORD: ${BOOTSTRAP_VIEWER_PASSWORD:-viewer12345}
+    volumes:
+      - ./data:/data
+    ports: ["127.0.0.1:8000:8000"]
+    command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+  worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-factorlab}:${POSTGRES_PASSWORD:-factorlab}@db:5432/${POSTGRES_DB:-factorlab}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      TASK_EXECUTION_MODE: celery
+      DATA_ROOT: /data/runtime
+    volumes:
+      - ./data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.tasks:celery_app inspect ping -d celery@$$HOSTNAME --timeout=3 | grep -q pong"]
+      interval: 30s
+      timeout: 8s
+      start_period: 15s
+      retries: 3
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      api: {condition: service_healthy}
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-factorlab}
+      POSTGRES_USER: ${POSTGRES_USER:-factorlab}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-factorlab}
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-factorlab} -d ${POSTGRES_DB:-factorlab}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  postgres_data:

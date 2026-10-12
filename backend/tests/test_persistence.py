@@ -1,0 +1,190 @@
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+
+from app.db import Base
+from app.models import RunStatus
+from app.services.datasets import import_csv, publish_dataset_version
+from app.services.runs import create_research_run, execute_research_run, get_run, list_run_logs, request_cancellation, transition
+from app.services.sample_data import sample_file
+
+
+class PersistenceTests(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        database_path = Path(self.temp_dir.name) / "test.db"
+        self.engine = create_engine(f"sqlite:///{database_path}")
+        Base.metadata.create_all(self.engine)
+
+    def tearDown(self):
+        self.engine.dispose()
+        self.temp_dir.cleanup()
+
+    def test_run_result_survives_new_session(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(
+                session,
+                {"factor": "momentum_20d", "lookback": 20, "groups": 5},
+            )
+            run_id = run.id
+            completed = execute_research_run(session, run_id)
+            self.assertEqual(completed.status, RunStatus.SUCCESS)
+            self.assertEqual(completed.progress, 100)
+            self.assertEqual(len(completed.artifacts), 2)
+            self.assertTrue(completed.experiment.code_version.startswith("src-sha256:"))
+
+        with Session(self.engine) as another_session:
+            restored = get_run(another_session, run_id)
+            self.assertIsNotNone(restored)
+            self.assertEqual(restored.status, RunStatus.SUCCESS)
+            metrics = next(item for item in restored.artifacts if item.artifact_type == "metrics")
+            report = next(item for item in restored.artifacts if item.artifact_type == "report_html")
+            self.assertEqual(metrics.content["coverage"], 1980)
+            self.assertTrue(Path(report.storage_uri).is_file())
+
+    def test_worker_rejects_task_created_by_different_source_version(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(session, {"factor": "momentum_20d", "groups": 5})
+            run.experiment.code_version = "src-sha256:" + "0" * 64
+            session.commit()
+            with self.assertRaisesRegex(ValueError, "代码指纹"):
+                execute_research_run(session, run.id)
+            failed = get_run(session, run.id)
+            self.assertEqual(failed.status, RunStatus.FAILED)
+            self.assertIn("代码指纹", failed.error_summary)
+            self.assertEqual(list_run_logs(session, run.id)[-1].event, "failed")
+
+    def test_terminal_run_cannot_restart(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(
+                session,
+                {"factor": "momentum_20d", "lookback": 20, "groups": 5},
+            )
+            completed = execute_research_run(session, run.id)
+            with self.assertRaisesRegex(ValueError, "invalid run transition"):
+                transition(session, completed, RunStatus.RUNNING)
+
+    def test_pending_run_can_be_cancelled_with_audit_log(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(session, {"factor": "momentum_20d", "lookback": 20, "groups": 5})
+            cancelled = request_cancellation(session, run, "测试用户")
+            self.assertEqual(cancelled.status, RunStatus.CANCELLED)
+            self.assertIsNotNone(cancelled.finished_at)
+            events = [item.event for item in list_run_logs(session, run.id)]
+            self.assertEqual(events, ["queued", "cancelled"])
+            with self.assertRaisesRegex(ValueError, "terminal run"):
+                request_cancellation(session, cancelled, "测试用户")
+
+    def test_running_run_records_cooperative_cancellation_request(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(session, {"factor": "momentum_20d", "lookback": 20, "groups": 5})
+            transition(session, run, RunStatus.RUNNING)
+            requested = request_cancellation(session, run, "测试用户")
+            self.assertEqual(requested.status, RunStatus.RUNNING)
+            self.assertIsNotNone(requested.cancellation_requested_at)
+            self.assertEqual(list_run_logs(session, run.id)[-1].event, "cancellation_requested")
+
+    def test_successful_run_records_execution_stages(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(session, {"factor": "momentum_20d", "lookback": 20, "groups": 5})
+            execute_research_run(session, run.id)
+            events = {item.event for item in list_run_logs(session, run.id)}
+            self.assertTrue({"queued", "started", "dataset_loaded", "factor_calculated", "metrics_calculated", "completed"} <= events)
+
+    def test_run_reads_selected_published_dataset(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            dataset = import_csv(
+                session,
+                content=sample_file().read_bytes(),
+                source_filename="selected.csv",
+                dataset_key="selected_demo",
+                name="指定数据版本",
+                data_root=Path(self.temp_dir.name),
+            )
+            with self.assertRaisesRegex(ValueError, "must be published"):
+                create_research_run(
+                    session,
+                    {"factor": "momentum_20d", "dataset_version_id": dataset.id, "lookback": 20, "groups": 5},
+                )
+            publish_dataset_version(session, dataset)
+            run = create_research_run(
+                session,
+                {"factor": "momentum_20d", "dataset_version_id": dataset.id, "lookback": 20, "groups": 5},
+            )
+            completed = execute_research_run(session, run.id)
+            self.assertEqual(completed.status, RunStatus.SUCCESS)
+            self.assertEqual(completed.experiment.dataset_version_id, dataset.id)
+            metrics = next(item for item in completed.artifacts if item.artifact_type == "metrics")
+            self.assertEqual(metrics.content["coverage"], 1980)
+
+    def test_run_filters_symbols_and_dates_after_using_prior_history(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(
+                session,
+                {
+                    "factor": "reversal_5d",
+                    "lookback": 5,
+                    "groups": 2,
+                    "symbols": ["DEMO01", "DEMO02", "DEMO01"],
+                    "start_date": "2025-01-10",
+                    "end_date": "2025-01-14",
+                },
+            )
+            completed = execute_research_run(session, run.id)
+            metrics = next(item.content for item in completed.artifacts if item.artifact_type == "metrics")
+            self.assertEqual(metrics["coverage"], 6)
+            self.assertEqual(metrics["sample"]["resolved_symbol_count"], 2)
+            self.assertEqual(completed.experiment.parameters["symbols"], ["DEMO01", "DEMO02"])
+            factor_dates = [item["date"] for item in metrics["ic_series"]]
+            self.assertEqual(factor_dates, ["2025-01-10", "2025-01-13", "2025-01-14"])
+
+    def test_invalid_sample_range_or_symbols_is_rejected(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            with self.assertRaisesRegex(ValueError, "start_date"):
+                create_research_run(
+                    session,
+                    {"factor": "momentum_20d", "groups": 5, "start_date": "2025-02-01", "end_date": "2025-01-01"},
+                )
+            run = create_research_run(
+                session,
+                {"factor": "momentum_20d", "groups": 5, "symbols": ["UNKNOWN"]},
+            )
+            with self.assertRaisesRegex(ValueError, "do not exist"):
+                execute_research_run(session, run.id)
+            sparse = create_research_run(
+                session,
+                {"factor": "reversal_5d", "lookback": 5, "groups": 5, "symbols": ["DEMO01", "DEMO02"]},
+            )
+            with self.assertRaisesRegex(ValueError, "fewer symbols"):
+                execute_research_run(session, sparse.id)
+
+    def test_modified_dataset_fails_checksum_verification(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            dataset = import_csv(
+                session,
+                content=sample_file().read_bytes(),
+                source_filename="integrity.csv",
+                dataset_key="integrity_demo",
+                name="完整性测试数据",
+                data_root=Path(self.temp_dir.name),
+            )
+            publish_dataset_version(session, dataset)
+            run = create_research_run(
+                session,
+                {"factor": "momentum_20d", "dataset_version_id": dataset.id, "lookback": 20, "groups": 5},
+            )
+            Path(dataset.storage_uri).write_text("tampered", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "checksum mismatch"):
+                execute_research_run(session, run.id)
+            failed = get_run(session, run.id)
+            self.assertEqual(failed.status, RunStatus.FAILED)
+
+
+if __name__ == "__main__":
+    unittest.main()

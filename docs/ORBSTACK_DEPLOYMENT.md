@@ -1,0 +1,44 @@
+# macOS + OrbStack 部署
+
+本项目使用标准 Docker Compose；OrbStack 提供 Docker 引擎和 `orbstack` context，不需要专用 Compose 文件。首次拉取 `postgres:16-alpine`、`redis:7-alpine`、`python:3.12-slim`、`node:22-alpine`，后两个基础镜像用于构建 API、Worker 和前端。
+
+API 与 Worker 镜像从同一份 `backend/pyproject.toml` 读取依赖，先安装依赖再复制应用代码。2026-10-12 的重复构建中，两者的依赖安装层均显示 `CACHED`；若依赖清单或基础镜像变化，仍会重新安装。
+
+## 启动
+
+在项目根目录执行：
+
+```bash
+orb start
+docker context show          # 应为 orbstack
+docker info --format '{{.OperatingSystem}}'
+docker compose config --quiet
+python3 tools/verify_compose_config.py
+docker compose up --build -d
+docker compose ps
+```
+
+`docker compose ps` 中数据库、Redis、API 和 Worker 应显示 `healthy`；Worker 健康检查会向当前容器对应的 Celery 节点发送定向 `ping`，不是只检查进程存在。前端应显示 `Up`。
+
+浏览器打开 `http://localhost:5173/`，API 健康检查位于 `http://localhost:8000/health`。Compose 将这两个端口绑定到 Mac 的 `127.0.0.1`；PostgreSQL 和 Redis 不对宿主机发布端口。API 健康后前端与 Worker 才启动。数据库使用命名卷 `fbl_postgres_data`，导入的数据与报告写到仓库 `data/runtime/`，由 API 和 Worker 共享。
+
+本机演示可以使用 README 中的预置账号。仓库当前默认密码和 JWT 密钥仅适用于本机课程演示；若在共享环境运行，先根据 `.env.example` 创建 `.env` 并替换密钥与账号密码。Compose 统一从 `POSTGRES_DB`、`POSTGRES_USER`、`POSTGRES_PASSWORD` 生成 API/Worker 的数据库连接；密码目前需使用 URL 安全字符（字母、数字、`-`、`_`、`.`、`~`），因为它会直接拼入连接 URL。**已有数据库卷的账号密码不会因修改 `.env` 自动轮换**，需按 PostgreSQL 的账号迁移流程处理；请先备份，不要为改密码直接删除卷。
+
+当前 Worker 容器仍以 root 运行以写入共享的 `data/` 目录；虽然 Web/API 端口只绑定本机，这套配置并非面向公网的生产加固方案。若日后扩展为共享私域部署，需要先完成非 root 权限、密钥管理、访问控制和备份策略。
+
+## 验收与排查
+
+```bash
+docker compose ps
+docker compose logs --tail=100 api worker db redis web
+docker compose exec worker celery -A app.tasks:celery_app inspect ping
+FACTORLAB_SMOKE_PASSWORD=research12345 python3 tools/verify_compose_stack.py
+```
+
+如果修改了研究员密码，把验收命令中的演示密码换成实际密码。该脚本使用已发布的 `demo_daily` 数据集提交一次单因子研究，轮询成功状态、检查执行日志、报告 HTML 与目录记录的 SHA-256；每运行一次会在数据库和 `data/runtime/artifacts/` 中留下一条真实验收记录。提交研究任务后，应在 API 返回的任务中看到由 `pending` 转为 `success`，Worker 日志出现对应任务，报告中心出现 HTML 报告。首次构建会下载基础镜像和 Python/Node 依赖，耗时取决于镜像仓库与包仓库的网络状态。
+
+2026-10-12 在 macOS OrbStack 实测：五个服务启动，API 健康检查通过，Worker `inspect ping` 返回 `pong`；验收脚本创建的运行 `ca31ae86-3ac3-4253-8bdc-5d2518f7ee41` 达到 `success / 100%`，Worker 日志确认接收并完成，HTML 报告含 SVG 图表。该结论只覆盖本机演示数据，不代表真实 A 股数据源或 Windows 环境已经验收。
+
+只停止容器并保留数据：`docker compose down`。不要在需要保留数据时使用 `docker compose down -v`，后者会删除数据库卷。Mac 上关闭 OrbStack 可用 `orb stop`，但这会影响本机其他容器项目，应先确认没有其他工作负载。
+
+Windows + WSL2 的最终验收仍需在 Windows 主机重复；本页只记录 macOS 的 OrbStack 方式。
