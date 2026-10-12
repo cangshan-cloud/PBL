@@ -23,3 +23,8 @@ python tools/verify_hs300_bundle.py \
 ## 使用边界
 
 包保留 BaoStock `adjustflag=1` 后复权源价格；研究侧只能使用 `source_close`，不得叠加二次复权。成员生效时点已用 2024 年 12 月官方调样逐只交叉核验，但并非所有维护事件都获独立核验；ST 历史源状态也未获独立核验。后复权价可能随上游修订。本数据包目前是**离线封存的研究输入**，不是平台 `DatasetVersion` 的已发布版本；连续交易日因子、t/t+1 收益和报告尚未接入，不能据此宣称可信回测或可执行收益。
+# 平台注册与发布（2026-10-13 新增）
+
+封存包仍保留在 `data/real/bundles/<bundle_id>/`，不纳入 Git。API 的 `DATA_ROOT` 应指向同级 `data/runtime`；容器内分别为 `/data/real/bundles` 与 `/data/runtime`。管理员可调用 `POST /api/v1/datasets/register-hs300-bundle`，JSON 为 `{"bundle_id":"hs300_2024_0375298bd2c8ac52"}`。接口只接受固定格式的包 ID，不接受任意文件路径；成功后生成草稿版本。随后调用既有 `POST /api/v1/datasets/{id}/publish`，发布前重新核验清单摘要、内容身份、文件全集及每个文件的 SHA-256。重复注册、缺文件、多文件或内容篡改均会失败。
+
+此阶段平台侧校验是**完整文件完整性核验**，并非重新执行离线采集脚本的所有业务语义校验；封存前的业务语义复验仍由 `tools/verify_hs300_bundle.py` 执行。历史包虽可注册和发布，但旧单 CSV 研究接口会明确拒绝它，不能把“已发布”理解为“历史因子研究已可运行”。历史研究专用计算链路是下一阶段工作。

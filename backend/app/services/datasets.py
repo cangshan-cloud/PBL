@@ -14,6 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import DatasetVersion
+from app.services.historical_bundle import BUNDLE_ID, verify_historical_bundle
 
 
 REQUIRED_COLUMNS = {"trade_date", "symbol", "close"}
@@ -159,6 +160,9 @@ def validate_csv(content: bytes) -> ParsedDataset:
 
 def verify_dataset_file(dataset: DatasetVersion) -> Path:
     path = Path(dataset.storage_uri)
+    if (dataset.quality_report or {}).get("dataset_kind") == "hs300_bundle_v1":
+        verify_historical_bundle(path, dataset.checksum)
+        return path
     if not path.is_file():
         raise FileNotFoundError("dataset file not found")
     with path.open("rb") as handle:
@@ -168,6 +172,8 @@ def verify_dataset_file(dataset: DatasetVersion) -> Path:
 
 
 def preview_dataset(dataset: DatasetVersion, limit: int = 20) -> dict:
+    if (dataset.quality_report or {}).get("dataset_kind") == "hs300_bundle_v1":
+        raise ValueError("historical bundle has no single-CSV preview")
     limit = max(1, min(limit, 100))
     path = verify_dataset_file(dataset)
     with path.open(encoding="utf-8-sig", newline="") as handle:
@@ -244,6 +250,43 @@ def import_csv(
 
 def list_dataset_versions(session: Session) -> list[DatasetVersion]:
     return list(session.scalars(select(DatasetVersion).order_by(DatasetVersion.created_at.desc())))
+
+
+def register_hs300_bundle(session: Session, *, bundle_id: str, data_root: Path) -> DatasetVersion:
+    if not BUNDLE_ID.fullmatch(bundle_id):
+        raise DatasetValidationError("无效的历史数据包标识")
+    manifest_path = data_root.parent / "real" / "bundles" / bundle_id / "manifest.json"
+    if not manifest_path.is_file():
+        raise FileNotFoundError("historical bundle not found")
+    verified = verify_historical_bundle(manifest_path)
+    manifest = verified["manifest"]
+    version = manifest["version_sha256"][:16]
+    existing = session.scalar(select(DatasetVersion).where(
+        DatasetVersion.dataset_key == "hs300_2024", DatasetVersion.version == version,
+    ))
+    if existing is not None:
+        raise DatasetValidationError("历史数据包已注册")
+    dataset = DatasetVersion(
+        dataset_key="hs300_2024", name="沪深300历史成分与行情（2024）",
+        version=version, market="CN_A", frequency="1d",
+        start_date=date.fromisoformat(manifest["research_start"]),
+        end_date=date.fromisoformat(manifest["research_end"]),
+        row_count=manifest["price_rows"], symbol_count=manifest["price_symbols"],
+        checksum=verified["checksum"], storage_uri=str(manifest_path.resolve()),
+        source_filename="manifest.json", status="draft",
+        quality_report={
+            "valid": True, "dataset_kind": "hs300_bundle_v1",
+            "bundle_id": bundle_id, "verified_files": verified["verified_files"],
+            "member_trading_days": manifest["member_trading_days"],
+            "member_rows": manifest["member_rows"],
+            "member_day_audit": manifest.get("member_day_audit", {}),
+            "verification_scope": "manifest_identity_and_all_file_hashes",
+        },
+    )
+    session.add(dataset)
+    session.commit()
+    session.refresh(dataset)
+    return dataset
 
 
 def get_dataset_version(session: Session, dataset_id: str) -> DatasetVersion | None:

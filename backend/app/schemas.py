@@ -138,6 +138,10 @@ class DatasetVersionResponse(BaseModel):
     published_at: datetime | None
 
 
+class HistoricalBundleRegistrationRequest(BaseModel):
+    bundle_id: str
+
+
 class DatasetPreviewResponse(BaseModel):
     dataset_id: str
     columns: list[str]

@@ -99,6 +99,8 @@ def create_research_run(session: Session, parameters: dict, created_by_id: str |
         raise LookupError("dataset version not found")
     if dataset.status != "published":
         raise ValueError("dataset version must be published before research")
+    if (dataset.quality_report or {}).get("dataset_kind") == "hs300_bundle_v1":
+        raise ValueError("historical bundle requires a dedicated research mode")
     available_columns = set(dataset.quality_report.get("columns", ("trade_date", "symbol", "close")))
     missing_columns = sorted(set(definition.required_columns) - available_columns)
     if missing_columns:
@@ -142,6 +144,8 @@ def create_composite_run(session: Session, parameters: dict, created_by_id: str 
         raise LookupError("dataset version not found")
     if dataset.status != "published":
         raise ValueError("dataset version must be published before research")
+    if (dataset.quality_report or {}).get("dataset_kind") == "hs300_bundle_v1":
+        raise ValueError("historical bundle requires a dedicated research mode")
     available_columns = set(dataset.quality_report.get("columns", ("trade_date", "symbol", "close")))
     missing_columns = sorted(set().union(*(set(item.required_columns) for item in definitions)) - available_columns)
     if missing_columns:

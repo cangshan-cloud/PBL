@@ -14,7 +14,7 @@ from app.domain.factors import FACTOR_REGISTRY, get_factor
 from app.db import Base, engine, get_db
 from app.auth import authenticate, create_access_token, get_current_user, require_roles
 from app.models import Run, RunStatus, User, UserRole
-from app.schemas import ComparisonRequest, CompositeResearchRequest, DatasetPreviewResponse, DatasetVersionResponse, LoginRequest, ReportSummaryResponse, ResearchRequest, RunLogResponse, RunResponse, TokenResponse, UserCreateRequest, UserResponse, UserUpdateRequest
+from app.schemas import ComparisonRequest, CompositeResearchRequest, DatasetPreviewResponse, DatasetVersionResponse, HistoricalBundleRegistrationRequest, LoginRequest, ReportSummaryResponse, ResearchRequest, RunLogResponse, RunResponse, TokenResponse, UserCreateRequest, UserResponse, UserUpdateRequest
 from app.services.catalog import ensure_composite_factor, ensure_demo_catalog, ensure_factor_catalog
 from app.services.cn_csv_adapter import adapt_cn_stock_csv
 from app.services.datasets import (
@@ -24,6 +24,7 @@ from app.services.datasets import (
     list_dataset_versions,
     preview_dataset,
     publish_dataset_version,
+    register_hs300_bundle,
 )
 from app.services.dashboard import build_dashboard
 from app.services.comparisons import compare_runs, comparison_csv, comparison_html
@@ -140,6 +141,23 @@ async def import_dataset(
         )
     except DatasetValidationError as exc:
         raise HTTPException(422, detail={"message": str(exc), "quality_report": exc.report}) from exc
+    return DatasetVersionResponse.model_validate(dataset)
+
+
+@app.post("/api/v1/datasets/register-hs300-bundle", response_model=DatasetVersionResponse, status_code=201)
+def register_historical_bundle(
+    request: HistoricalBundleRegistrationRequest,
+    _: User = Depends(require_roles(UserRole.ADMIN)),
+    session: Session = Depends(get_db),
+) -> DatasetVersionResponse:
+    try:
+        dataset = register_hs300_bundle(session, bundle_id=request.bundle_id, data_root=get_settings().data_root)
+    except FileNotFoundError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except DatasetValidationError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
     return DatasetVersionResponse.model_validate(dataset)
 
 

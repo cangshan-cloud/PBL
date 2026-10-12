@@ -23,6 +23,7 @@
 | CHG-20261013-001 | 2026-10-13 | implementation + evidence / partial | 全年历史成员采集与 12 月官方调整边界核验 | [记录](changes/2026-10-13-001-full-year-hs300-members.md) | `tools/fetch_hs300_members.py`、`tools/verify_hs300_members.py`、`tools/verify_hs300_official_2024.py`、`backend/tests/test_hs300_probe.py` |
 | CHG-20261013-002 | 2026-10-13 | implementation + evidence / partial | 历史成员对应价格与交易/ST 原始数据采集及复验完成；完整包待建 | [记录](changes/2026-10-13-002-hs300-price-status.md) | `tools/fetch_hs300_prices.py`、`tools/verify_hs300_prices.py`、`backend/tests/test_hs300_prices.py`、`docs/HS300_PRICE_STATUS.md` |
 | CHG-20261013-003 | 2026-10-13 | implementation + evidence / partial | 历史沪深 300 离线不可变包封存与复验 | [记录](changes/2026-10-13-003-hs300-offline-bundle.md) | `tools/build_hs300_bundle.py`、`tools/verify_hs300_bundle.py`、`backend/tests/test_hs300_bundle.py`、`docs/HS300_BUNDLE.md` |
+| CHG-20261013-004 | 2026-10-13 | implementation / partial | 历史包平台注册、整包完整性核验与旧任务隔离 | [记录](changes/2026-10-13-004-hs300-platform-registration.md) | `backend/app/services/historical_bundle.py`、`backend/app/services/datasets.py`、`backend/app/services/runs.py`、`backend/app/main.py`、`backend/app/schemas.py`、`backend/tests/test_historical_bundle_registration.py`、`docs/HS300_BUNDLE.md` |
 
 ## 历史基线
 
