@@ -211,25 +211,33 @@ def import_csv(
     target_dir = data_root / dataset_key / version
     target_dir.mkdir(parents=True, exist_ok=False)
     target = target_dir / f"{version_id}.csv"
-    target.write_bytes(content)
-
-    dataset = DatasetVersion(
-        id=version_id,
-        dataset_key=dataset_key,
-        name=name.strip(),
-        version=version,
-        start_date=parsed.start_date,
-        end_date=parsed.end_date,
-        row_count=parsed.row_count,
-        symbol_count=parsed.symbol_count,
-        checksum=checksum,
-        storage_uri=str(target),
-        source_filename=Path(source_filename).name,
-        quality_report={**parsed.report, **(quality_metadata or {})},
-        status="draft",
-    )
-    session.add(dataset)
-    session.commit()
+    try:
+        target.write_bytes(content)
+        dataset = DatasetVersion(
+            id=version_id,
+            dataset_key=dataset_key,
+            name=name.strip(),
+            version=version,
+            start_date=parsed.start_date,
+            end_date=parsed.end_date,
+            row_count=parsed.row_count,
+            symbol_count=parsed.symbol_count,
+            checksum=checksum,
+            storage_uri=str(target),
+            source_filename=Path(source_filename).name,
+            quality_report={**parsed.report, **(quality_metadata or {})},
+            status="draft",
+        )
+        session.add(dataset)
+        session.commit()
+    except Exception:
+        session.rollback()
+        try:
+            target.unlink(missing_ok=True)
+            target_dir.rmdir()
+        except OSError:
+            pass  # Preserve the original write/commit error; a nonempty directory is not ours to remove.
+        raise
     session.refresh(dataset)
     return dataset
 

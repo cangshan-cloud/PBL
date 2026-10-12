@@ -2,13 +2,15 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
 from app.db import Base
+from app.models import DatasetVersion
 from app.services.datasets import DatasetValidationError, import_csv, preview_dataset, publish_dataset_version, validate_csv
 
 
@@ -133,6 +135,50 @@ class DatasetPersistenceTests(unittest.TestCase):
             path.unlink()
             with self.assertRaises(FileNotFoundError):
                 publish_dataset_version(session, dataset)
+
+    def test_import_cleans_file_and_database_state_when_commit_fails(self):
+        data_root = Path(self.temp_dir.name)
+        existing = data_root / "course_demo" / "existing" / "keep.csv"
+        existing.parent.mkdir(parents=True)
+        existing.write_bytes(b"existing data")
+        with Session(self.engine) as session:
+            with patch.object(session, "commit", side_effect=RuntimeError("database unavailable")):
+                with self.assertRaisesRegex(RuntimeError, "database unavailable"):
+                    import_csv(
+                        session,
+                        content=VALID_CSV,
+                        source_filename="daily.csv",
+                        dataset_key="course_demo",
+                        name="课程演示数据",
+                        data_root=data_root,
+                    )
+            self.assertEqual(list(session.scalars(select(DatasetVersion))), [])
+        self.assertEqual(list(data_root.rglob("*.csv")), [existing])
+        self.assertEqual(existing.read_bytes(), b"existing data")
+        self.assertEqual(list((data_root / "course_demo").iterdir()), [existing.parent])
+
+    def test_import_cleans_partial_file_when_disk_write_fails(self):
+        data_root = Path(self.temp_dir.name)
+        original_write = Path.write_bytes
+
+        def partial_write(path: Path, content: bytes) -> int:
+            original_write(path, content[:10])
+            raise OSError("disk full")
+
+        with Session(self.engine) as session:
+            with patch.object(Path, "write_bytes", partial_write):
+                with self.assertRaisesRegex(OSError, "disk full"):
+                    import_csv(
+                        session,
+                        content=VALID_CSV,
+                        source_filename="daily.csv",
+                        dataset_key="course_demo",
+                        name="课程演示数据",
+                        data_root=data_root,
+                    )
+            self.assertEqual(list(session.scalars(select(DatasetVersion))), [])
+        self.assertEqual(list(data_root.rglob("*.csv")), [])
+        self.assertEqual(list((data_root / "course_demo").iterdir()), [])
 
 
 if __name__ == "__main__":
