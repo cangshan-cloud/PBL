@@ -9,6 +9,7 @@
 - `data/sample/`：固定演示数据。
 - `data/real/`：本地自行获取的真实 A 股小样本，默认不纳入 Git；来源与获取步骤见 [`docs/REAL_A_SHARE_SAMPLE.md`](docs/REAL_A_SHARE_SAMPLE.md)。
 - `docs/`：PRD、计划、学习路线和个人验收模板。
+- [`docs/CHANGE_INDEX.md`](docs/CHANGE_INDEX.md)：从当前基线起，统一索引每次修改的内容、代码位置、决策过程和验证证据。
 - `docker-compose.yml`：Web、API、Worker、PostgreSQL、Redis 的统一编排。
 
 ## 本地启动
