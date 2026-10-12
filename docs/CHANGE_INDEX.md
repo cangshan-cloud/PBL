@@ -20,6 +20,7 @@
 | DEC-20261012-011 | 2026-10-12 | decision-only / accepted | 历史股票池扩展的整体范围获最终确认 | [记录](changes/2026-10-12-012-expansion-shared-understanding.md) | `backend/app/domain/`、`backend/app/services/`、数据采集脚本与测试（拟涉及，无代码改动） |
 | CHG-20261012-002 | 2026-10-12 | implementation / partial | 新增历史沪深 300 数据探针，真实两交易日验证通过 | [记录](changes/2026-10-12-013-hs300-feasibility-probe.md) | `tools/probe_hs300_history.py`、`backend/tests/test_hs300_probe.py`、`docs/HS300_DATA_FEASIBILITY.md` |
 | CHG-20261012-003 | 2026-10-12 | evidence-only / partial | 年初年末历史成员端点有 28 出/28 入 | [记录](changes/2026-10-12-014-hs300-endpoint-check.md) | `docs/HS300_DATA_FEASIBILITY.md`（无代码改动） |
+| CHG-20261013-001 | 2026-10-13 | implementation + evidence / partial | 全年历史成员采集与 12 月官方调整边界核验 | [记录](changes/2026-10-13-001-full-year-hs300-members.md) | `tools/fetch_hs300_members.py`、`tools/verify_hs300_members.py`、`tools/verify_hs300_official_2024.py`、`backend/tests/test_hs300_probe.py` |
 
 ## 历史基线
 

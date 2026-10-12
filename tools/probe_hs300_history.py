@@ -34,11 +34,7 @@ def query_rows(result: object, required: set[str]) -> list[dict[str, str]]:
     return rows
 
 
-def collect(bs: object, start: str, end: str) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
-    calendar = query_rows(
-        bs.query_trade_dates(start_date=start, end_date=end),
-        {"calendar_date", "is_trading_day"},
-    )
+def validate_calendar(calendar: list[dict[str, str]], start: str, end: str) -> list[str]:
     expected = [(date.fromisoformat(row["calendar_date"]), row["is_trading_day"]) for row in calendar]
     if not expected or len({day for day, _ in expected}) != len(expected):
         raise ValueError("missing or duplicate calendar dates")
@@ -48,19 +44,36 @@ def collect(bs: object, start: str, end: str) -> tuple[list[dict[str, str]], lis
     if [day for day, _ in expected] != requested:
         raise ValueError("calendar does not cover every requested date in order")
 
+    return [day.isoformat() for day, flag in expected if flag == "1"]
+
+
+def normalize_members(rows: list[dict[str, str]], day_text: str) -> list[dict[str, str]]:
+    codes = [row["code"] for row in rows]
+    if len(codes) != 300 or len(set(codes)) != 300:
+        raise ValueError(f"{day_text}: expected 300 unique CSI 300 members, got {len(codes)}")
     members = []
-    for day, flag in expected:
-        if flag != "1":
-            continue
-        day_text = day.isoformat()
+    for row in rows:
+        code = row["code"]
+        market, sep, number = code.partition(".")
+        if sep != "." or market not in {"sh", "sz"} or len(number) != 6 or not number.isdigit():
+            raise ValueError(f"{day_text}: unexpected member code {code}")
+        update_date = row["updateDate"]
+        if not update_date or date.fromisoformat(update_date) > date.fromisoformat(day_text):
+            raise ValueError(f"{day_text}: invalid future/missing updateDate for {code}")
+        members.append({"query_date": day_text, "code": code, "update_date": update_date})
+    return sorted(members, key=lambda row: row["code"])
+
+
+def collect(bs: object, start: str, end: str) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    calendar = query_rows(
+        bs.query_trade_dates(start_date=start, end_date=end),
+        {"calendar_date", "is_trading_day"},
+    )
+    trading_days = validate_calendar(calendar, start, end)
+    members = []
+    for day_text in trading_days:
         rows = query_rows(bs.query_hs300_stocks(day_text), {"code", "updateDate"})
-        codes = [row["code"] for row in rows]
-        if len(codes) != 300 or len(set(codes)) != 300:
-            raise ValueError(f"{day_text}: expected 300 unique CSI 300 members, got {len(codes)}")
-        for row in rows:
-            if not row["code"].startswith(("sh.", "sz.")):
-                raise ValueError(f"{day_text}: unexpected member code {row['code']}")
-            members.append({"query_date": day_text, "code": row["code"], "update_date": row["updateDate"]})
+        members.extend(normalize_members(rows, day_text))
     return calendar, members
 
 
