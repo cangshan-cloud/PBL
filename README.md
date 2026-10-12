@@ -102,6 +102,8 @@ cd frontend && npm install && npm run dev
 make test
 ```
 
+每次推送和拉取请求会触发 [GitHub Actions CI](.github/workflows/ci.yml)，分别在 Linux 和 Windows 上执行后端测试、固定样例校验和前端生产构建。CI 不启动数据库或 Docker；完整 Compose 联调仍按 [`docs/ORBSTACK_DEPLOYMENT.md`](docs/ORBSTACK_DEPLOYMENT.md) 与 [`docs/MAC_E2E_ACCEPTANCE.md`](docs/MAC_E2E_ACCEPTANCE.md) 本地验收。
+
 ## 当前阶段边界
 
 研究实验和任务已经使用数据库持久化。Docker Compose 使用 PostgreSQL、Redis 和 Celery Worker；不使用 Docker 时默认采用 SQLite 和内联执行模式，方便在 macOS 或 Windows 上快速调试。
