@@ -15,7 +15,8 @@
 | DEC-20261012-006 | 2026-10-12 | decision-only / accepted | 2024 全年、按时点成分、价格和换手率因子边界 | [记录](changes/2026-10-12-007-universe-boundaries.md) | `backend/app/services/runs.py`、`backend/app/domain/factors.py`（只读依据） |
 | DEC-20261012-007 | 2026-10-12 | decision-only / accepted | 可交易性表述、逐日排除审计、t/t+1 与缺失状态原则 | [记录](changes/2026-10-12-008-tradability-claims.md) | `backend/app/services/reports.py`、`backend/app/services/reproducibility.py`（只读依据） |
 | DEC-20261012-008 | 2026-10-12 | decision-only / accepted | 连续日历窗口、次日 ST/零量和指数换出后的收益口径 | [记录](changes/2026-10-12-009-lookback-and-exits.md) | `backend/app/domain/factors.py`、`backend/app/domain/research.py`（只读依据） |
-| DEC-20261012-009 | 2026-10-12 | decision-only / open | 历史模式参数范围、不可变数据包与年末标签 | [记录](changes/2026-10-12-010-parameter-bundle-yearend.md) | `backend/app/domain/factors.py`、`backend/app/models.py`、`backend/app/services/datasets.py`（只读依据） |
+| DEC-20261012-009 | 2026-10-12 | decision-only / accepted | 历史模式参数范围、不可变数据包与年末标签 | [记录](changes/2026-10-12-010-parameter-bundle-yearend.md) | `backend/app/domain/factors.py`、`backend/app/models.py`、`backend/app/services/datasets.py`（只读依据） |
+| DEC-20261012-010 | 2026-10-12 | decision-only / open | 年初预热、成分生效核验与收益聚合样本口径 | [记录](changes/2026-10-12-011-warmup-provenance-aggregation.md) | `backend/app/domain/factors.py`、`backend/app/domain/research.py`、`backend/app/services/reports.py`（只读依据） |
 
 ## 历史基线
 
