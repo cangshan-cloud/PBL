@@ -98,6 +98,8 @@ pip install -e './backend[dev]'
 cd frontend && npm install && npm run dev
 ```
 
+若前端不在默认的 `http://localhost:5173`，启动 API 前设置 `CORS_ORIGINS` 为实际前端地址；多个地址用英文逗号分隔。该设置只控制浏览器跨域访问，不应填 `*` 用于共享部署。
+
 另开终端执行 `make api`。核心算法测试不需要第三方 Python 包：
 
 ```bash

@@ -3,6 +3,27 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlsplit
+
+
+def parse_cors_origins(value: str) -> tuple[str, ...]:
+    origins = tuple(item.strip() for item in value.split(",") if item.strip())
+    if not origins:
+        raise ValueError("CORS_ORIGINS must contain at least one origin")
+    for origin in origins:
+        parsed = urlsplit(origin)
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not parsed.hostname
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.path
+            or parsed.query
+            or parsed.fragment
+            or "*" in origin
+        ):
+            raise ValueError(f"CORS_ORIGINS contains an invalid origin: {origin}")
+    return origins
 
 
 @dataclass(frozen=True)
@@ -17,6 +38,7 @@ class Settings:
     bootstrap_admin_password: str
     bootstrap_researcher_password: str
     bootstrap_viewer_password: str
+    cors_origins: tuple[str, ...]
 
 
 def get_settings() -> Settings:
@@ -33,4 +55,5 @@ def get_settings() -> Settings:
         bootstrap_admin_password=os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "admin12345"),
         bootstrap_researcher_password=os.getenv("BOOTSTRAP_RESEARCHER_PASSWORD", "research12345"),
         bootstrap_viewer_password=os.getenv("BOOTSTRAP_VIEWER_PASSWORD", "viewer12345"),
+        cors_origins=parse_cors_origins(os.getenv("CORS_ORIGINS", "http://localhost:5173")),
     )

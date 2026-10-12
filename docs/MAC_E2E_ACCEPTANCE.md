@@ -15,6 +15,14 @@
 - `tools/verify_compose_stack.py` 以研究员身份使用已发布的 `demo_daily` 数据提交 20 日动量研究。任务 `e7a889c8-f178-469a-bf4c-bc687931b97c` 由 Celery Worker 日志确认接收和完成，API 状态 `success / 100%`，报告 HTML 与内嵌 SVG 图表可读取。
 - 该补验仅覆盖演示数据的容器化异步闭环；管理员上传 CSV 的浏览器操作与 Windows + WSL2 仍待验收。部署命令和注意事项见 `docs/ORBSTACK_DEPLOYMENT.md`。
 
+## 2026-10-12 隔离浏览器全流程补验
+
+- 因 OrbStack 已占用 8000/5173，本次以独立端口 18000/15173 启动 FastAPI/Vite，使用 `/private/tmp` 内的独立 SQLite 数据库与数据目录，并通过 `CORS_ORIGINS=http://127.0.0.1:15173` 允许该测试页面；未写入已有容器数据库。
+- 管理员在真实浏览器中上传仓库固定的 `data/sample/daily_prices.csv`，新建 `ui_acceptance` 草稿，质量页显示 2,400 行、20 只证券、12 字段且无缺失，并正常预览前 20 行；随后发布版本 `20261012.033644.863748`。
+- 研究员登录后默认选中新发布版本，运行 20 日动量、5 分组、10 bps 单边成本的研究，页面显示 1,980 个有效观测、99 个 IC 截面，任务完成并展示参数、代码指纹、日志及结论。浏览器下载事件确认 JSON 复现包和独立 HTML 报告均产生文件。
+- 只读用户登录后可看到新数据和报告预览，数据页没有导入表单，研究工作台显示禁用的“只读模式”按钮。
+- 截图证据：[只读模式](../output/playwright/viewer-readonly-2026-10-12.png)、[报告预览](../output/playwright/report-preview-2026-10-12.png)。此验收使用本地 SQLite 内联任务，不替代 Windows 或容器化上传链路验收。
+
 ## 本机复现步骤
 
 前提：已按 README 安装项目 Python 与前端依赖。打开两个终端，使用临时 SQLite 数据库，避免污染现有环境：
@@ -52,6 +60,6 @@ npm run dev -- --host 127.0.0.1
 
 ## 后续验收门槛
 
-- 取得浏览器上传授权后，补做管理员 CSV 导入、质量预览、发布及新版本研究。
+- 在 Windows 或 Compose 容器环境重做管理员 CSV 导入、质量预览、发布及新版本研究；Mac 隔离浏览器环境已于 2026-10-12 通过该流程。
 - 在 Windows + WSL2 环境重复 Compose、PostgreSQL、Redis、Celery Worker 的异步任务验收，并记录跨平台差异。
 - 在 Windows + WSL2 环境重复核心演示，并记录启动时间、页面截图与差异。
