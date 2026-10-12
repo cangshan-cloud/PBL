@@ -17,7 +17,8 @@
 | DEC-20261012-008 | 2026-10-12 | decision-only / accepted | 连续日历窗口、次日 ST/零量和指数换出后的收益口径 | [记录](changes/2026-10-12-009-lookback-and-exits.md) | `backend/app/domain/factors.py`、`backend/app/domain/research.py`（只读依据） |
 | DEC-20261012-009 | 2026-10-12 | decision-only / accepted | 历史模式参数范围、不可变数据包与年末标签 | [记录](changes/2026-10-12-010-parameter-bundle-yearend.md) | `backend/app/domain/factors.py`、`backend/app/models.py`、`backend/app/services/datasets.py`（只读依据） |
 | DEC-20261012-010 | 2026-10-12 | decision-only / accepted | 年初预热、成分生效核验与收益聚合样本口径 | [记录](changes/2026-10-12-011-warmup-provenance-aggregation.md) | `backend/app/domain/factors.py`、`backend/app/domain/research.py`、`backend/app/services/reports.py`（只读依据） |
-| DEC-20261012-011 | 2026-10-12 | decision-only / open | 历史股票池扩展的整体范围待最终确认 | [记录](changes/2026-10-12-012-expansion-shared-understanding.md) | `backend/app/domain/`、`backend/app/services/`、数据采集脚本与测试（拟涉及，无代码改动） |
+| DEC-20261012-011 | 2026-10-12 | decision-only / accepted | 历史股票池扩展的整体范围获最终确认 | [记录](changes/2026-10-12-012-expansion-shared-understanding.md) | `backend/app/domain/`、`backend/app/services/`、数据采集脚本与测试（拟涉及，无代码改动） |
+| CHG-20261012-002 | 2026-10-12 | implementation / partial | 新增历史沪深 300 数据探针，真实两交易日验证通过 | [记录](changes/2026-10-12-013-hs300-feasibility-probe.md) | `tools/probe_hs300_history.py`、`backend/tests/test_hs300_probe.py`、`docs/HS300_DATA_FEASIBILITY.md` |
 
 ## 历史基线
 
