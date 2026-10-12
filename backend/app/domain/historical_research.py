@@ -86,6 +86,7 @@ def calculate_historical_observations(
     observations: list[Observation] = []
     totals: Counter[str] = Counter()
     daily: list[dict[str, object]] = []
+    unlabeled_signals: list[dict[str, object]] = []
     for index, day in enumerate(calendar):
         if day not in members:
             continue  # Warmup and post-year days supply inputs/labels, never signal samples.
@@ -130,26 +131,30 @@ def calculate_historical_observations(
             else:
                 value = fmean(item.turnover for item in window_bars)
             counts["factor_signal"] += 1
+            label_reason = None
             if next_day is None:
-                counts["label_out_of_calendar"] += 1
-                continue
-            following = bars.get(symbol, {}).get(next_day)
-            if following is None:
-                counts["label_missing_row"] += 1
-                continue
-            if following.tradestatus not in {"0", "1"} or following.is_st not in {"0", "1"}:
-                raise ValueError(f"unknown next-day state: {next_day} {symbol}")
-            if following.tradestatus != "1":
-                counts["label_suspended"] += 1
-                continue
-            if following.is_st != "0":
-                counts["label_st"] += 1
-                continue
-            if following.volume is None or following.volume <= 0 or following.close is None or following.close <= 0:
-                counts["label_no_valid_trade"] += 1
+                label_reason = "label_out_of_calendar"
+            else:
+                following = bars.get(symbol, {}).get(next_day)
+                if following is None:
+                    label_reason = "label_missing_row"
+                elif following.tradestatus not in {"0", "1"} or following.is_st not in {"0", "1"}:
+                    raise ValueError(f"unknown next-day state: {next_day} {symbol}")
+                elif following.tradestatus != "1":
+                    label_reason = "label_suspended"
+                elif following.is_st != "0":
+                    label_reason = "label_st"
+                elif following.volume is None or following.volume <= 0 or following.close is None or following.close <= 0:
+                    label_reason = "label_no_valid_trade"
+            if label_reason:
+                counts[label_reason] += 1
+                unlabeled_signals.append({"date": day.isoformat(), "symbol": symbol,
+                                          "factor": value, "next_market_date": next_day.isoformat() if next_day else None,
+                                          "reason": label_reason})
                 continue
             observations.append(Observation(day, symbol, value, following.close / current.close - 1))
             counts["valid_return"] += 1
         totals.update(counts)
         daily.append({"date": day.isoformat(), **counts})
-    return observations, {"factor": factor, "totals": dict(totals), "daily": daily}
+    return observations, {"factor": factor, "totals": dict(totals), "daily": daily,
+                          "unlabeled_signals": unlabeled_signals}

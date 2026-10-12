@@ -25,6 +25,7 @@
 | CHG-20261013-003 | 2026-10-13 | implementation + evidence / partial | 历史沪深 300 离线不可变包封存与复验 | [记录](changes/2026-10-13-003-hs300-offline-bundle.md) | `tools/build_hs300_bundle.py`、`tools/verify_hs300_bundle.py`、`backend/tests/test_hs300_bundle.py`、`docs/HS300_BUNDLE.md` |
 | CHG-20261013-004 | 2026-10-13 | implementation / partial | 历史包平台注册、整包完整性核验与旧任务隔离 | [记录](changes/2026-10-13-004-hs300-platform-registration.md) | `backend/app/services/historical_bundle.py`、`backend/app/services/datasets.py`、`backend/app/services/runs.py`、`backend/app/main.py`、`backend/app/schemas.py`、`backend/tests/test_historical_bundle_registration.py`、`docs/HS300_BUNDLE.md` |
 | CHG-20261013-005 | 2026-10-13 | implementation + evidence / partial | 历史研究日历对齐因子与次日收益核心、逐日审计 | [记录](changes/2026-10-13-005-hs300-historical-core.md) | `backend/app/domain/historical_research.py`、`backend/tests/test_historical_research.py`、`docs/HS300_BUNDLE.md` |
+| CHG-20261013-006 | 2026-10-13 | implementation + evidence / partial | 历史包专用任务、指标与报告闭环，补无标签信号逐行审计 | [记录](changes/2026-10-13-006-hs300-platform-task.md) | `backend/app/schemas.py`、`backend/app/main.py`、`backend/app/services/runs.py`、`backend/app/services/reports.py`、`backend/app/domain/historical_research.py`、`backend/tests/test_historical_task.py`、`backend/tests/test_historical_research.py`、`docs/HS300_BUNDLE.md` |
 
 ## 历史基线
 

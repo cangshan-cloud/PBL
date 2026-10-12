@@ -38,6 +38,8 @@ class HistoricalResearchTests(unittest.TestCase):
         self.assertEqual(observations, [])
         self.assertEqual(audit["daily"][0]["factor_signal"], 1)
         self.assertEqual(audit["daily"][0]["label_suspended"], 1)
+        self.assertEqual(audit["unlabeled_signals"][0]["symbol"], "A")
+        self.assertEqual(audit["unlabeled_signals"][0]["reason"], "label_suspended")
         self.assertEqual(audit["daily"][1]["signal_suspended"], 1)
 
     def test_exit_on_next_day_still_has_label(self):

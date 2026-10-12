@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.domain.factors import calculate_factor, get_factor
 from app.domain.prices import apply_price_basis
 from app.domain.composite import combine_factor_observations
+from app.domain.historical_research import FACTOR_WINDOWS, calculate_historical_observations, load_historical_bundle
 from app.domain.research import evaluate
 from app.domain.research import Observation, PriceRow
 from app.models import Artifact, DatasetVersion, Experiment, FactorVersion, Run, RunLog, RunStatus
@@ -182,6 +183,38 @@ def create_composite_run(session: Session, parameters: dict, created_by_id: str 
     return get_run(session, run.id)
 
 
+def create_historical_run(session: Session, parameters: dict, created_by_id: str | None = None) -> Run:
+    dataset = session.get(DatasetVersion, parameters["dataset_version_id"])
+    if dataset is None:
+        raise LookupError("dataset version not found")
+    if dataset.status != "published" or (dataset.quality_report or {}).get("dataset_kind") != "hs300_bundle_v1":
+        raise ValueError("historical research requires a published CSI 300 bundle")
+    factor = ensure_composite_factor(session)
+    stored = {
+        "mode": "historical_hs300_2024", "dataset_version_id": dataset.id,
+        "groups": int(parameters.get("groups", 5)), "factors": list(FACTOR_WINDOWS),
+        "lookbacks": FACTOR_WINDOWS, "weighting": "equal", "price_basis": "source_close",
+        "components": [
+            {"key": key, "version": "1.0.0", "lookback": window, "weight": 0.25}
+            for key, window in FACTOR_WINDOWS.items()
+        ],
+        "winsorize": True, "standardize": True, "mad_scale": 3.0,
+        "transaction_cost_bps": 10.0,
+    }
+    if not 2 <= stored["groups"] <= 10:
+        raise ValueError("groups must be between 2 and 10")
+    experiment = Experiment(
+        name="2024沪深300历史四因子研究", dataset_version_id=dataset.id,
+        factor_version_id=factor.id, parameters=stored,
+        created_by_id=created_by_id, code_version=source_fingerprint(),
+    )
+    run = Run(experiment=experiment)
+    session.add(run)
+    session.commit()
+    add_run_log(session, run, "queued", "历史沪深300研究任务已创建")
+    return get_run(session, run.id)
+
+
 def get_run(session: Session, run_id: str) -> Run | None:
     return session.scalar(
         select(Run)
@@ -276,6 +309,39 @@ def execute_research_run(session: Session, run_id: str) -> Run:
             raise ValueError("研究任务的代码指纹与当前 Worker 不一致；请使用相同源码版本重试")
         parameters = run.experiment.parameters
         dataset = run.experiment.dataset_version
+        if parameters.get("mode") == "historical_hs300_2024":
+            if dataset.status != "published" or (dataset.quality_report or {}).get("dataset_kind") != "hs300_bundle_v1":
+                raise ValueError("historical research requires a published CSI 300 bundle")
+            calendar, members, bars = load_historical_bundle(Path(dataset.storage_uri), dataset.checksum)
+            add_run_log(session, run, "dataset_loaded", f"历史数据包校验通过：{len(calendar)}个市场日、{len(members)}个成员日")
+            components = {}
+            audit = {}
+            for key in FACTOR_WINDOWS:
+                components[key], audit[key] = calculate_historical_observations(calendar, members, bars, key)
+            observations, diagnostics = combine_factor_observations(
+                components, {key: 0.25 for key in FACTOR_WINDOWS},
+            )
+            add_run_log(session, run, "factor_calculated", f"四因子共同有效收益观测{len(observations)}条")
+            run = _stop_if_cancelled(session, run_id)
+            if run.status == RunStatus.CANCELLED:
+                return run
+            result = evaluate(observations, int(parameters["groups"]), winsorize=False,
+                              standardize=False, transaction_cost_bps=10.0)
+            result["composite"] = diagnostics
+            result["preprocessing"] = diagnostics["component_preprocessing"]
+            result["historical_audit"] = audit
+            result["sample"] = {
+                "price_basis": "source_close", "start_date": "2024-01-01",
+                "end_date": "2024-12-31", "resolved_symbol_count": len(bars),
+                "historical_bundle_id": (dataset.quality_report or {}).get("bundle_id"),
+                "interpretation": "conditional_research_not_executable_trading",
+            }
+            run.artifacts.append(Artifact(artifact_type="metrics", name="historical_hs300_result.json", content=result))
+            from app.services.reports import create_report_artifact
+            run.artifacts.append(create_report_artifact(run, result, get_settings().data_root))
+            session.commit()
+            transition(session, run, RunStatus.SUCCESS)
+            return get_run(session, run_id)
         rows = load_price_file(Path(dataset.storage_uri), expected_checksum=dataset.checksum)
         add_run_log(session, run, "dataset_loaded", f"数据校验通过，读取{len(rows)}行记录")
         rows = _filter_rows(rows, parameters.get("symbols"))

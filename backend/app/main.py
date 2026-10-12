@@ -14,7 +14,7 @@ from app.domain.factors import FACTOR_REGISTRY, get_factor
 from app.db import Base, engine, get_db
 from app.auth import authenticate, create_access_token, get_current_user, require_roles
 from app.models import Run, RunStatus, User, UserRole
-from app.schemas import ComparisonRequest, CompositeResearchRequest, DatasetPreviewResponse, DatasetVersionResponse, HistoricalBundleRegistrationRequest, LoginRequest, ReportSummaryResponse, ResearchRequest, RunLogResponse, RunResponse, TokenResponse, UserCreateRequest, UserResponse, UserUpdateRequest
+from app.schemas import ComparisonRequest, CompositeResearchRequest, DatasetPreviewResponse, DatasetVersionResponse, HistoricalBundleRegistrationRequest, HistoricalResearchRequest, LoginRequest, ReportSummaryResponse, ResearchRequest, RunLogResponse, RunResponse, TokenResponse, UserCreateRequest, UserResponse, UserUpdateRequest
 from app.services.catalog import ensure_composite_factor, ensure_demo_catalog, ensure_factor_catalog
 from app.services.cn_csv_adapter import adapt_cn_stock_csv
 from app.services.datasets import (
@@ -29,7 +29,7 @@ from app.services.datasets import (
 from app.services.dashboard import build_dashboard
 from app.services.comparisons import compare_runs, comparison_csv, comparison_html
 from app.services.conclusions import build_run_conclusion
-from app.services.runs import create_composite_run, create_research_run, execute_research_run, get_run, list_run_logs, list_runs, request_cancellation, serialize_run
+from app.services.runs import create_composite_run, create_historical_run, create_research_run, execute_research_run, get_run, list_run_logs, list_runs, request_cancellation, serialize_run
 from app.services.reports import get_report, list_reports, read_verified_report
 from app.services.reproducibility import build_reproducibility_bundle
 from app.tasks import celery_app, execute_research_run_task
@@ -233,6 +233,24 @@ def create_task(request: ResearchRequest, user: User = Depends(require_roles(Use
             run = get_run(session, run.id)
             if run is None:
                 raise HTTPException(500, "研究任务执行失败且状态不可读取")
+    else:
+        execute_research_run_task.apply_async(args=[run.id], task_id=run.id)
+    return serialize_run(run)
+
+
+@app.post("/api/v1/research/historical-tasks", response_model=RunResponse, status_code=201)
+def create_historical_task(request: HistoricalResearchRequest, user: User = Depends(require_roles(UserRole.ADMIN, UserRole.RESEARCHER)), session: Session = Depends(get_db)) -> dict:
+    try:
+        run = create_historical_run(session, request.model_dump(), created_by_id=user.id)
+    except LookupError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    if get_settings().task_execution_mode == "inline":
+        try:
+            run = execute_research_run(session, run.id)
+        except Exception:
+            run = get_run(session, run.id)
     else:
         execute_research_run_task.apply_async(args=[run.id], task_id=run.id)
     return serialize_run(run)

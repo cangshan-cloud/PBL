@@ -165,6 +165,22 @@ def build_report_html(run: Run, result: dict) -> str:
             "<h2>三、组合成分</h2><table><thead><tr><th>因子标识</th><th>版本</th><th>窗口</th><th>权重</th></tr></thead>"
             f"<tbody>{component_rows}</tbody></table><p>共同样本覆盖量：{int(composite.get('common_coverage', 0))}。成分缺失值不填零，统一取交集。</p>"
         )
+    historical = result.get("historical_audit")
+    if historical:
+        audit_rows = "".join(
+            f"<tr><td>{html.escape(key)}</td><td>{int(item['totals'].get('factor_signal', 0))}</td>"
+            f"<td>{int(item['totals'].get('valid_return', 0))}</td>"
+            f"<td>{int(item['totals'].get('invalid_contiguous_window', 0))}</td>"
+            f"<td>{int(item['totals'].get('label_suspended', 0))}</td></tr>"
+            for key, item in historical.items()
+        )
+        component_rows += (
+            '<h2>历史样本与排除审计</h2><p>2024 年按日历史成分、停牌/ST 与成交量筛选；'
+            '因子使用连续市场交易日窗口，收益仅取下一市场交易日。完整逐日计数见结构化结果。'
+            '这只是条件研究检验，不是可成交回测，也不能宣称完全消除偏差。</p>'
+            '<table><thead><tr><th>因子</th><th>有效因子信号</th><th>有效次日收益</th>'
+            '<th>窗口无效</th><th>次日停牌</th></tr></thead><tbody>' + audit_rows + '</tbody></table>'
+        )
     return f"""<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{html.escape(experiment.name)} · 因子研究报告</title>

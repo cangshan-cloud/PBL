@@ -71,6 +71,11 @@ class CompositeResearchRequest(BaseModel):
     transaction_cost_bps: float = Field(default=10.0, ge=0, le=100)
 
 
+class HistoricalResearchRequest(BaseModel):
+    dataset_version_id: str
+    groups: int = Field(default=5, ge=2, le=10)
+
+
 class ComparisonRequest(BaseModel):
     run_ids: list[str] = Field(min_length=2, max_length=6)
 
