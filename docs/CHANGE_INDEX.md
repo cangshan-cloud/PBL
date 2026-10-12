@@ -9,7 +9,8 @@
 | CHG-20261012-001 | 2026-10-12 | governance / implemented | 建立变更、决策记录与总索引；扩展讨论保持未决 | [记录](changes/2026-10-12-001-change-governance.md) | `docs/CHANGE_INDEX.md`、`docs/changes/TEMPLATE.md`、`README.md` |
 | DEC-20261012-001 | 2026-10-12 | decision-only / accepted | 扩展范围第一轮五项决定已获队长确认；具体扩展方案待后续轮次 | [记录](changes/2026-10-12-002-extension-frontier.md) | `docs/EXTENSION_OPTIONS.md`、`docs/PRD.md`、`docs/REAL_A_SHARE_SAMPLE.md`（只读依据） |
 | DEC-20261012-002 | 2026-10-12 | decision-only / accepted | 真实数据私域使用、三道时间闸门、研究主张证据标准 | [记录](changes/2026-10-12-003-extension-choice.md) | `tools/fetch_real_a_share_sample.py`、`backend/app/services/runs.py`（只读依据） |
-| DEC-20261012-003 | 2026-10-12 | decision-only / open | 唯一大扩展主线待队长选择 | [记录](changes/2026-10-12-004-extension-priority.md) | `docs/EXTENSION_OPTIONS.md`、`docs/REAL_A_SHARE_SAMPLE.md`（只读依据） |
+| DEC-20261012-003 | 2026-10-12 | decision-only / accepted | 唯一大扩展选择历史股票池与停牌/ST 可交易性口径 | [记录](changes/2026-10-12-004-extension-priority.md) | `docs/EXTENSION_OPTIONS.md`、`docs/REAL_A_SHARE_SAMPLE.md`（只读依据） |
+| DEC-20261012-004 | 2026-10-12 | decision-only / open | 扩展与既有演示的隔离及四人验收责任 | [记录](changes/2026-10-12-005-extension-integration.md) | `docs/TEAM_PLAN.md`、`backend/app/services/runs.py`（只读依据） |
 
 ## 历史基线
 
