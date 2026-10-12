@@ -13,7 +13,8 @@
 | DEC-20261012-004 | 2026-10-12 | decision-only / accepted | 扩展与既有演示隔离，四人各自提交署名验收证据 | [记录](changes/2026-10-12-005-extension-integration.md) | `docs/TEAM_PLAN.md`、`backend/app/services/runs.py`（只读依据） |
 | DEC-20261012-005 | 2026-10-12 | decision-only / accepted | 历史股票池首个范围确定为沪深 300 | [记录](changes/2026-10-12-006-universe-choice.md) | `tools/fetch_real_a_share_sample.py`、`docs/REAL_A_SHARE_SAMPLE.md`（只读依据） |
 | DEC-20261012-006 | 2026-10-12 | decision-only / accepted | 2024 全年、按时点成分、价格和换手率因子边界 | [记录](changes/2026-10-12-007-universe-boundaries.md) | `backend/app/services/runs.py`、`backend/app/domain/factors.py`（只读依据） |
-| DEC-20261012-007 | 2026-10-12 | decision-only / open | 可交易性表述边界与逐次排除审计待确认 | [记录](changes/2026-10-12-008-tradability-claims.md) | `backend/app/services/reports.py`、`backend/app/services/reproducibility.py`（只读依据） |
+| DEC-20261012-007 | 2026-10-12 | decision-only / accepted | 可交易性表述、逐日排除审计、t/t+1 与缺失状态原则 | [记录](changes/2026-10-12-008-tradability-claims.md) | `backend/app/services/reports.py`、`backend/app/services/reproducibility.py`（只读依据） |
+| DEC-20261012-008 | 2026-10-12 | decision-only / open | 回看窗口、次日 ST/零量和指数换出后的收益口径 | [记录](changes/2026-10-12-009-lookback-and-exits.md) | `backend/app/domain/factors.py`、`backend/app/domain/research.py`（只读依据） |
 
 ## 历史基线
 
