@@ -75,18 +75,19 @@ def run_journey(client: ApiClient, *, bundle_id: str, admin_password: str, resea
 
     output_dir.mkdir(parents=True, exist_ok=False)
     exports = {
-        "reproducibility.json": "reproducibility.json",
-        "historical-audit/daily.csv": "daily.csv",
-        "historical-audit/unlabeled.csv": "unlabeled.csv",
+        f"/research/tasks/{run['id']}/reproducibility.json": "reproducibility.json",
+        f"/research/tasks/{run['id']}/historical-audit/daily.csv": "daily.csv",
+        f"/research/tasks/{run['id']}/historical-audit/unlabeled.csv": "unlabeled.csv",
+        f"/reports/{run['id']}/download": "report.html",
     }
     for route, name in exports.items():
-        content, headers = client.request(f"/research/tasks/{run['id']}/{route}", token=researcher)
+        content, headers = client.request(route, token=researcher)
         disposition = next((value for key, value in headers.items() if key.lower() == "content-disposition"), "")
         if "attachment" not in disposition.lower():
             raise ValueError(f"{route}: missing attachment disposition")
         (output_dir / name).write_bytes(content)
     counts = verify_exports(output_dir / "reproducibility.json", output_dir / "daily.csv",
-                            output_dir / "unlabeled.csv")
+                            output_dir / "unlabeled.csv", output_dir / "report.html")
     return {"dataset_id": dataset["id"], "run_id": run["id"], "status": run["status"], **counts}
 
 
@@ -94,7 +95,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--api-url", required=True, help="API v1 URL of the isolated stack")
     parser.add_argument("--bundle-id", required=True, help="Locally available sealed CSI 300 bundle ID")
-    parser.add_argument("--output-dir", type=Path, required=True, help="New directory for the three HTTP exports")
+    parser.add_argument("--output-dir", type=Path, required=True, help="New directory for the four HTTP exports")
     parser.add_argument("--acknowledge-isolated-writes", action="store_true",
                         help="Confirm this may create dataset and task records in the target stack")
     args = parser.parse_args(argv)

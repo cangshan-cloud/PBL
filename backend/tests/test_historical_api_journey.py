@@ -46,16 +46,19 @@ class HistoricalApiJourneyTests(unittest.TestCase):
             client = FakeClient()
             with patch("verify_historical_api_journey.time.sleep"), patch(
                 "verify_historical_api_journey.verify_exports", return_value={
-                    "factors": 4, "daily_rows": 968, "unlabeled_rows": 32,
+                    "factors": 4, "daily_rows": 968, "unlabeled_rows": 32, "report_verified": True,
                 },
             ) as verify:
                 result = run_journey(client, bundle_id=self.bundle_id, admin_password="a", researcher_password="r",
                                      output_dir=output)
             self.assertEqual(result["run_id"], "run-1")
             self.assertEqual(result["daily_rows"], 968)
+            self.assertTrue(result["report_verified"])
             self.assertEqual((output / "daily.csv").read_bytes(), b"/research/tasks/run-1/historical-audit/daily.csv")
-            self.assertEqual(len(list(output.iterdir())), 3)
-            verify.assert_called_once()
+            self.assertEqual((output / "report.html").read_bytes(), b"/reports/run-1/download")
+            self.assertEqual(len(list(output.iterdir())), 4)
+            verify.assert_called_once_with(output / "reproducibility.json", output / "daily.csv",
+                                           output / "unlabeled.csv", output / "report.html")
             self.assertIn(("/datasets/register-hs300-bundle", "admin", {"bundle_id": self.bundle_id}), client.calls)
             self.assertIn(("/datasets/dataset-1/publish", "admin", {}), client.calls)
             self.assertIn(("/research/historical-tasks", "researcher",

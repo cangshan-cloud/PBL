@@ -22,6 +22,8 @@ class HistoricalAuditExportTests(unittest.TestCase):
         self.bundle_path = root / "run.json"
         self.daily_path = root / "daily.csv"
         self.unlabeled_path = root / "unlabeled.csv"
+        self.report_path = root / "report.html"
+        self.report_path.write_bytes(b"<html>verified report</html>")
         self.audit = {"momentum_20d": {
             "totals": {"candidate_count": 600, "factor_signal": 2, "valid_return": 1,
                        "label_suspended": 1},
@@ -50,7 +52,9 @@ class HistoricalAuditExportTests(unittest.TestCase):
     def _write_bundle(self, result):
         digest = hashlib.sha256(json.dumps(result, ensure_ascii=False, sort_keys=True,
                                            separators=(",", ":"), allow_nan=False).encode("utf-8")).hexdigest()
-        self.bundle_path.write_text(json.dumps({"result": result, "result_sha256": digest}), encoding="utf-8")
+        report_digest = hashlib.sha256(self.report_path.read_bytes()).hexdigest()
+        self.bundle_path.write_text(json.dumps({"result": result, "result_sha256": digest,
+                                               "report_sha256": report_digest}), encoding="utf-8")
 
     def test_valid_exports_match_bundle_and_counts(self):
         self.assertEqual(verify_exports(self.bundle_path, self.daily_path, self.unlabeled_path),
@@ -76,6 +80,19 @@ class HistoricalAuditExportTests(unittest.TestCase):
         self.bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "no valid result checksum"):
             verify_exports(self.bundle_path, self.daily_path, self.unlabeled_path)
+
+    def test_optional_html_report_checksum(self):
+        summary = verify_exports(self.bundle_path, self.daily_path, self.unlabeled_path, self.report_path)
+        self.assertTrue(summary["report_verified"])
+        self.report_path.write_bytes(b"<html>changed report</html>")
+        with self.assertRaisesRegex(ValueError, "report checksum mismatch"):
+            verify_exports(self.bundle_path, self.daily_path, self.unlabeled_path, self.report_path)
+        self.report_path.write_bytes(b"<html>verified report</html>")
+        bundle = json.loads(self.bundle_path.read_text(encoding="utf-8"))
+        bundle.pop("report_sha256")
+        self.bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "no valid report checksum"):
+            verify_exports(self.bundle_path, self.daily_path, self.unlabeled_path, self.report_path)
 
     def test_missing_historical_audit_is_rejected(self):
         self._write_bundle({})

@@ -28,7 +28,8 @@ def _csv_rows(path: Path, columns: list[str]) -> list[dict[str, str]]:
     return rows
 
 
-def verify_exports(bundle_path: Path, daily_path: Path, unlabeled_path: Path) -> dict[str, int]:
+def verify_exports(bundle_path: Path, daily_path: Path, unlabeled_path: Path,
+                   report_path: Path | None = None) -> dict[str, int | bool]:
     bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
     result = bundle.get("result")
     digest = bundle.get("result_sha256")
@@ -71,7 +72,17 @@ def verify_exports(bundle_path: Path, daily_path: Path, unlabeled_path: Path) ->
         raise ValueError("daily CSV does not match reproducibility audit")
     if _csv_rows(unlabeled_path, UNLABELED_COLUMNS) != expected_unlabeled:
         raise ValueError("unlabeled CSV does not match reproducibility audit")
-    return {"factors": len(audit), "daily_rows": len(expected_daily), "unlabeled_rows": len(expected_unlabeled)}
+    summary: dict[str, int | bool] = {
+        "factors": len(audit), "daily_rows": len(expected_daily), "unlabeled_rows": len(expected_unlabeled),
+    }
+    if report_path is not None:
+        report_digest = bundle.get("report_sha256")
+        if not isinstance(report_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", report_digest):
+            raise ValueError("reproducibility bundle has no valid report checksum")
+        if hashlib.sha256(report_path.read_bytes()).hexdigest() != report_digest:
+            raise ValueError("report checksum mismatch")
+        summary["report_verified"] = True
+    return summary
 
 
 def main() -> None:
@@ -79,13 +90,14 @@ def main() -> None:
     parser.add_argument("reproducibility_json", type=Path)
     parser.add_argument("daily_csv", type=Path)
     parser.add_argument("unlabeled_csv", type=Path)
+    parser.add_argument("--report-html", type=Path, help="Optional downloaded HTML report to verify against report_sha256")
     args = parser.parse_args()
     try:
-        result = verify_exports(args.reproducibility_json, args.daily_csv, args.unlabeled_csv)
+        result = verify_exports(args.reproducibility_json, args.daily_csv, args.unlabeled_csv, args.report_html)
     except (OSError, UnicodeError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
         parser.exit(1, f"审计导出核验失败：{exc}\n")
     print(f"审计导出核验通过：{result['factors']} 个因子，{result['daily_rows']} 行逐日审计，"
-          f"{result['unlabeled_rows']} 条无标签信号")
+          f"{result['unlabeled_rows']} 条无标签信号" + ("，HTML 报告摘要通过" if result.get("report_verified") else ""))
 
 
 if __name__ == "__main__":
