@@ -128,6 +128,7 @@ Mac 本地端到端验收的已通过步骤、环境限制和复现方法见 [`d
 课程答辩前的只读账号/数据预检与十分钟彩排剧本见 [`docs/DEMO_REHEARSAL.md`](docs/DEMO_REHEARSAL.md)。
 
 截至 2026-10-12 的成果、PRD 差距与后续计划见 [`docs/PROJECT_STATUS_2026-10-12.md`](docs/PROJECT_STATUS_2026-10-12.md)。
+逐项需求、实现位置、测试证据和放行缺口见 [`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md`](docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md)。
 扩展项的价值、数据前提和建议顺序见 [`docs/EXTENSION_OPTIONS.md`](docs/EXTENSION_OPTIONS.md)。
 
 300 只股票、3 年日频的单因子性能基准可运行 `make benchmark-prd`；Mac 实测结果和计时边界见 [`docs/PERFORMANCE_ACCEPTANCE.md`](docs/PERFORMANCE_ACCEPTANCE.md)。
