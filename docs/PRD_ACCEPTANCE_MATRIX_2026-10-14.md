@@ -31,12 +31,12 @@
 ## 自动化与环境证据
 
 - 本机虚拟环境：`130` 项后端测试通过；黄金结果脚本在 `PYTHONIOENCODING=cp1252` 下通过；前端生产构建通过。历史采集测试曾在模拟“未安装 BaoStock”条件下 `129` 项通过，见 [CHG-20261014-018](changes/2026-10-14-018-optional-baostock-test-isolation.md)。
-- GitHub Actions：提交 `8ab9252` 的 [运行 #38538602151](https://github.com/cangshan-cloud/PBL/actions/runs/38538602151) 在 Ubuntu、Windows 后端测试均失败。测试隔离修复提交 `08e512b` 的 [运行 #38539572865](https://github.com/cangshan-cloud/PBL/actions/runs/38539572865) 让 Ubuntu job 全部成功，但 Windows 仍在后端测试失败。显式 UTF-8 修正提交 `2c5698f` 的 [运行 #38540261543](https://github.com/cangshan-cloud/PBL/actions/runs/38540261543) 使 Windows 后端测试通过，失败点转到黄金结果验算。将 `PYTHONIOENCODING=cp1252` 用于本机脚本后复现了中文成功提示的 `UnicodeEncodeError`；本轮已改为 ASCII 输出并加回归测试，**远端仍需重跑**。
+- GitHub Actions：提交 `8ab9252` 的 [运行 #38538602151](https://github.com/cangshan-cloud/PBL/actions/runs/38538602151) 在 Ubuntu、Windows 后端测试均失败。测试隔离修复 `08e512b` 的 [运行 #38539572865](https://github.com/cangshan-cloud/PBL/actions/runs/38539572865) 让 Ubuntu 全部成功，Windows 仍失败；显式 UTF-8 修复 `2c5698f` 的 [运行 #38540261543](https://github.com/cangshan-cloud/PBL/actions/runs/38540261543) 使 Windows 后端测试通过，失败点转到黄金验算。`PYTHONIOENCODING=cp1252` 在本机复现了中文成功提示的 `UnicodeEncodeError`；改为 ASCII 并加回归后，提交 `c376d4a` 的 [运行 #38540761105](https://github.com/cangshan-cloud/PBL/actions/runs/38540761105) 公开页面显示整条工作流 **Success**（Ubuntu、Windows 矩阵均完成）。
 - CI 的 Windows runner 通过，也只证明工作流所含单元测试、黄金验算与前端构建；不能代替 Windows Docker/WSL2 离线部署和浏览器验收。
 
 ## 下一步顺序与放行门槛
 
-1. **先修复／确认 CI**：Ubuntu 和 Windows 两个 job 均成功，再把运行链接写入本表；若仍失败，保留失败证据并定位新失败步骤。
+1. **保持 CI 绿色**：代码基线 `c376d4a` 的 Ubuntu/Windows CI 已成功；后续每次修改继续检查新运行。CI 不覆盖 Compose 和浏览器验收。
 2. **冻结第一次汇报可演示范围**：使用固定演示 CSV 跑登录→发布版本→异步研究→图表／报告→只读权限；历史私有包作为有条件扩展证据，不依赖现场联网采集。演示词区分“软件检验”和“投资结论”。
 3. **补真实个人验收**：B 填来源和质量，C 填公式和独立验算，D 填剧本耗时、缺陷和页面检查，A 填部署与集成；各自署名、自测并交叉检查。这里的 25% 是责任包约定，不代表凭现有代码可证明四人已完成等量工作。
 4. **课程决策点**：确认导师是否要求 Parquet/DuckDB、中性化或服务端 PDF。如果没有明确评分要求，以按时完成可复现闭环为先，更新 PRD 偏差说明；若有，则先做数据与测试设计，再排实现，不隐瞒缺口。
