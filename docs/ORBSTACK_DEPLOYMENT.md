@@ -60,3 +60,32 @@ Windows + WSL2 的最终验收仍需在 Windows 主机重复；本页只记录 m
 由于现有 `fbl` 数据库没有历史任务，成功下载路径另用 `factorlab-hs300-csv-qa` 隔离 Compose 项目验证。独立数据库、Redis、运行目录与不发布宿主机 API 端口的设置避免污染演示栈；仓库中 Git 忽略的私有历史包由 API/Worker 共同读取。经 HTTP 注册并发布历史包、提交历史任务后，Celery 任务 `6a006e4a-d513-4f3f-aa21-e103d2cfcf14` 成功；以研究员身份通过容器 API 下载复现 JSON、逐日 CSV、无标签 CSV，响应均带附件文件名。独立核对工具确认 4 个因子、968 行逐日审计、32 条无标签信号。该隔离项目的容器、网络、专用 PostgreSQL 测试卷已按准确项目名删除；主 `fbl` 栈和 26 条既有任务保留。临时导出文件仅位于 `/private/tmp/fbl-hs300-csv-qa-runtime/csv-qa/`，不纳入 Git。
 
 此验收证明当前 macOS/OrbStack 镜像中的 API→Redis→Worker→HTTP 审计下载链路；不代表 Windows、多人并发或生产级安全已经验收。
+
+### 可重复的隔离历史任务验收工具
+
+`tools/verify_historical_api_journey.py` 把注册/发布私有包、提交历史任务、等待 Worker、下载复现 JSON 和两份 CSV、核对审计结果串成一次验收。**它会写入数据集和任务记录**，必须先准备独立 Compose 项目；命令行还要求显式传入 `--acknowledge-isolated-writes`。输出目录必须不存在，工具拒绝覆盖已有证据。没有本机封存包时无法运行。
+
+Mac 上可在仓库外创建临时 override（路径按本机实际调整），使 API 只发布隔离的 18000 端口，并让 API/Worker 共享隔离运行目录：
+
+```yaml
+services:
+  api:
+    ports: !override ["127.0.0.1:18000:8000"]
+    volumes:
+      - /private/tmp/factorlab-hs300-qa-runtime:/data/runtime
+  worker:
+    volumes:
+      - /private/tmp/factorlab-hs300-qa-runtime:/data/runtime
+```
+
+先用 `docker compose -p factorlab-hs300-qa -f docker-compose.yml -f <override文件> up --build -d db redis api worker` 启动。然后在宿主机设置 `FACTORLAB_HISTORICAL_ADMIN_PASSWORD` 和 `FACTORLAB_HISTORICAL_RESEARCHER_PASSWORD`，运行：
+
+```bash
+python3 tools/verify_historical_api_journey.py \
+  --api-url http://127.0.0.1:18000/api/v1 \
+  --bundle-id hs300_2024_0375298bd2c8ac52 \
+  --output-dir /private/tmp/factorlab-hs300-qa-evidence \
+  --acknowledge-isolated-writes
+```
+
+不要对主 `fbl` 栈使用这条写入式命令。确认测试项目名后，仅对它执行 `docker compose -p factorlab-hs300-qa -f docker-compose.yml -f <override文件> down -v` 清理其测试数据库卷；导出证据目录不会被此命令删除。Compose 普通端口列表会与基础文件叠加，因此要用 `!override` 替换端口列表，否则仍会尝试占用主栈的 8000 端口。

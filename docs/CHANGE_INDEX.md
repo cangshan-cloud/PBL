@@ -37,6 +37,7 @@
 | CHG-20261014-008 | 2026-10-14 | deployment recovery + tool / verified | 定向重启 API/Web 恢复 OrbStack 宿主机入口，预检增加前端检查 | [记录](changes/2026-10-14-008-orbstack-port-recovery.md) | `tools/check_demo_readiness.py`、`backend/tests/test_demo_readiness.py`、`docs/ORBSTACK_DEPLOYMENT.md`、`docs/DEMO_REHEARSAL.md` |
 | CHG-20261014-009 | 2026-10-14 | deployment + evidence-only / verified | 更新现有 OrbStack API/Worker/Web，隔离容器完成历史审计 CSV 队列与下载验收 | [记录](changes/2026-10-14-009-orbstack-csv-deployment.md) | `docs/ORBSTACK_DEPLOYMENT.md`、`docs/CHANGE_INDEX.md`（无代码改动） |
 | CHG-20261014-010 | 2026-10-14 | tool + tests + documentation / implemented | 演示预检通过只读预览验证演示 CSV 与可选历史包文件完整性 | [记录](changes/2026-10-14-010-demo-file-integrity-preflight.md) | `tools/check_demo_readiness.py`、`backend/tests/test_demo_readiness.py`、`docs/DEMO_REHEARSAL.md` |
+| CHG-20261014-011 | 2026-10-14 | tool + tests + evidence / verified | 固化历史私有包 API/Worker 隔离验收与三文件审计核对 | [记录](changes/2026-10-14-011-repeatable-historical-api-qa.md) | `tools/verify_historical_api_journey.py`、`backend/tests/test_historical_api_journey.py`、`docs/ORBSTACK_DEPLOYMENT.md`、`docs/HS300_BUNDLE.md` |
 
 ## 历史基线
 
