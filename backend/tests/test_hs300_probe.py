@@ -2,6 +2,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
 
@@ -40,6 +41,11 @@ class Source:
 
 
 class Hs300ProbeTests(unittest.TestCase):
+    def setUp(self):
+        version = patch("fetch_hs300_members.importlib.metadata.version", return_value="0.9.4")
+        version.start()
+        self.addCleanup(version.stop)
+
     def test_collects_only_trading_day_rosters_and_preserves_source_update_date(self):
         source = Source([["2024-06-28", "1"], ["2024-06-29", "0"], ["2024-06-30", "0"], ["2024-07-01", "1"]])
         calendar, members = collect(source, "2024-06-28", "2024-07-01")

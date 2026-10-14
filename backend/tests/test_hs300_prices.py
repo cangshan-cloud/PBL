@@ -44,6 +44,11 @@ class Source:
 
 
 class Hs300PricesTests(unittest.TestCase):
+    def setUp(self):
+        version = patch("fetch_hs300_prices.importlib.metadata.version", return_value="0.9.4")
+        version.start()
+        self.addCleanup(version.stop)
+
     def test_preserves_suspended_row_without_filling_price(self):
         rows = normalize_rows([source_row("2024-01-03", status="0", close="10", volume="")], "sh.600000", {"2024-01-03"})
         self.assertEqual(rows[0]["tradestatus"], "0")
