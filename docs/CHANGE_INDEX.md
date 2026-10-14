@@ -28,6 +28,7 @@
 | CHG-20261013-006 | 2026-10-13 | implementation + evidence / partial | 历史包专用任务、指标与报告闭环，补无标签信号逐行审计 | [记录](changes/2026-10-13-006-hs300-platform-task.md) | `backend/app/schemas.py`、`backend/app/main.py`、`backend/app/services/runs.py`、`backend/app/services/reports.py`、`backend/app/domain/historical_research.py`、`backend/tests/test_historical_task.py`、`backend/tests/test_historical_research.py`、`docs/HS300_BUNDLE.md` |
 | CHG-20261013-007 | 2026-10-13 | implementation / partial | 历史包网页注册、历史研究模式与审计摘要展示 | [记录](changes/2026-10-13-007-hs300-web-entry.md) | `frontend/src/main.tsx`、`frontend/src/styles.css`、`backend/app/services/datasets.py`、`backend/tests/test_historical_bundle_registration.py`、`docs/HS300_BUNDLE.md` |
 | CHG-20261014-001 | 2026-10-14 | browser QA + correction / implemented | 真实浏览器闭环验收，修正历史包质量标签、旧模式筛选和报告建议 | [记录](changes/2026-10-14-001-hs300-browser-qa.md) | `frontend/src/main.tsx`、`backend/app/services/conclusions.py`、`backend/app/services/reports.py`、`backend/tests/test_historical_task.py`、`docs/HS300_BUNDLE.md` |
+| CHG-20261014-002 | 2026-10-14 | evidence-only / verified | OrbStack 隔离项目完成历史私有包 Redis→Celery→报告验收 | [记录](changes/2026-10-14-002-hs300-orbstack-isolated-qa.md) | `docs/ORBSTACK_DEPLOYMENT.md`（无代码改动） |
 
 ## 历史基线
 

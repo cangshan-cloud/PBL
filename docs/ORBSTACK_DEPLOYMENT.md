@@ -39,6 +39,14 @@ FACTORLAB_SMOKE_PASSWORD=research12345 python3 tools/verify_compose_stack.py
 
 2026-10-12 在 macOS OrbStack 实测：五个服务启动，API 健康检查通过，Worker `inspect ping` 返回 `pong`；验收脚本创建的运行 `ca31ae86-3ac3-4253-8bdc-5d2518f7ee41` 达到 `success / 100%`，Worker 日志确认接收并完成，HTML 报告含 SVG 图表。该结论只覆盖本机演示数据，不代表真实 A 股数据源或 Windows 环境已经验收。
 
+### 2026-10-14：历史沪深 300 私有包的隔离容器验收
+
+本次为避免改动已有 `fbl` 容器及数据库，使用单独的 Compose 项目 `factorlab-hs300-qa`、单独 PostgreSQL 命名卷和 `/private/tmp/fbl-hs300-qa-runtime` 运行目录；只启动 db、redis、api、worker，不启动 web，也不向宿主机发布 API 端口。API 与 Worker 仍共同挂载仓库 `data/`，因此能读取同一份未纳入 Git 的 `data/real/bundles/hs300_2024_0375298bd2c8ac52`。这属于本机私有验收环境，不是可分发的公开测试夹具。
+
+新构建的 API、Worker 镜像各自一次性加载历史包并计算 `momentum_20d`，均得到 292 个行情日、242 个 2024 年成分交易日、328 只股票及 72,366 条有效因子观察。隔离环境中注册并发布该包后，通过 Redis 向 Celery 提交专用历史研究任务 `f7e564f0-b0bb-471b-aa9c-210cb35f1b0b`：Worker 日志确认收到任务并于约 6.52 秒后完成；数据库状态为 `success`，生成 43,427 字节 HTML 报告，报告完整性读取通过，再现性包含非空结果和报告 SHA-256。源数据目录记录 95,776 行。此次验证覆盖容器内私有包可见性、队列执行与产物完整性，不覆盖公网/多人安全加固、Windows 或容器前端浏览器流程；浏览器流程见 [`HS300_BUNDLE.md`](HS300_BUNDLE.md)。
+
+复现时应先确认私有包存在并通过 `tools/verify_hs300_bundle.py`，且避免对已有项目使用 `down -v`。隔离项目需要独立的 Compose override：清空 API 发布端口，把 API/Worker 的 `/data/runtime` 同时绑定到一个临时目录，再以 `docker compose -p factorlab-hs300-qa -f docker-compose.yml -f <override文件>` 构建并启动 `db redis api worker`。验收结束只对**准确的隔离项目名及其测试卷**执行 `down -v`；不能省略 `-p` 或把此命令用于 `fbl`。
+
 只停止容器并保留数据：`docker compose down`。不要在需要保留数据时使用 `docker compose down -v`，后者会删除数据库卷。Mac 上关闭 OrbStack 可用 `orb stop`，但这会影响本机其他容器项目，应先确认没有其他工作负载。
 
 Windows + WSL2 的最终验收仍需在 Windows 主机重复；本页只记录 macOS 的 OrbStack 方式。
