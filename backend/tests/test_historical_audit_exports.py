@@ -1,3 +1,4 @@
+import hashlib
 import json
 import sys
 import tempfile
@@ -39,12 +40,17 @@ class HistoricalAuditExportTests(unittest.TestCase):
         self.temp.cleanup()
 
     def _write_exports(self):
-        self.bundle_path.write_text(json.dumps({"result": {"historical_audit": self.audit}}), encoding="utf-8")
+        self._write_bundle({"historical_audit": self.audit, "ic_mean": 0.1})
         run = SimpleNamespace(status=RunStatus.SUCCESS, artifacts=[
             SimpleNamespace(artifact_type="metrics", content={"historical_audit": self.audit}),
         ])
         self.daily_path.write_bytes(historical_audit_csv(run, "daily"))
         self.unlabeled_path.write_bytes(historical_audit_csv(run, "unlabeled"))
+
+    def _write_bundle(self, result):
+        digest = hashlib.sha256(json.dumps(result, ensure_ascii=False, sort_keys=True,
+                                           separators=(",", ":"), allow_nan=False).encode("utf-8")).hexdigest()
+        self.bundle_path.write_text(json.dumps({"result": result, "result_sha256": digest}), encoding="utf-8")
 
     def test_valid_exports_match_bundle_and_counts(self):
         self.assertEqual(verify_exports(self.bundle_path, self.daily_path, self.unlabeled_path),
@@ -56,12 +62,23 @@ class HistoricalAuditExportTests(unittest.TestCase):
             verify_exports(self.bundle_path, self.daily_path, self.unlabeled_path)
         self._write_exports()
         self.audit["momentum_20d"]["totals"]["valid_return"] = 2
-        self.bundle_path.write_text(json.dumps({"result": {"historical_audit": self.audit}}), encoding="utf-8")
+        self._write_bundle({"historical_audit": self.audit, "ic_mean": 0.1})
         with self.assertRaisesRegex(ValueError, "daily totals disagree"):
             verify_exports(self.bundle_path, self.daily_path, self.unlabeled_path)
 
+    def test_changed_non_audit_metric_and_missing_checksum_are_rejected(self):
+        bundle = json.loads(self.bundle_path.read_text(encoding="utf-8"))
+        bundle["result"]["ic_mean"] = 0.2
+        self.bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "result checksum mismatch"):
+            verify_exports(self.bundle_path, self.daily_path, self.unlabeled_path)
+        bundle.pop("result_sha256")
+        self.bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "no valid result checksum"):
+            verify_exports(self.bundle_path, self.daily_path, self.unlabeled_path)
+
     def test_missing_historical_audit_is_rejected(self):
-        self.bundle_path.write_text('{"result": {}}', encoding="utf-8")
+        self._write_bundle({})
         with self.assertRaisesRegex(ValueError, "no historical audit"):
             verify_exports(self.bundle_path, self.daily_path, self.unlabeled_path)
 

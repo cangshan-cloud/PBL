@@ -42,6 +42,7 @@
 | CHG-20261014-013 | 2026-10-14 | research correctness + report wording / implemented | 结构化结论按有效 IC 截面计数，历史报告股票池风险文案分流 | [记录](changes/2026-10-14-013-valid-ic-conclusion.md) | `backend/app/services/conclusions.py`、`backend/app/services/reports.py`、相关测试、`docs/RESEARCH_CONCLUSION.md`、`docs/HS300_BUNDLE.md` |
 | CHG-20261014-014 | 2026-10-14 | product report + tests + evidence / verified | 多因子 HTML 报告收录已保存的因子相关矩阵 | [记录](changes/2026-10-14-014-report-correlation-matrix.md) | `backend/app/services/reports.py`、`backend/tests/test_composite.py`、`backend/tests/test_historical_task.py`、`backend/tests/test_reports.py`、`docs/MULTI_FACTOR_ANALYSIS.md`、`docs/HS300_BUNDLE.md` |
 | CHG-20261014-015 | 2026-10-14 | research correctness + tests / verified | 多因子共同样本拒绝重复观测和冲突收益标签，固定相关计算顺序 | [记录](changes/2026-10-14-015-composite-alignment-guard.md) | `backend/app/domain/composite.py`、`backend/tests/test_composite.py`、`docs/MULTI_FACTOR_ANALYSIS.md` |
+| CHG-20261014-016 | 2026-10-14 | evidence integrity + tests / verified | 历史审计独立核对增加复现结果 SHA-256 摘要验证 | [记录](changes/2026-10-14-016-result-digest-reconciliation.md) | `tools/verify_historical_audit_exports.py`、`backend/tests/test_historical_audit_exports.py`、`docs/HS300_BUNDLE.md` |
 
 ## 历史基线
 

@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
+import re
 from pathlib import Path
 
 
@@ -28,7 +30,14 @@ def _csv_rows(path: Path, columns: list[str]) -> list[dict[str, str]]:
 
 def verify_exports(bundle_path: Path, daily_path: Path, unlabeled_path: Path) -> dict[str, int]:
     bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
-    audit = (bundle.get("result") or {}).get("historical_audit")
+    result = bundle.get("result")
+    digest = bundle.get("result_sha256")
+    if not isinstance(result, dict) or not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+        raise ValueError("reproducibility bundle has no valid result checksum")
+    canonical = json.dumps(result, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    if hashlib.sha256(canonical.encode("utf-8")).hexdigest() != digest:
+        raise ValueError("reproducibility result checksum mismatch")
+    audit = result.get("historical_audit")
     if not isinstance(audit, dict) or not audit:
         raise ValueError("reproducibility bundle has no historical audit")
 
