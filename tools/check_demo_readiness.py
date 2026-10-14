@@ -9,13 +9,17 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
+import subprocess
 import sys
+from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
 FACTORS = {"momentum_20d", "reversal_5d", "volatility_20d", "turnover_20d", "market_cap", "pe"}
 ROLES = ("admin", "researcher", "viewer")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 class ApiClient:
@@ -109,23 +113,47 @@ def check_readiness(client: ApiClient, passwords: dict[str, str], *, require_his
     return checks
 
 
+def check_worker(*, compose_project: str | None = None) -> None:
+    """Ping Celery through the selected Compose worker without creating a task."""
+    command = ["docker", "compose"]
+    if compose_project:
+        command.extend(["-p", compose_project])
+    command.extend(["exec", "-T", "worker", "celery", "-A", "app.tasks:celery_app",
+                    "inspect", "ping", "--timeout=5"])
+    try:
+        result = subprocess.run(command, cwd=PROJECT_ROOT, capture_output=True, text=True, timeout=20, check=False)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise RuntimeError(f"worker ping could not run: {exc}") from exc
+    if result.returncode != 0 or not re.search(r"(?m)^\s*pong\s*$", result.stdout):
+        detail = (result.stderr or result.stdout).strip()[:300]
+        raise RuntimeError(f"worker did not answer Celery ping (exit {result.returncode}): {detail}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--api-url", default=os.getenv("FACTORLAB_DEMO_API_URL", "http://127.0.0.1:8000/api/v1"))
     parser.add_argument("--web-url", default=os.getenv("FACTORLAB_DEMO_WEB_URL", "http://127.0.0.1:5173/"))
     parser.add_argument("--require-historical", action="store_true", help="Require a published CSI 300 bundle with intact local files")
+    parser.add_argument("--check-worker", action="store_true", help="Read-only Celery ping through Docker Compose")
+    parser.add_argument("--compose-project", help="Compose project for --check-worker; defaults to the repository project")
     args = parser.parse_args()
+    if args.compose_project and not args.check_worker:
+        parser.error("--compose-project requires --check-worker")
     passwords = {role: os.getenv(f"FACTORLAB_DEMO_{role.upper()}_PASSWORD", "") for role in ROLES}
     try:
         check_web_page(args.web_url)
         checks = check_readiness(ApiClient(args.api_url), passwords, require_historical=args.require_historical)
+        if args.check_worker:
+            check_worker(compose_project=args.compose_project)
+            checks.append("Celery worker answered Compose ping")
     except (RuntimeError, ValueError, KeyError, TypeError) as exc:
         print(f"FAIL 演示就绪检查：{exc}", file=sys.stderr)
         return 1
     print("PASS FactorLab web entry reachable from this host")
     for check in checks:
         print(f"PASS {check}")
-    print("只读预检通过；尚未验证新任务执行、报告内容、浏览器和 Worker。")
+    print("只读预检通过；尚未验证新任务执行、报告内容和浏览器交互。" if args.check_worker else
+          "只读预检通过；尚未验证新任务执行、报告内容、浏览器交互和 Worker。")
     return 0
 
 

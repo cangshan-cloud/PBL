@@ -1,11 +1,12 @@
 import sys
+import subprocess
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from tools.check_demo_readiness import FACTORS, check_readiness, check_web_page
+from tools.check_demo_readiness import FACTORS, check_readiness, check_web_page, check_worker
 
 
 class FakeClient:
@@ -105,6 +106,27 @@ class DemoReadinessTests(unittest.TestCase):
         with patch("tools.check_demo_readiness.urlopen", return_value=WrongPage()):
             with self.assertRaisesRegex(ValueError, "not the FactorLab"):
                 check_web_page("http://127.0.0.1:5173/")
+
+    def test_optional_worker_ping_is_read_only_and_project_scoped(self):
+        response = subprocess.CompletedProcess(args=[], returncode=0, stdout="-> celery@worker: OK\n    pong\n", stderr="")
+        with patch("tools.check_demo_readiness.subprocess.run", return_value=response) as run:
+            check_worker(compose_project="factorlab-hs300-qa")
+        command = run.call_args.args[0]
+        self.assertEqual(command[:4], ["docker", "compose", "-p", "factorlab-hs300-qa"])
+        self.assertEqual(command[4:7], ["exec", "-T", "worker"])
+        self.assertEqual(command[-3:], ["inspect", "ping", "--timeout=5"])
+        self.assertNotIn("apply_async", command)
+        self.assertFalse(run.call_args.kwargs["check"])
+
+    def test_worker_ping_failure_and_missing_docker_fail_closed(self):
+        with patch("tools.check_demo_readiness.subprocess.run", return_value=subprocess.CompletedProcess(
+            args=[], returncode=0, stdout="1 node online, but no pong", stderr="",
+        )):
+            with self.assertRaisesRegex(RuntimeError, "did not answer"):
+                check_worker()
+        with patch("tools.check_demo_readiness.subprocess.run", side_effect=FileNotFoundError("docker")):
+            with self.assertRaisesRegex(RuntimeError, "could not run"):
+                check_worker()
 
 
 if __name__ == "__main__":
