@@ -125,6 +125,7 @@ make test
 第一次导师阶段汇报初稿见 [`docs/FIRST_MENTOR_REPORT.md`](docs/FIRST_MENTOR_REPORT.md)。
 
 Mac 本地端到端验收的已通过步骤、环境限制和复现方法见 [`docs/MAC_E2E_ACCEPTANCE.md`](docs/MAC_E2E_ACCEPTANCE.md)。
+课程答辩前的只读账号/数据预检与十分钟彩排剧本见 [`docs/DEMO_REHEARSAL.md`](docs/DEMO_REHEARSAL.md)。
 
 截至 2026-10-12 的成果、PRD 差距与后续计划见 [`docs/PROJECT_STATUS_2026-10-12.md`](docs/PROJECT_STATUS_2026-10-12.md)。
 扩展项的价值、数据前提和建议顺序见 [`docs/EXTENSION_OPTIONS.md`](docs/EXTENSION_OPTIONS.md)。

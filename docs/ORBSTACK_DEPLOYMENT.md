@@ -20,6 +20,8 @@ docker compose ps
 
 `docker compose ps` 中数据库、Redis、API 和 Worker 应显示 `healthy`；Worker 健康检查会向当前容器对应的 Celery 节点发送定向 `ping`，不是只检查进程存在。前端应显示 `Up`。
 
+容器健康只证明容器内部检查通过，仍须从宿主机实际访问前端和 API。2026-10-14 一次只读排查中，已有 `fbl` 容器保持健康、API 容器内 `/health` 返回 200 且 8000 端口映射存在，但 Mac 宿主机的 `127.0.0.1:8000` 和 `localhost:8000` 连接被拒绝；原因尚未定位，未重启该栈。正式演示前应把宿主机端口访问列为独立门槛；若失败，先收集 `docker compose ps`、宿主机 `curl`、容器内 `/health` 和 OrbStack 状态，再决定是否重启，不要直接删卷。
+
 浏览器打开 `http://localhost:5173/`，API 健康检查位于 `http://localhost:8000/health`。Compose 将这两个端口绑定到 Mac 的 `127.0.0.1`；PostgreSQL 和 Redis 不对宿主机发布端口。API 健康后前端与 Worker 才启动。数据库使用命名卷 `fbl_postgres_data`，导入的数据与报告写到仓库 `data/runtime/`，由 API 和 Worker 共享。
 
 本机演示可以使用 README 中的预置账号。仓库当前默认密码和 JWT 密钥仅适用于本机课程演示；若在共享环境运行，先根据 `.env.example` 创建 `.env` 并替换密钥与账号密码。Compose 统一从 `POSTGRES_DB`、`POSTGRES_USER`、`POSTGRES_PASSWORD` 生成 API/Worker 的数据库连接；密码目前需使用 URL 安全字符（字母、数字、`-`、`_`、`.`、`~`），因为它会直接拼入连接 URL。**已有数据库卷的账号密码不会因修改 `.env` 自动轮换**，需按 PostgreSQL 的账号迁移流程处理；请先备份，不要为改密码直接删除卷。
