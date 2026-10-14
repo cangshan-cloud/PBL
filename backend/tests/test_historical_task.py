@@ -59,6 +59,8 @@ class HistoricalTaskTests(unittest.TestCase):
             report = next(item for item in completed.artifacts if item.artifact_type == "report_html")
             self.assertIn("历史样本与排除审计", Path(report.storage_uri).read_text())
             self.assertIn("封存包源 close", Path(report.storage_uri).read_text())
+            self.assertIn("本研究按历史时点查询成分", Path(report.storage_uri).read_text())
+            self.assertNotIn("若使用当前成分股回溯历史", Path(report.storage_uri).read_text())
             self.assertNotIn("替换为来源可追溯的真实A股历史数据", Path(report.storage_uri).read_text())
             conclusion = build_run_conclusion(completed)
             self.assertIn("历史成员生效时点", conclusion["next_steps"][0])

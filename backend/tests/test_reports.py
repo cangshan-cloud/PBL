@@ -39,6 +39,7 @@ class ReportTests(unittest.TestCase):
             content = Path(artifact.storage_uri).read_text(encoding="utf-8")
             self.assertIn("因子研究报告", content)
             self.assertIn("不构成投资建议", content)
+            self.assertIn("若使用当前成分股回溯历史", content)
             self.assertIn("多空累计收益", content)
             self.assertIn("截面Z-score标准化", content)
             self.assertIn("每日 IC 与 Rank IC", content)

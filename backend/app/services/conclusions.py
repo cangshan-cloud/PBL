@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 from app.models import Run, RunStatus
 
 
@@ -19,7 +21,9 @@ def build_run_conclusion(run: Run, result: dict | None = None) -> dict:
     long_short_net = _number(result.get("long_short_net_total_return"))
     transaction_cost_bps = _number(result.get("transaction_cost_bps"))
     turnover = _number(result.get("top_group_turnover"))
-    date_count = len(result.get("ic_series", []))
+    ic_series = result.get("ic_series") or []
+    date_count = sum(_number(item.get("ic")) is not None for item in ic_series)
+    missing_ic_days = len(ic_series) - date_count
 
     strength = _strength(abs(ic) if ic is not None else None)
     stability = _stability(abs(icir) if icir is not None else None, date_count)
@@ -50,6 +54,8 @@ def build_run_conclusion(run: Run, result: dict | None = None) -> dict:
         limitations.insert(0, "本研究按历史查询成分与交易状态筛选，但成分生效时点和数据来源仍需持续核验，不能宣称完全消除偏差或模拟真实成交。")
     if date_count < 60:
         limitations.append("有效截面少于60个交易日，稳定性判断的样本基础较弱。")
+    if missing_ic_days:
+        limitations.append(f"IC序列有{missing_ic_days}个交易日无法计算，已从有效截面和稳定性分档中排除。")
 
     next_steps = [
         ("核对历史成员生效时点、数据授权及复权/停牌口径，并复验封存包。" if historical
@@ -70,7 +76,7 @@ def build_run_conclusion(run: Run, result: dict | None = None) -> dict:
         "next_steps": next_steps,
         "method": {
             "type": "deterministic_rule_template",
-            "version": "1.0.0",
+            "version": "1.0.1",
             "thresholds": {"weak_abs_ic_below": 0.02, "strong_abs_ic_from": 0.05, "stable_abs_icir_from": 1.0},
         },
         "disclaimer": "本草稿由固定规则生成，必须由研究人员复核；仅用于课程研究，不构成投资建议。",
@@ -78,7 +84,7 @@ def build_run_conclusion(run: Run, result: dict | None = None) -> dict:
 
 
 def _number(value: object) -> float | None:
-    return float(value) if isinstance(value, (int, float)) else None
+    return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) else None
 
 
 def _strength(value: float | None) -> str:

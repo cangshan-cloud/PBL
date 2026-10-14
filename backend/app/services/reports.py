@@ -167,6 +167,8 @@ def build_report_html(run: Run, result: dict) -> str:
             f"<tbody>{component_rows}</tbody></table><p>共同样本覆盖量：{int(composite.get('common_coverage', 0))}。成分缺失值不填零，统一取交集。</p>"
         )
     historical = result.get("historical_audit")
+    universe_risk = ("本研究按历史时点查询成分，但成分生效、停牌状态与来源数据仍需独立核验，不能宣称完全消除偏差。"
+                     if historical else "若使用当前成分股回溯历史，可能存在幸存者偏差。")
     if historical:
         audit_rows = "".join(
             f"<tr><td>{html.escape(key)}</td><td>{int(item['totals'].get('factor_signal', 0))}</td>"
@@ -196,7 +198,7 @@ body{{font-family:Inter,'PingFang SC','Microsoft YaHei',sans-serif;color:#173128
 <h2>五、分组结果</h2><table><thead><tr><th>因子分组</th><th>平均下一日收益</th><th>期末净值</th></tr></thead><tbody>{groups}</tbody></table>
 <h2>时间序列与分布图</h2><p>曲线使用本次 Run 保存的结构化序列；断点表示该日指标不可计算，不按零填补。</p>{ic_chart}{histogram_chart}{group_nav_chart}{nav_chart}
 <h2>六、结构化结论草稿</h2><div class="risk"><p><b>{html.escape(conclusion['headline'])}</b></p><h3>证据</h3><ul>{conclusion_evidence}</ul><h3>限制</h3><ul>{conclusion_limits}</ul><h3>建议下一步</h3><ol>{conclusion_next}</ol><p>{html.escape(conclusion['disclaimer'])}</p></div>
-<h2>七、口径与风险说明</h2><div class="risk"><p>本报告仅用于课程研究，不构成投资建议。样例或历史统计结果不能保证未来表现。</p><ul><li>因子在交易日收盘后形成，最早用于下一交易日收益检验。</li><li>ICIR为IC均值除以IC总体标准差，未做年化。</li><li>成本后收益仅按成员换手扣减固定单边成本，仍未模拟印花税差异、非线性冲击成本、涨跌停和停牌。</li><li>头部组换手率为相邻交易日最高因子组成员变化比例。</li><li>结果受样本范围、复权方式、停牌处理和数据质量影响。</li><li>若使用当前成分股回溯历史，可能存在幸存者偏差。</li><li>财务类因子必须按照实际披露日期生效，避免前视偏差。</li></ul></div>
+<h2>七、口径与风险说明</h2><div class="risk"><p>本报告仅用于课程研究，不构成投资建议。样例或历史统计结果不能保证未来表现。</p><ul><li>因子在交易日收盘后形成，最早用于下一交易日收益检验。</li><li>ICIR为IC均值除以IC总体标准差，未做年化。</li><li>成本后收益仅按成员换手扣减固定单边成本，仍未模拟印花税差异、非线性冲击成本、涨跌停和停牌。</li><li>头部组换手率为相邻交易日最高因子组成员变化比例。</li><li>结果受样本范围、复权方式、停牌处理和数据质量影响。</li><li>{html.escape(universe_risk)}</li><li>财务类因子必须按照实际披露日期生效，避免前视偏差。</li></ul></div>
 <footer>FactorLab自动报告 · Run {html.escape(run.id)} · 生成时间以任务完成时间为准</footer>
 </main></body></html>"""
 

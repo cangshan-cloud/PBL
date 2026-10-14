@@ -1,4 +1,5 @@
 import sys
+import math
 import unittest
 from pathlib import Path
 
@@ -43,6 +44,22 @@ class ConclusionTests(unittest.TestCase):
             run = create_research_run(session, {"factor": "momentum_20d", "groups": 5})
             with self.assertRaisesRegex(ValueError, "successful"):
                 build_run_conclusion(run)
+
+    def test_missing_ic_dates_do_not_inflate_effective_sample(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(session, {"factor": "momentum_20d", "groups": 5})
+            result = {
+                "ic_mean": 0.04, "rank_ic_mean": 0.03, "icir": 1.2,
+                "ic_series": ([{"date": f"day-{day}", "ic": None} for day in range(97)] +
+                              [{"date": "valid", "ic": 0.04},
+                               {"date": "nan", "ic": math.nan}, {"date": "boolean", "ic": True}]),
+            }
+            conclusion = build_run_conclusion(run, result)
+            self.assertEqual(conclusion["grade"], "insufficient")
+            self.assertEqual(conclusion["method"]["version"], "1.0.1")
+            self.assertIn("覆盖1个有效截面", conclusion["evidence"][0])
+            self.assertTrue(any("99个交易日无法计算" in item for item in conclusion["limitations"]))
+            self.assertTrue(any("有效截面少于60" in item for item in conclusion["limitations"]))
 
 
 if __name__ == "__main__":
