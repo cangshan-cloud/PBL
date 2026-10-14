@@ -1,3 +1,4 @@
+import hashlib
 import sys
 import subprocess
 import unittest
@@ -6,15 +7,24 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from tools.check_demo_readiness import FACTORS, check_readiness, check_web_page, check_worker
+from tools.check_demo_readiness import ApiClient, FACTORS, check_readiness, check_web_page, check_worker
 
 
 class FakeClient:
-    def __init__(self, *, historical=True, factors=None, bad_preview=None):
+    def __init__(self, *, historical=True, factors=None, bad_preview=None, report_bytes=None,
+                 report_checksum=None, report_available=True):
         self.calls = []
         self.historical = historical
         self.factors = factors if factors is not None else FACTORS
         self.bad_preview = bad_preview
+        self.report_bytes = report_bytes if report_bytes is not None else b"<!doctype html><title>Demo report</title>"
+        self.report_checksum = report_checksum or hashlib.sha256(self.report_bytes).hexdigest()
+        self.report_available = report_available
+        self.downloads = []
+
+    def download_report(self, run_id, *, token, timeout=10):
+        self.downloads.append((run_id, token, timeout))
+        return self.report_bytes
 
     def request(self, path, *, token=None, payload=None, timeout=10):
         self.calls.append((path, token, payload, timeout))
@@ -43,8 +53,12 @@ class FakeClient:
             ]}
         if path == "/factors":
             return [{"id": key} for key in self.factors]
-        if path in {"/research/tasks", "/reports"}:
-            return []
+        if path == "/research/tasks":
+            return ([{"id": "demo-run", "dataset_version_id": "demo-id", "status": "success"}]
+                    if self.report_available else [])
+        if path == "/reports":
+            return ([{"run_id": "demo-run", "checksum": self.report_checksum}]
+                    if self.report_available else [])
         raise AssertionError(f"unexpected API call: {path}")
 
 
@@ -67,6 +81,45 @@ class DemoReadinessTests(unittest.TestCase):
             check_readiness(FakeClient(factors={"momentum_20d"}), self.passwords)
         with self.assertRaisesRegex(ValueError, "no published historical"):
             check_readiness(FakeClient(historical=False), self.passwords, require_historical=True)
+
+    def test_optional_report_fallback_is_read_only_and_verifies_download_checksum(self):
+        client = FakeClient()
+        checks = check_readiness(client, self.passwords, require_report_fallback=True)
+        self.assertTrue(any("verified demo report fallback demo-run" in item for item in checks))
+        self.assertEqual(client.downloads, [("demo-run", "viewer", 10)])
+        self.assertTrue(all(payload is None for path, _, payload, _ in client.calls if path != "/auth/login"))
+
+    def test_optional_report_fallback_rejects_missing_and_tampered_report(self):
+        with self.assertRaisesRegex(ValueError, "no successful demo_daily"):
+            check_readiness(FakeClient(report_available=False), self.passwords, require_report_fallback=True)
+        with self.assertRaisesRegex(ValueError, "no demo report fallback passed download verification"):
+            check_readiness(FakeClient(report_checksum="0" * 64), self.passwords, require_report_fallback=True)
+
+    def test_report_download_requires_html_and_has_size_limit(self):
+        class Response:
+            def __init__(self, content_type, content):
+                self.headers = {"Content-Type": content_type}
+                self.content = content
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def read(self, limit):
+                return self.content[:limit]
+
+        client = ApiClient("http://127.0.0.1:8000/api/v1")
+        with patch("tools.check_demo_readiness.urlopen", return_value=Response("text/html", b"<html>ok</html>")) as get:
+            self.assertEqual(client.download_report("run-id", token="viewer"), b"<html>ok</html>")
+        self.assertEqual(get.call_args.args[0].get_header("Authorization"), "Bearer viewer")
+        with patch("tools.check_demo_readiness.urlopen", return_value=Response("application/json", b"{}")):
+            with self.assertRaisesRegex(ValueError, "not HTML"):
+                client.download_report("run-id", token="viewer")
+        with patch("tools.check_demo_readiness.urlopen", return_value=Response("text/html", b"x" * (10 * 1024 * 1024 + 1))):
+            with self.assertRaisesRegex(ValueError, "exceeds 10 MiB"):
+                client.download_report("run-id", token="viewer")
 
     def test_missing_demo_file_or_tampered_historical_bundle_fails_closed(self):
         with self.assertRaisesRegex(RuntimeError, "HTTP 410"):

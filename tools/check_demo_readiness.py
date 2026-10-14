@@ -7,6 +7,7 @@ FACTORLAB_DEMO_VIEWER_PASSWORD before use. This script creates no research run.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -45,6 +46,24 @@ class ApiClient:
         except URLError as exc:
             raise RuntimeError(f"{path}: connection failed: {exc.reason}") from exc
 
+    def download_report(self, run_id: str, *, token: str, timeout: int = 10) -> bytes:
+        path = f"/reports/{run_id}/download"
+        request = Request(f"{self.base_url}{path}", headers={
+            "Accept": "text/html", "Authorization": f"Bearer {token}",
+        })
+        try:
+            with urlopen(request, timeout=timeout) as response:
+                if "text/html" not in response.headers.get("Content-Type", ""):
+                    raise ValueError(f"{path}: response is not HTML")
+                content = response.read(10 * 1024 * 1024 + 1)
+        except HTTPError as exc:
+            raise RuntimeError(f"{path}: HTTP {exc.code}") from exc
+        except URLError as exc:
+            raise RuntimeError(f"{path}: connection failed: {exc.reason}") from exc
+        if len(content) > 10 * 1024 * 1024:
+            raise ValueError(f"{path}: report exceeds 10 MiB preflight limit")
+        return content
+
 
 def check_web_page(url: str) -> None:
     """Require the browser entry page, not merely a healthy API container."""
@@ -58,7 +77,8 @@ def check_web_page(url: str) -> None:
         raise ValueError("web entry is not the FactorLab page")
 
 
-def check_readiness(client: ApiClient, passwords: dict[str, str], *, require_historical: bool = False) -> list[str]:
+def check_readiness(client: ApiClient, passwords: dict[str, str], *, require_historical: bool = False,
+                    require_report_fallback: bool = False) -> list[str]:
     tokens = {}
     for role in ROLES:
         password = passwords.get(role)
@@ -89,6 +109,25 @@ def check_readiness(client: ApiClient, passwords: dict[str, str], *, require_his
 
     checks = ["three demo accounts and roles", "verified demo_daily 0.2.0 file (2400 rows / 20 symbols)",
               "six built-in factors", "viewer task and report listings"]
+    if require_report_fallback:
+        demo_runs = {item["id"] for item in tasks if item.get("dataset_version_id") == demo["id"] and
+                     item.get("status") == "success"}
+        candidates = [item for item in reports if item.get("run_id") in demo_runs]
+        if not candidates:
+            raise ValueError("no successful demo_daily 0.2.0 report is available for fallback")
+        failures = []
+        for item in candidates:
+            run_id = item["run_id"]
+            try:
+                content = client.download_report(run_id, token=tokens["viewer"])
+                if not content or hashlib.sha256(content).hexdigest() != item.get("checksum"):
+                    raise ValueError("download checksum mismatch or empty report")
+                checks.append(f"verified demo report fallback {run_id} (viewer download and SHA-256)")
+                break
+            except (RuntimeError, ValueError) as exc:
+                failures.append(f"{run_id}: {exc}")
+        else:
+            raise ValueError("no demo report fallback passed download verification: " + "; ".join(failures))
     if require_historical:
         historical = [item for item in datasets if item["dataset_key"] == "hs300_2024" and
                       item["status"] == "published" and
@@ -134,6 +173,8 @@ def main() -> int:
     parser.add_argument("--api-url", default=os.getenv("FACTORLAB_DEMO_API_URL", "http://127.0.0.1:8000/api/v1"))
     parser.add_argument("--web-url", default=os.getenv("FACTORLAB_DEMO_WEB_URL", "http://127.0.0.1:5173/"))
     parser.add_argument("--require-historical", action="store_true", help="Require a published CSI 300 bundle with intact local files")
+    parser.add_argument("--require-report-fallback", action="store_true",
+                        help="Require a downloadable, checksum-valid report from a successful demo_daily 0.2.0 task")
     parser.add_argument("--check-worker", action="store_true", help="Read-only Celery ping through Docker Compose")
     parser.add_argument("--compose-project", help="Compose project for --check-worker; defaults to the repository project")
     args = parser.parse_args()
@@ -142,7 +183,8 @@ def main() -> int:
     passwords = {role: os.getenv(f"FACTORLAB_DEMO_{role.upper()}_PASSWORD", "") for role in ROLES}
     try:
         check_web_page(args.web_url)
-        checks = check_readiness(ApiClient(args.api_url), passwords, require_historical=args.require_historical)
+        checks = check_readiness(ApiClient(args.api_url), passwords, require_historical=args.require_historical,
+                                 require_report_fallback=args.require_report_fallback)
         if args.check_worker:
             check_worker(compose_project=args.compose_project)
             checks.append("Celery worker answered Compose ping")
@@ -152,8 +194,12 @@ def main() -> int:
     print("PASS FactorLab web entry reachable from this host")
     for check in checks:
         print(f"PASS {check}")
-    print("只读预检通过；尚未验证新任务执行、报告内容和浏览器交互。" if args.check_worker else
-          "只读预检通过；尚未验证新任务执行、报告内容、浏览器交互和 Worker。")
+    unchecked = ["新任务执行", "浏览器交互"]
+    if not args.require_report_fallback:
+        unchecked.insert(1, "报告内容")
+    if not args.check_worker:
+        unchecked.append("Worker")
+    print("只读预检通过；尚未验证" + "、".join(unchecked) + "。")
     return 0
 
 
