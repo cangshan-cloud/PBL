@@ -15,6 +15,7 @@ from app.config import get_settings
 from app.db import Base
 from app.domain.historical_research import HistoricalBar
 from app.models import DatasetVersion, RunStatus
+from app.services.conclusions import build_run_conclusion
 from app.services.runs import create_historical_run, execute_research_run
 
 
@@ -57,6 +58,11 @@ class HistoricalTaskTests(unittest.TestCase):
                              {"momentum_20d", "reversal_5d", "volatility_20d", "turnover_20d"})
             report = next(item for item in completed.artifacts if item.artifact_type == "report_html")
             self.assertIn("历史样本与排除审计", Path(report.storage_uri).read_text())
+            self.assertIn("封存包源 close", Path(report.storage_uri).read_text())
+            self.assertNotIn("替换为来源可追溯的真实A股历史数据", Path(report.storage_uri).read_text())
+            conclusion = build_run_conclusion(completed)
+            self.assertIn("历史成员生效时点", conclusion["next_steps"][0])
+            self.assertFalse(any("替换为来源可追溯" in item for item in conclusion["next_steps"]))
 
     def test_requires_published_historical_bundle(self):
         with Session(self.engine) as session:

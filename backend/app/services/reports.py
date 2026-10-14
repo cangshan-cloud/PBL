@@ -103,7 +103,8 @@ def build_report_html(run: Run, result: dict) -> str:
     ) + ("，截面Z-score标准化" if preprocessing.get("standardize") else "，不标准化")
     composite = result.get("composite")
     sample = result.get("sample", {})
-    price_basis_text = "close × adj_factor" if sample.get("price_basis") == "factor_adjusted" else "导入的 close"
+    price_basis_text = ("封存包源 close（BaoStock adjustflag=1）" if result.get("historical_audit")
+                        else "close × adj_factor" if sample.get("price_basis") == "factor_adjusted" else "导入的 close")
     ic_points = result.get("ic_series", [])
     ic_chart = _svg_chart(
         "每日 IC 与 Rank IC",

@@ -45,11 +45,15 @@ def build_run_conclusion(run: Run, result: dict | None = None) -> dict:
     ]
     if run.experiment.dataset_version.dataset_key == "demo_daily":
         limitations.insert(0, "当前使用仓库合成演示数据，只能用于软件验收，不得形成真实市场或投资结论。")
+    historical = run.experiment.parameters.get("mode") == "historical_hs300_2024"
+    if historical:
+        limitations.insert(0, "本研究按历史查询成分与交易状态筛选，但成分生效时点和数据来源仍需持续核验，不能宣称完全消除偏差或模拟真实成交。")
     if date_count < 60:
         limitations.append("有效截面少于60个交易日，稳定性判断的样本基础较弱。")
 
     next_steps = [
-        "替换为来源可追溯的真实A股历史数据，并记录数据授权、复权和停牌处理口径。",
+        ("核对历史成员生效时点、数据授权及复权/停牌口径，并复验封存包。" if historical
+         else "替换为来源可追溯的真实A股历史数据，并记录数据授权、复权和停牌处理口径。"),
         "在不重叠的时间区间进行样本外检验，并与反向因子或简单基准比较。",
         "使用更贴近实际账户的佣金、印花税、冲击成本和可交易性约束复测净收益。",
     ]
