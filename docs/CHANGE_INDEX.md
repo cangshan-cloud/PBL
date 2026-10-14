@@ -46,6 +46,7 @@
 | CHG-20261014-017 | 2026-10-14 | evidence integrity + acceptance tool / verified | 历史任务离线四文件核对和隔离验收 HTML 报告下载 | [记录](changes/2026-10-14-017-four-artifact-evidence.md) | `tools/verify_historical_audit_exports.py`、`tools/verify_historical_api_journey.py`、相关测试、`docs/HS300_BUNDLE.md`、`docs/ORBSTACK_DEPLOYMENT.md` |
 | CHG-20261014-018 | 2026-10-14 | fix / implemented，CI 待验证 | 历史采集测试隔离可选 BaoStock 版本依赖 | [记录](changes/2026-10-14-018-optional-baostock-test-isolation.md) | `backend/tests/test_hs300_probe.py::Hs300ProbeTests.setUp`、`backend/tests/test_hs300_prices.py::Hs300PricesTests.setUp` |
 | CHG-20261014-019 | 2026-10-14 | docs + fix / implemented，CI 待验证 | PRD 验收矩阵及 Windows 报告测试显式 UTF-8 | [记录](changes/2026-10-14-019-prd-acceptance-matrix-windows-encoding.md) | `docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md`、`backend/tests/test_historical_task.py::HistoricalTaskTests.test_dedicated_task_produces_metrics_report_and_audit`、`README.md` |
+| CHG-20261014-020 | 2026-10-14 | fix + test + docs / implemented，CI 待验证 | 黄金验算 CLI 窄编码兼容 | [记录](changes/2026-10-14-020-golden-cli-encoding.md) | `tools/verify_golden_research.py::main`、`backend/tests/test_golden_cli.py::GoldenCliTests.test_verifier_succeeds_with_windows_legacy_stdout_encoding`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md` |
 
 ## 历史基线
 

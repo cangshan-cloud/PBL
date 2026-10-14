@@ -30,8 +30,8 @@
 
 ## 自动化与环境证据
 
-- 本机虚拟环境：`129` 项后端测试通过；黄金结果脚本通过；前端生产构建通过。历史采集测试另在模拟“未安装 BaoStock”条件下 `129` 项通过，见 [CHG-20261014-018](changes/2026-10-14-018-optional-baostock-test-isolation.md)。
-- GitHub Actions：提交 `8ab9252` 的 [运行 #38538602151](https://github.com/cangshan-cloud/PBL/actions/runs/38538602151) 在 Ubuntu、Windows 后端测试均失败。测试隔离修复提交 `08e512b` 的 [运行 #38539572865](https://github.com/cangshan-cloud/PBL/actions/runs/38539572865) 已让 Ubuntu job 全部成功，但 Windows 仍在后端测试失败；公开 job API 未提供可读断言日志。本表继续将双平台 CI 标为**未通过**。已发现 `test_historical_task.py` 用系统默认编码读取含中文的 UTF-8 报告，Windows 常见代码页下会失败；修正后仍需远端重跑确认，不能仅凭这一判断宣告根因已排除。
+- 本机虚拟环境：`130` 项后端测试通过；黄金结果脚本在 `PYTHONIOENCODING=cp1252` 下通过；前端生产构建通过。历史采集测试曾在模拟“未安装 BaoStock”条件下 `129` 项通过，见 [CHG-20261014-018](changes/2026-10-14-018-optional-baostock-test-isolation.md)。
+- GitHub Actions：提交 `8ab9252` 的 [运行 #38538602151](https://github.com/cangshan-cloud/PBL/actions/runs/38538602151) 在 Ubuntu、Windows 后端测试均失败。测试隔离修复提交 `08e512b` 的 [运行 #38539572865](https://github.com/cangshan-cloud/PBL/actions/runs/38539572865) 让 Ubuntu job 全部成功，但 Windows 仍在后端测试失败。显式 UTF-8 修正提交 `2c5698f` 的 [运行 #38540261543](https://github.com/cangshan-cloud/PBL/actions/runs/38540261543) 使 Windows 后端测试通过，失败点转到黄金结果验算。将 `PYTHONIOENCODING=cp1252` 用于本机脚本后复现了中文成功提示的 `UnicodeEncodeError`；本轮已改为 ASCII 输出并加回归测试，**远端仍需重跑**。
 - CI 的 Windows runner 通过，也只证明工作流所含单元测试、黄金验算与前端构建；不能代替 Windows Docker/WSL2 离线部署和浏览器验收。
 
 ## 下一步顺序与放行门槛

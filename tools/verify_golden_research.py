@@ -59,7 +59,8 @@ def main() -> None:
         check(f"Q{group} mean", result["group_returns"][group - 1]["mean_return"], expected)
     check("first entry cost", result["long_short_series"][0]["cost"], 0.002)
     check("second day cost", result["long_short_series"][1]["cost"], 0)
-    print("黄金样本验算通过：6 个观测、IC/Rank IC、分组收益、毛/净多空收益及交易成本均符合手算值。")
+    print("Golden research verification passed: 6 observations, IC/Rank IC, group returns, "
+          "gross/net long-short returns, and transaction costs match hand-calculated values.")
 
 
 if __name__ == "__main__":
