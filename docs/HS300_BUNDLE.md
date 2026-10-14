@@ -50,3 +50,11 @@ python tools/verify_hs300_bundle.py \
 ## 审计 CSV 导出（2026-10-14）
 
 历史研究成功任务的研究工作台增加“下载逐日审计 CSV”和“下载无标签信号 CSV”。对应接口分别是 `GET /api/v1/research/tasks/{task_id}/historical-audit/daily.csv` 与 `.../unlabeled.csv`。前者按因子和日期展开候选、排除及有效收益计数；后者逐条列出有信号但无有效次日收益的日期、证券、因子值、次日市场日与原因。CSV 用 UTF-8 BOM 便于常见表格软件读取，缺少某项逐日计数按 0 展示；无标签明细为空时仍有表头。只有已完成且含历史审计的任务可下载，研究员只可下载本人任务，管理员及查看者沿用既有全局读取权限。该导出不重新计算指标，来源就是任务保存的结构化审计；不能将缺失标签误读为零收益。
+
+将同一任务的“下载复现包”和两份审计 CSV 放在同一目录后，可用仅依赖 Python 标准库的工具独立核对文件间一致性：
+
+```bash
+python3 tools/verify_historical_audit_exports.py factor-run-XXXXXXXX.json historical-audit-daily-XXXXXXXX.csv historical-audit-unlabeled-XXXXXXXX.csv
+```
+
+工具检查列头、逐行内容、因子逐日汇总与无标签信号数量；不需要私有行情包。2026-10-14 用本机真实包试验得到 4 个因子、968 行逐日记录、32 条无标签信号，且上述一致性检查通过。这只证明三个导出文件与保存的审计结果一致，**不能**证明行情来源、因子公式或收益本身正确，也不是防篡改签名。若需要独立重算，仍须取得同一私有数据包。

@@ -30,6 +30,7 @@
 | CHG-20261014-001 | 2026-10-14 | browser QA + correction / implemented | 真实浏览器闭环验收，修正历史包质量标签、旧模式筛选和报告建议 | [记录](changes/2026-10-14-001-hs300-browser-qa.md) | `frontend/src/main.tsx`、`backend/app/services/conclusions.py`、`backend/app/services/reports.py`、`backend/tests/test_historical_task.py`、`docs/HS300_BUNDLE.md` |
 | CHG-20261014-002 | 2026-10-14 | evidence-only / verified | OrbStack 隔离项目完成历史私有包 Redis→Celery→报告验收 | [记录](changes/2026-10-14-002-hs300-orbstack-isolated-qa.md) | `docs/ORBSTACK_DEPLOYMENT.md`（无代码改动） |
 | CHG-20261014-003 | 2026-10-14 | feature / implemented | 历史研究逐日与无标签信号审计 CSV 导出 | [记录](changes/2026-10-14-003-historical-audit-csv.md) | `backend/app/services/historical_audit.py`、`backend/app/main.py`、`frontend/src/main.tsx`、`backend/tests/test_api_journey.py`、`docs/HS300_BUNDLE.md` |
+| CHG-20261014-004 | 2026-10-14 | tool + evidence / verified | 独立核对历史审计 CSV 与复现 JSON，真实包 968/32 行通过 | [记录](changes/2026-10-14-004-historical-audit-reconciliation.md) | `tools/verify_historical_audit_exports.py`、`backend/tests/test_historical_audit_exports.py`、`docs/HS300_BUNDLE.md` |
 
 ## 历史基线
 
