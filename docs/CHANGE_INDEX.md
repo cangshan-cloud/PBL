@@ -41,6 +41,7 @@
 | CHG-20261014-012 | 2026-10-14 | tool + tests + documentation / verified | 演示预检增加可选只读 Celery Worker ping | [记录](changes/2026-10-14-012-readonly-worker-preflight.md) | `tools/check_demo_readiness.py`、`backend/tests/test_demo_readiness.py`、`docs/DEMO_REHEARSAL.md` |
 | CHG-20261014-013 | 2026-10-14 | research correctness + report wording / implemented | 结构化结论按有效 IC 截面计数，历史报告股票池风险文案分流 | [记录](changes/2026-10-14-013-valid-ic-conclusion.md) | `backend/app/services/conclusions.py`、`backend/app/services/reports.py`、相关测试、`docs/RESEARCH_CONCLUSION.md`、`docs/HS300_BUNDLE.md` |
 | CHG-20261014-014 | 2026-10-14 | product report + tests + evidence / verified | 多因子 HTML 报告收录已保存的因子相关矩阵 | [记录](changes/2026-10-14-014-report-correlation-matrix.md) | `backend/app/services/reports.py`、`backend/tests/test_composite.py`、`backend/tests/test_historical_task.py`、`backend/tests/test_reports.py`、`docs/MULTI_FACTOR_ANALYSIS.md`、`docs/HS300_BUNDLE.md` |
+| CHG-20261014-015 | 2026-10-14 | research correctness + tests / verified | 多因子共同样本拒绝重复观测和冲突收益标签，固定相关计算顺序 | [记录](changes/2026-10-14-015-composite-alignment-guard.md) | `backend/app/domain/composite.py`、`backend/tests/test_composite.py`、`docs/MULTI_FACTOR_ANALYSIS.md` |
 
 ## 历史基线
 

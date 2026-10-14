@@ -45,6 +45,32 @@ class CompositeFactorTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "non-negative"):
             combine_factor_observations({"one": [item], "two": [item]}, {"one": 1, "two": -1})
 
+    def test_duplicate_observation_is_rejected_instead_of_overwritten(self):
+        item = Observation(date(2025, 1, 1), "A", 1, 0.01)
+        with self.assertRaisesRegex(ValueError, "duplicate factor observation: one"):
+            combine_factor_observations({"one": [item, item], "two": [item]},
+                                        {"one": 1, "two": 1}, winsorize=False, standardize=False)
+
+    def test_conflicting_forward_returns_are_rejected(self):
+        day = date(2025, 1, 1)
+        first = [Observation(day, "A", 1, 0.01), Observation(day, "B", 2, 0.02)]
+        second = [Observation(day, "A", 3, 0.03), Observation(day, "B", 4, 0.02)]
+        with self.assertRaisesRegex(ValueError, "component forward returns disagree"):
+            combine_factor_observations({"one": first, "two": second},
+                                        {"one": 1, "two": 1}, winsorize=False, standardize=False)
+
+    def test_observation_input_order_does_not_change_combination(self):
+        day = date(2025, 1, 1)
+        first = [Observation(day, symbol, factor, 0.01 * factor)
+                 for symbol, factor in zip("ABCD", (1, 2, 3, 4))]
+        second = [Observation(day, symbol, factor, 0.01 * ordinal)
+                  for symbol, factor, ordinal in zip("ABCD", (4, 1, 3, 2), (1, 2, 3, 4))]
+        original = combine_factor_observations({"one": first, "two": second},
+                                               {"one": 1, "two": 1}, winsorize=False, standardize=False)
+        reversed_input = combine_factor_observations({"one": first[::-1], "two": second[::-1]},
+                                                     {"one": 1, "two": 1}, winsorize=False, standardize=False)
+        self.assertEqual(original, reversed_input)
+
     def test_composite_run_persists_recipe_and_result(self):
         engine = create_engine("sqlite:///:memory:")
         Base.metadata.create_all(engine)

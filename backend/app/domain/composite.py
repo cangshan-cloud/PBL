@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections import defaultdict
 from statistics import fmean
 
@@ -34,26 +35,38 @@ def combine_factor_observations(
         )
         for key, values in components.items()
     }
-    indexed = {
-        key: {(item.trade_date, item.symbol): item for item in values}
-        for key, values in processed.items()
-    }
+    indexed = {}
+    for factor_key, values in processed.items():
+        by_key = {}
+        for item in values:
+            item_key = (item.trade_date, item.symbol)
+            if item_key in by_key:
+                raise ValueError(f"duplicate factor observation: {factor_key} {item.trade_date} {item.symbol}")
+            by_key[item_key] = item
+        indexed[factor_key] = by_key
     common_keys = set.intersection(*(set(values) for values in indexed.values()))
     if not common_keys:
         raise ValueError("selected factors have no common observations")
+    ordered_keys = sorted(common_keys)
+    factor_keys = list(components)
 
     combined: list[Observation] = []
-    for item_key in sorted(common_keys):
-        source = next(iter(indexed.values()))[item_key]
+    for item_key in ordered_keys:
+        source = indexed[factor_keys[0]][item_key]
+        if not math.isfinite(source.forward_return) or any(
+            not math.isclose(indexed[key][item_key].forward_return, source.forward_return,
+                             rel_tol=0, abs_tol=1e-12)
+            for key in factor_keys[1:]
+        ):
+            raise ValueError(f"component forward returns disagree: {item_key[0]} {item_key[1]}")
         factor_value = sum(indexed[key][item_key].factor * normalized_weights[key] for key in indexed)
         combined.append(Observation(source.trade_date, source.symbol, factor_value, source.forward_return))
 
-    factor_keys = list(components)
     matrix: list[dict] = []
     for left in factor_keys:
         for right in factor_keys:
             daily_pairs: dict[object, list[tuple[float, float]]] = defaultdict(list)
-            for trade_date, symbol in common_keys:
+            for trade_date, symbol in ordered_keys:
                 daily_pairs[trade_date].append((indexed[left][(trade_date, symbol)].factor, indexed[right][(trade_date, symbol)].factor))
             correlations = []
             for pairs in daily_pairs.values():
