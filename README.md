@@ -132,3 +132,4 @@ Mac 本地端到端验收的已通过步骤、环境限制和复现方法见 [`d
 扩展项的价值、数据前提和建议顺序见 [`docs/EXTENSION_OPTIONS.md`](docs/EXTENSION_OPTIONS.md)。
 
 300 只股票、3 年日频的单因子性能基准可运行 `make benchmark-prd`；Mac 实测结果和计时边界见 [`docs/PERFORMANCE_ACCEPTANCE.md`](docs/PERFORMANCE_ACCEPTANCE.md)。
+普通只读页面对应的 HTTP 查询延迟可运行 `python tools/benchmark_page_queries.py`；Mac OrbStack 实测与未覆盖的浏览器渲染边界见 [`docs/PAGE_QUERY_PERFORMANCE.md`](docs/PAGE_QUERY_PERFORMANCE.md)。

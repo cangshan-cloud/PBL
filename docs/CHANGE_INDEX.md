@@ -48,6 +48,7 @@
 | CHG-20261014-019 | 2026-10-14 | docs + fix / verified by `c376d4a` CI | PRD 验收矩阵及 Windows 报告测试显式 UTF-8 | [记录](changes/2026-10-14-019-prd-acceptance-matrix-windows-encoding.md) | `docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md`、`backend/tests/test_historical_task.py::HistoricalTaskTests.test_dedicated_task_produces_metrics_report_and_audit`、`README.md` |
 | CHG-20261014-020 | 2026-10-14 | fix + test + docs / verified by `c376d4a` CI | 黄金验算 CLI 窄编码兼容 | [记录](changes/2026-10-14-020-golden-cli-encoding.md) | `tools/verify_golden_research.py::main`、`backend/tests/test_golden_cli.py::GoldenCliTests.test_verifier_succeeds_with_windows_legacy_stdout_encoding`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md` |
 | CHG-20261014-021 | 2026-10-14 | evidence-only / verified | `c376d4a` 的 Ubuntu/Windows CI 成功结果归档 | [记录](changes/2026-10-14-021-ci-success-evidence.md) | `docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md::自动化与环境证据`、`下一步顺序与放行门槛`（无代码改动） |
+| CHG-20261014-022 | 2026-10-14 | tool + test + evidence / verified on Mac | 普通页面只读 HTTP 查询延迟基准 | [记录](changes/2026-10-14-022-page-query-latency.md) | `tools/benchmark_page_queries.py`、`backend/tests/test_page_query_benchmark.py`、`docs/PAGE_QUERY_PERFORMANCE.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md`、`README.md` |
 
 ## 历史基线
 
