@@ -22,7 +22,8 @@ class ApiClient:
     def __init__(self, base_url: str):
         self.base_url = base_url.rstrip("/")
 
-    def request(self, path: str, *, token: str | None = None, payload: dict | None = None) -> object:
+    def request(self, path: str, *, token: str | None = None, payload: dict | None = None,
+                timeout: int = 10) -> object:
         headers = {"Accept": "application/json"}
         if token:
             headers["Authorization"] = f"Bearer {token}"
@@ -33,7 +34,7 @@ class ApiClient:
         request = Request(f"{self.base_url}{path}", data=data, headers=headers,
                           method="POST" if payload is not None else "GET")
         try:
-            with urlopen(request, timeout=10) as response:
+            with urlopen(request, timeout=timeout) as response:
                 return json.loads(response.read())
         except HTTPError as exc:
             raise RuntimeError(f"{path}: HTTP {exc.code}") from exc
@@ -71,6 +72,9 @@ def check_readiness(client: ApiClient, passwords: dict[str, str], *, require_his
                  item["version"] == "0.2.0" and item["status"] == "published"), None)
     if not demo or demo["row_count"] != 2400 or demo["symbol_count"] != 20:
         raise ValueError("published demo_daily 0.2.0 with 2400 rows and 20 symbols is unavailable")
+    demo_preview = client.request(f"/datasets/{demo['id']}/preview", token=tokens["admin"])
+    if demo_preview.get("dataset_id") != demo["id"] or demo_preview.get("total_rows") != 2400:
+        raise ValueError("demo_daily file preview does not match the published catalog")
     catalog = client.request("/factors", token=tokens["researcher"])
     if not FACTORS.issubset({item["id"] for item in catalog}):
         raise ValueError("six required built-in factors are unavailable")
@@ -79,15 +83,29 @@ def check_readiness(client: ApiClient, passwords: dict[str, str], *, require_his
     if not isinstance(tasks, list) or not isinstance(reports, list):
         raise ValueError("viewer task or report listing is unavailable")
 
-    checks = ["three demo accounts and roles", "published demo_daily 0.2.0 (2400 rows / 20 symbols)",
+    checks = ["three demo accounts and roles", "verified demo_daily 0.2.0 file (2400 rows / 20 symbols)",
               "six built-in factors", "viewer task and report listings"]
     if require_historical:
-        historical = next((item for item in datasets if item["dataset_key"] == "hs300_2024" and
-                           item["status"] == "published" and
-                           (item.get("quality_report") or {}).get("dataset_kind") == "hs300_bundle_v1"), None)
-        if historical is None:
+        historical = [item for item in datasets if item["dataset_key"] == "hs300_2024" and
+                      item["status"] == "published" and
+                      (item.get("quality_report") or {}).get("dataset_kind") == "hs300_bundle_v1"]
+        if not historical:
             raise ValueError("no published historical CSI 300 bundle in the platform catalog")
-        checks.append(f"published historical bundle {historical['version']} (catalog only)")
+        failures = []
+        for item in historical:
+            try:
+                preview = client.request(f"/datasets/{item['id']}/preview", token=tokens["admin"], timeout=30)
+                rows = {row["item"]: row["value"] for row in preview["rows"]}
+                if (preview.get("dataset_id") == item["id"] and
+                    rows.get("bundle_id") == (item.get("quality_report") or {}).get("bundle_id") and
+                    int(rows.get("verified_files", "0")) > 0):
+                    checks.append(f"verified historical bundle {item['version']} (file hashes checked)")
+                    break
+                failures.append(f"{item['version']}: preview metadata mismatch")
+            except (RuntimeError, KeyError, TypeError, ValueError) as exc:
+                failures.append(f"{item['version']}: {exc}")
+        else:
+            raise ValueError("no published historical CSI 300 bundle passed file verification: " + "; ".join(failures))
     return checks
 
 
@@ -95,7 +113,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--api-url", default=os.getenv("FACTORLAB_DEMO_API_URL", "http://127.0.0.1:8000/api/v1"))
     parser.add_argument("--web-url", default=os.getenv("FACTORLAB_DEMO_WEB_URL", "http://127.0.0.1:5173/"))
-    parser.add_argument("--require-historical", action="store_true", help="Require a published CSI 300 bundle catalog entry")
+    parser.add_argument("--require-historical", action="store_true", help="Require a published CSI 300 bundle with intact local files")
     args = parser.parse_args()
     passwords = {role: os.getenv(f"FACTORLAB_DEMO_{role.upper()}_PASSWORD", "") for role in ROLES}
     try:

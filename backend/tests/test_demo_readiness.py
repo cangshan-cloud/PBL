@@ -9,24 +9,37 @@ from tools.check_demo_readiness import FACTORS, check_readiness, check_web_page
 
 
 class FakeClient:
-    def __init__(self, *, historical=True, factors=None):
+    def __init__(self, *, historical=True, factors=None, bad_preview=None):
         self.calls = []
         self.historical = historical
         self.factors = factors if factors is not None else FACTORS
+        self.bad_preview = bad_preview
 
-    def request(self, path, *, token=None, payload=None):
-        self.calls.append((path, token, payload))
+    def request(self, path, *, token=None, payload=None, timeout=10):
+        self.calls.append((path, token, payload, timeout))
         if path == "/auth/login":
             return {"access_token": payload["username"]}
         if path == "/auth/me":
             return {"role": token, "is_active": True}
         if path == "/datasets":
-            datasets = [{"dataset_key": "demo_daily", "version": "0.2.0", "status": "published",
+            datasets = [{"id": "demo-id", "dataset_key": "demo_daily", "version": "0.2.0", "status": "published",
                          "row_count": 2400, "symbol_count": 20}]
             if self.historical:
-                datasets.append({"dataset_key": "hs300_2024", "version": "0375298bd2c8ac52",
-                                 "status": "published", "quality_report": {"dataset_kind": "hs300_bundle_v1"}})
+                datasets.append({"id": "historical-id", "dataset_key": "hs300_2024", "version": "0375298bd2c8ac52",
+                                 "status": "published", "quality_report": {"dataset_kind": "hs300_bundle_v1",
+                                 "bundle_id": "hs300_2024_0375298bd2c8ac52"}})
             return datasets
+        if path == "/datasets/demo-id/preview":
+            if self.bad_preview == "demo_missing":
+                raise RuntimeError("HTTP 410")
+            return {"dataset_id": "demo-id", "total_rows": 2400}
+        if path == "/datasets/historical-id/preview":
+            if self.bad_preview == "historical_tampered":
+                raise RuntimeError("HTTP 409")
+            return {"dataset_id": "historical-id", "rows": [
+                {"item": "bundle_id", "value": "hs300_2024_0375298bd2c8ac52"},
+                {"item": "verified_files", "value": "576"},
+            ]}
         if path == "/factors":
             return [{"id": key} for key in self.factors]
         if path in {"/research/tasks", "/reports"}:
@@ -41,17 +54,24 @@ class DemoReadinessTests(unittest.TestCase):
         client = FakeClient()
         checks = check_readiness(client, self.passwords, require_historical=True)
         self.assertEqual(len(checks), 5)
-        self.assertTrue(any("historical bundle" in item for item in checks))
-        self.assertEqual(sum(path == "/auth/login" for path, _, _ in client.calls), 3)
-        self.assertTrue(all(payload is None for path, _, payload in client.calls if path != "/auth/login"))
+        self.assertTrue(any("verified historical bundle" in item for item in checks))
+        self.assertEqual(sum(path == "/auth/login" for path, _, _, _ in client.calls), 3)
+        self.assertTrue(all(payload is None for path, _, payload, _ in client.calls if path != "/auth/login"))
+        self.assertIn(("/datasets/historical-id/preview", "admin", None, 30), client.calls)
         self.assertFalse(any(path in {"/research/historical-tasks", "/research/tasks"} and payload
-                             for path, _, payload in client.calls))
+                             for path, _, payload, _ in client.calls))
 
     def test_missing_factor_and_historical_catalog_fail_closed(self):
         with self.assertRaisesRegex(ValueError, "six required"):
             check_readiness(FakeClient(factors={"momentum_20d"}), self.passwords)
         with self.assertRaisesRegex(ValueError, "no published historical"):
             check_readiness(FakeClient(historical=False), self.passwords, require_historical=True)
+
+    def test_missing_demo_file_or_tampered_historical_bundle_fails_closed(self):
+        with self.assertRaisesRegex(RuntimeError, "HTTP 410"):
+            check_readiness(FakeClient(bad_preview="demo_missing"), self.passwords)
+        with self.assertRaisesRegex(ValueError, "no published historical CSI 300 bundle passed file verification"):
+            check_readiness(FakeClient(bad_preview="historical_tampered"), self.passwords, require_historical=True)
 
     def test_passwords_are_required_before_any_http_call(self):
         client = FakeClient()
