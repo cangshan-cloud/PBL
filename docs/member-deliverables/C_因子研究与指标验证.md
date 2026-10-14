@@ -23,3 +23,5 @@
 
 可使用 [`../GOLDEN_RESEARCH_VERIFICATION.md`](../GOLDEN_RESEARCH_VERIFICATION.md) 与 `python tools/verify_golden_research.py` 作为固定输入和平台输出。负责人仍需自行复核算式、记录运行环境与实际结果，并填写差异分析；脚本通过不等于个人验收材料已完成。
 
+真实历史包的局部公式与停牌标签抽样材料见 [`../INDEPENDENT_HS300_SPOTCHECK.md`](../INDEPENDENT_HS300_SPOTCHECK.md)。该材料由项目开发阶段准备，负责人须亲自重做并在上方清单中记录实际证据，不能直接据此勾选个人验收。
+

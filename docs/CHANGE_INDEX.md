@@ -32,6 +32,7 @@
 | CHG-20261014-003 | 2026-10-14 | feature / implemented | 历史研究逐日与无标签信号审计 CSV 导出 | [记录](changes/2026-10-14-003-historical-audit-csv.md) | `backend/app/services/historical_audit.py`、`backend/app/main.py`、`frontend/src/main.tsx`、`backend/tests/test_api_journey.py`、`docs/HS300_BUNDLE.md` |
 | CHG-20261014-004 | 2026-10-14 | tool + evidence / verified | 独立核对历史审计 CSV 与复现 JSON，真实包 968/32 行通过 | [记录](changes/2026-10-14-004-historical-audit-reconciliation.md) | `tools/verify_historical_audit_exports.py`、`backend/tests/test_historical_audit_exports.py`、`docs/HS300_BUNDLE.md` |
 | CHG-20261014-005 | 2026-10-14 | browser QA / verified | 真实浏览器下载历史审计两份 CSV 与复现 JSON，三文件核对通过 | [记录](changes/2026-10-14-005-historical-audit-browser-qa.md) | `docs/HS300_BUNDLE.md`、`docs/CHANGE_INDEX.md`（无代码改动） |
+| CHG-20261014-006 | 2026-10-14 | tool + research evidence / verified | 真实包两证券日四因子与停牌标签独立抽样验算 | [记录](changes/2026-10-14-006-independent-hs300-spotcheck.md) | `tools/independent_hs300_spotcheck.py`、`backend/tests/test_independent_hs300_spotcheck.py`、`docs/INDEPENDENT_HS300_SPOTCHECK.md`、`docs/member-deliverables/C_因子研究与指标验证.md` |
 
 ## 历史基线
 
