@@ -73,6 +73,9 @@ class CompositeFactorTests(unittest.TestCase):
                 report_text = Path(report.storage_uri).read_text(encoding="utf-8")
                 self.assertIn("MULTI FACTOR REPORT", report_text)
                 self.assertIn("组合成分", report_text)
+                self.assertIn("因子相关矩阵", report_text)
+                self.assertIn("逐日计算截面 Pearson 相关系数", report_text)
+                self.assertIn("<td>1.0000</td>", report_text)
         finally:
             engine.dispose()
 

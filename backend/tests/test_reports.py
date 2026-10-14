@@ -61,6 +61,21 @@ class ReportTests(unittest.TestCase):
             self.assertNotIn("<script>alert(1)</script>", rendered)
             self.assertIn("&lt;script&gt;", rendered)
 
+    def test_correlation_matrix_labels_are_html_escaped(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(session, {"factor": "momentum_20d", "lookback": 20, "groups": 5})
+            run.experiment.parameters = {"components": [
+                {"key": "<script>x</script>", "version": "1", "weight": 0.5},
+                {"key": "safe", "version": "1", "weight": 0.5},
+            ]}
+            rendered = build_report_html(run, {"coverage": 2, "group_returns": [], "composite": {
+                "common_coverage": 2,
+                "correlation_matrix": [{"left": "<script>x</script>", "right": "safe", "correlation": None}],
+            }})
+            self.assertIn("&lt;script&gt;x&lt;/script&gt;", rendered)
+            self.assertNotIn("<script>x</script>", rendered)
+            self.assertIn("<td>—</td>", rendered)
+
     def test_report_preview_and_download_verify_checksum(self):
         path = Path(self.temp_dir.name) / "report.html"
         original = b"<html><body>verified report</body></html>"

@@ -157,14 +157,35 @@ def build_report_html(run: Run, result: dict) -> str:
     report_kind = "MULTI FACTOR REPORT" if composite else "SINGLE FACTOR REPORT"
     component_rows = ""
     if composite:
+        components = experiment.parameters.get("components", [])
         component_rows = "".join(
             f"<tr><td>{html.escape(str(item['key']))}</td><td>{html.escape(str(item['version']))}</td>"
             f"<td>{html.escape(str(item.get('lookback') or '当日'))}</td><td>{_fmt(item['weight'], True)}</td></tr>"
-            for item in experiment.parameters.get("components", [])
+            for item in components
         )
+        correlation_values = {
+            (item["left"], item["right"]): item.get("correlation")
+            for item in composite.get("correlation_matrix", [])
+        }
+        factor_keys = [str(item["key"]) for item in components]
+        correlation_table = ""
+        if factor_keys and correlation_values:
+            headings = "".join(f"<th>{html.escape(key)}</th>" for key in factor_keys)
+            matrix_rows = "".join(
+                "<tr><th>" + html.escape(left) + "</th>" + "".join(
+                    f"<td>{_fmt(correlation_values.get((left, right)))}</td>" for right in factor_keys
+                ) + "</tr>"
+                for left in factor_keys
+            )
+            correlation_table = (
+                "<h3>因子相关矩阵</h3><p>共同有效样本上逐日计算截面 Pearson 相关系数，再对可计算交易日取算术平均；"
+                "空值表示没有可计算的交易日。相关性不代表因果关系或独立增益。</p>"
+                f"<table><thead><tr><th>因子</th>{headings}</tr></thead><tbody>{matrix_rows}</tbody></table>"
+            )
         component_rows = (
             "<h2>三、组合成分</h2><table><thead><tr><th>因子标识</th><th>版本</th><th>窗口</th><th>权重</th></tr></thead>"
             f"<tbody>{component_rows}</tbody></table><p>共同样本覆盖量：{int(composite.get('common_coverage', 0))}。成分缺失值不填零，统一取交集。</p>"
+            f"{correlation_table}"
         )
     historical = result.get("historical_audit")
     universe_risk = ("本研究按历史时点查询成分，但成分生效、停牌状态与来源数据仍需独立核验，不能宣称完全消除偏差。"
