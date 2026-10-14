@@ -35,6 +35,7 @@
 | CHG-20261014-006 | 2026-10-14 | tool + research evidence / verified | 真实包两证券日四因子与停牌标签独立抽样验算 | [记录](changes/2026-10-14-006-independent-hs300-spotcheck.md) | `tools/independent_hs300_spotcheck.py`、`backend/tests/test_independent_hs300_spotcheck.py`、`docs/INDEPENDENT_HS300_SPOTCHECK.md`、`docs/member-deliverables/C_因子研究与指标验证.md` |
 | CHG-20261014-007 | 2026-10-14 | tool + delivery / implemented | 只读演示就绪预检和十分钟彩排材料；记录宿主机端口待排查 | [记录](changes/2026-10-14-007-demo-readiness-rehearsal.md) | `tools/check_demo_readiness.py`、`backend/tests/test_demo_readiness.py`、`docs/DEMO_REHEARSAL.md`、`docs/member-deliverables/D_产品测试与展示验收.md`、`docs/ORBSTACK_DEPLOYMENT.md`、`README.md` |
 | CHG-20261014-008 | 2026-10-14 | deployment recovery + tool / verified | 定向重启 API/Web 恢复 OrbStack 宿主机入口，预检增加前端检查 | [记录](changes/2026-10-14-008-orbstack-port-recovery.md) | `tools/check_demo_readiness.py`、`backend/tests/test_demo_readiness.py`、`docs/ORBSTACK_DEPLOYMENT.md`、`docs/DEMO_REHEARSAL.md` |
+| CHG-20261014-009 | 2026-10-14 | deployment + evidence-only / verified | 更新现有 OrbStack API/Worker/Web，隔离容器完成历史审计 CSV 队列与下载验收 | [记录](changes/2026-10-14-009-orbstack-csv-deployment.md) | `docs/ORBSTACK_DEPLOYMENT.md`、`docs/CHANGE_INDEX.md`（无代码改动） |
 
 ## 历史基线
 

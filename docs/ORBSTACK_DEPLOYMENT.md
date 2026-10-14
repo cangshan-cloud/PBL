@@ -52,3 +52,11 @@ FACTORLAB_SMOKE_PASSWORD=research12345 python3 tools/verify_compose_stack.py
 只停止容器并保留数据：`docker compose down`。不要在需要保留数据时使用 `docker compose down -v`，后者会删除数据库卷。Mac 上关闭 OrbStack 可用 `orb stop`，但这会影响本机其他容器项目，应先确认没有其他工作负载。
 
 Windows + WSL2 的最终验收仍需在 Windows 主机重复；本页只记录 macOS 的 OrbStack 方式。
+
+### 2026-10-14：现有栈更新与审计 CSV 容器验收
+
+在确认 Alembic 已为 `20261010_0004 (head)`、既有 26 条任务全部完成且没有待运行任务后，构建最新 API、Worker、Web 镜像，并仅以 `docker compose up -d --no-deps --force-recreate api worker web` 替换这三个服务；PostgreSQL、Redis 与其数据卷没有重建或删除。更新后五个服务正常，API、Worker、数据库、Redis 健康，宿主机 `/health` 与网页入口可达；`tools/check_demo_readiness.py` 的五项只读预检通过，Worker 定向 `ping` 返回 `pong`。既有任务数仍为 26。
+
+由于现有 `fbl` 数据库没有历史任务，成功下载路径另用 `factorlab-hs300-csv-qa` 隔离 Compose 项目验证。独立数据库、Redis、运行目录与不发布宿主机 API 端口的设置避免污染演示栈；仓库中 Git 忽略的私有历史包由 API/Worker 共同读取。经 HTTP 注册并发布历史包、提交历史任务后，Celery 任务 `6a006e4a-d513-4f3f-aa21-e103d2cfcf14` 成功；以研究员身份通过容器 API 下载复现 JSON、逐日 CSV、无标签 CSV，响应均带附件文件名。独立核对工具确认 4 个因子、968 行逐日审计、32 条无标签信号。该隔离项目的容器、网络、专用 PostgreSQL 测试卷已按准确项目名删除；主 `fbl` 栈和 26 条既有任务保留。临时导出文件仅位于 `/private/tmp/fbl-hs300-csv-qa-runtime/csv-qa/`，不纳入 Git。
+
+此验收证明当前 macOS/OrbStack 镜像中的 API→Redis→Worker→HTTP 审计下载链路；不代表 Windows、多人并发或生产级安全已经验收。
