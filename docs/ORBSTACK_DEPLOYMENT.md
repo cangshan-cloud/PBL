@@ -20,7 +20,7 @@ docker compose ps
 
 `docker compose ps` 中数据库、Redis、API 和 Worker 应显示 `healthy`；Worker 健康检查会向当前容器对应的 Celery 节点发送定向 `ping`，不是只检查进程存在。前端应显示 `Up`。
 
-容器健康只证明容器内部检查通过，仍须从宿主机实际访问前端和 API。2026-10-14 一次只读排查中，已有 `fbl` 容器保持健康、API 容器内 `/health` 返回 200 且 8000 端口映射存在，但 Mac 宿主机的 `127.0.0.1:8000` 和 `localhost:8000` 连接被拒绝；原因尚未定位，未重启该栈。正式演示前应把宿主机端口访问列为独立门槛；若失败，先收集 `docker compose ps`、宿主机 `curl`、容器内 `/health` 和 OrbStack 状态，再决定是否重启，不要直接删卷。
+容器健康只证明容器内部检查通过，仍须从宿主机实际访问前端和 API。2026-10-14 一次排查中，已有 `fbl` 容器保持健康、API 容器内 `/health` 返回 200 且 8000 端口映射存在，但 Mac 宿主机的 8000 和 5173 端口均连接拒绝，`lsof` 没有对应 OrbStack 监听。`orbctl doctor` 检查通过，根因仍未定位。只对 `api`、`web` 执行 `docker compose restart api` 与 `docker compose restart web` 后，两个宿主机监听和 HTTP 页面均恢复；db、redis、worker 未重启，原有数据卷未删除。**这只是本次恢复事实，不保证能修复其他原因的端口故障。**正式演示前应把宿主机端口访问列为独立门槛；若失败，先收集 `docker compose ps`、宿主机 `curl`、容器内 `/health` 和 OrbStack 状态，再决定是否定向重启，不要直接删卷或全局重启。
 
 浏览器打开 `http://localhost:5173/`，API 健康检查位于 `http://localhost:8000/health`。Compose 将这两个端口绑定到 Mac 的 `127.0.0.1`；PostgreSQL 和 Redis 不对宿主机发布端口。API 健康后前端与 Worker 才启动。数据库使用命名卷 `fbl_postgres_data`，导入的数据与报告写到仓库 `data/runtime/`，由 API 和 Worker 共享。
 

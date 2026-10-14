@@ -1,10 +1,11 @@
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from tools.check_demo_readiness import FACTORS, check_readiness
+from tools.check_demo_readiness import FACTORS, check_readiness, check_web_page
 
 
 class FakeClient:
@@ -57,6 +58,33 @@ class DemoReadinessTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "missing admin password"):
             check_readiness(client, {})
         self.assertEqual(client.calls, [])
+
+    def test_web_entry_must_be_reachable_and_match_app(self):
+        class Response:
+            headers = {"Content-Type": "text/html; charset=utf-8"}
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def read(self, _limit):
+                return b'<title>FactorLab Demo</title><div id="root"></div>'
+
+        with patch("tools.check_demo_readiness.urlopen", return_value=Response()):
+            check_web_page("http://127.0.0.1:5173/")
+        with patch("tools.check_demo_readiness.urlopen", side_effect=OSError("connection refused")):
+            with self.assertRaisesRegex(RuntimeError, "web entry is unavailable"):
+                check_web_page("http://127.0.0.1:5173/")
+
+        class WrongPage(Response):
+            def read(self, _limit):
+                return b'<title>Other</title><div id="root"></div>'
+
+        with patch("tools.check_demo_readiness.urlopen", return_value=WrongPage()):
+            with self.assertRaisesRegex(ValueError, "not the FactorLab"):
+                check_web_page("http://127.0.0.1:5173/")
 
 
 if __name__ == "__main__":

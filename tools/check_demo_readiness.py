@@ -41,6 +41,18 @@ class ApiClient:
             raise RuntimeError(f"{path}: connection failed: {exc.reason}") from exc
 
 
+def check_web_page(url: str) -> None:
+    """Require the browser entry page, not merely a healthy API container."""
+    try:
+        with urlopen(Request(url, headers={"Accept": "text/html"}), timeout=10) as response:
+            content_type = response.headers.get("Content-Type", "")
+            html = response.read(128 * 1024).decode("utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise RuntimeError(f"web entry is unavailable: {exc}") from exc
+    if "text/html" not in content_type or "<title>FactorLab" not in html or 'id="root"' not in html:
+        raise ValueError("web entry is not the FactorLab page")
+
+
 def check_readiness(client: ApiClient, passwords: dict[str, str], *, require_historical: bool = False) -> list[str]:
     tokens = {}
     for role in ROLES:
@@ -82,14 +94,17 @@ def check_readiness(client: ApiClient, passwords: dict[str, str], *, require_his
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--api-url", default=os.getenv("FACTORLAB_DEMO_API_URL", "http://127.0.0.1:8000/api/v1"))
+    parser.add_argument("--web-url", default=os.getenv("FACTORLAB_DEMO_WEB_URL", "http://127.0.0.1:5173/"))
     parser.add_argument("--require-historical", action="store_true", help="Require a published CSI 300 bundle catalog entry")
     args = parser.parse_args()
     passwords = {role: os.getenv(f"FACTORLAB_DEMO_{role.upper()}_PASSWORD", "") for role in ROLES}
     try:
+        check_web_page(args.web_url)
         checks = check_readiness(ApiClient(args.api_url), passwords, require_historical=args.require_historical)
     except (RuntimeError, ValueError, KeyError, TypeError) as exc:
         print(f"FAIL 演示就绪检查：{exc}", file=sys.stderr)
         return 1
+    print("PASS FactorLab web entry reachable from this host")
     for check in checks:
         print(f"PASS {check}")
     print("只读预检通过；尚未验证新任务执行、报告内容、浏览器和 Worker。")
