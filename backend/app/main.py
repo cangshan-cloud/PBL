@@ -29,6 +29,7 @@ from app.services.datasets import (
 from app.services.dashboard import build_dashboard
 from app.services.comparisons import compare_runs, comparison_csv, comparison_html
 from app.services.conclusions import build_run_conclusion
+from app.services.historical_audit import historical_audit_csv
 from app.services.runs import create_composite_run, create_historical_run, create_research_run, execute_research_run, get_run, list_run_logs, list_runs, request_cancellation, serialize_run
 from app.services.reports import get_report, list_reports, read_verified_report
 from app.services.reproducibility import build_reproducibility_bundle
@@ -302,6 +303,20 @@ def download_reproducibility_bundle(task_id: str, user: User = Depends(get_curre
         content=content,
         media_type="application/json; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="factor-run-{task_id[:8]}.json"'},
+    )
+
+
+@app.get("/api/v1/research/tasks/{task_id}/historical-audit/{table}.csv")
+def download_historical_audit(task_id: str, table: str, user: User = Depends(get_current_user), session: Session = Depends(get_db)) -> Response:
+    run = _task_for_user(task_id, user, session)
+    try:
+        content = historical_audit_csv(run, table)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return Response(
+        content=content,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="historical-audit-{table}-{task_id[:8]}.csv"'},
     )
 
 

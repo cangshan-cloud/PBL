@@ -16,7 +16,8 @@ from sqlalchemy.pool import StaticPool
 
 from app.db import get_db
 from app.main import app
-from app.models import DatasetVersion
+from app.models import Artifact, DatasetVersion, Run, RunStatus, User
+from app.services.runs import create_historical_run
 
 
 SAMPLE_CSV = Path(__file__).resolve().parents[2] / "data" / "sample" / "daily_prices.csv"
@@ -167,6 +168,60 @@ class ApiJourneyTests(unittest.TestCase):
         ):
             with self.subTest(path=path):
                 self.assertEqual(self.client.get(path, headers=other_researcher).status_code, 403)
+
+    def test_historical_audit_csv_requires_owner_and_completed_historical_run(self):
+        researcher = self.auth("researcher", "research12345")
+        viewer = self.auth("viewer", "viewer12345")
+        with Session(self.engine) as session:
+            owner = session.query(User).filter_by(username="researcher").one()
+            dataset = DatasetVersion(
+                dataset_key="hs300_2024", name="audit fixture", version="fixture",
+                checksum="0" * 64, storage_uri="/unused/manifest.json", source_filename="manifest.json",
+                quality_report={"dataset_kind": "hs300_bundle_v1"}, status="published",
+            )
+            session.add(dataset)
+            session.commit()
+            run = create_historical_run(session, {"dataset_version_id": dataset.id}, created_by_id=owner.id)
+            task_id = run.id
+        daily_url = f"/api/v1/research/tasks/{task_id}/historical-audit/daily.csv"
+        self.assertEqual(self.client.get(daily_url).status_code, 401)
+        self.assertEqual(self.client.get(daily_url, headers=researcher).status_code, 409)
+
+        with Session(self.engine) as session:
+            run = session.get(Run, task_id)
+            run.status = RunStatus.SUCCESS
+            run.artifacts.append(Artifact(artifact_type="metrics", name="result.json", content={
+                "historical_audit": {
+                    "momentum_20d": {
+                        "daily": [{"date": "2024-01-02", "candidate_count": 300, "valid_return": 299},
+                                  {"date": "2024-01-03", "candidate_count": 300}],
+                        "unlabeled_signals": [{"date": "2024-01-02", "symbol": "sh.600000", "factor": 0.1,
+                                               "next_market_date": "2024-01-03", "reason": "label_suspended"}],
+                    },
+                },
+            }))
+            session.commit()
+
+        daily = self.client.get(daily_url, headers=researcher)
+        self.assertEqual(daily.status_code, 200, daily.text)
+        self.assertTrue(daily.content.startswith(b"\xef\xbb\xbf"))
+        self.assertIn("momentum_20d,2024-01-02,300,299", daily.content.decode("utf-8-sig"))
+        self.assertIn("momentum_20d,2024-01-03,300,0", daily.content.decode("utf-8-sig"))
+        self.assertIn("attachment", daily.headers["content-disposition"])
+        unlabeled = self.client.get(
+            f"/api/v1/research/tasks/{task_id}/historical-audit/unlabeled.csv", headers=viewer,
+        )
+        self.assertEqual(unlabeled.status_code, 200, unlabeled.text)
+        self.assertIn("sh.600000,0.1,2024-01-03,label_suspended", unlabeled.content.decode("utf-8-sig"))
+        self.assertEqual(self.client.get(
+            f"/api/v1/research/tasks/{task_id}/historical-audit/unknown.csv", headers=researcher,
+        ).status_code, 409)
+
+        self.client.post("/api/v1/users", headers=self.auth("admin", "admin12345"), json={
+            "username": "other_audit", "display_name": "其他研究员", "password": "second-pass123", "role": "researcher",
+        })
+        other = self.auth("other_audit", "second-pass123")
+        self.assertEqual(self.client.get(daily_url, headers=other).status_code, 403)
 
 
 if __name__ == "__main__":
