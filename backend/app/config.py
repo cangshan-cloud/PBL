@@ -55,5 +55,5 @@ def get_settings() -> Settings:
         bootstrap_admin_password=os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "admin12345"),
         bootstrap_researcher_password=os.getenv("BOOTSTRAP_RESEARCHER_PASSWORD", "research12345"),
         bootstrap_viewer_password=os.getenv("BOOTSTRAP_VIEWER_PASSWORD", "viewer12345"),
-        cors_origins=parse_cors_origins(os.getenv("CORS_ORIGINS", "http://localhost:5173")),
+        cors_origins=parse_cors_origins(os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")),
     )

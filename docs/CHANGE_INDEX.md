@@ -49,6 +49,7 @@
 | CHG-20261014-020 | 2026-10-14 | fix + test + docs / verified by `c376d4a` CI | 黄金验算 CLI 窄编码兼容 | [记录](changes/2026-10-14-020-golden-cli-encoding.md) | `tools/verify_golden_research.py::main`、`backend/tests/test_golden_cli.py::GoldenCliTests.test_verifier_succeeds_with_windows_legacy_stdout_encoding`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md` |
 | CHG-20261014-021 | 2026-10-14 | evidence-only / verified | `c376d4a` 的 Ubuntu/Windows CI 成功结果归档 | [记录](changes/2026-10-14-021-ci-success-evidence.md) | `docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md::自动化与环境证据`、`下一步顺序与放行门槛`（无代码改动） |
 | CHG-20261014-022 | 2026-10-14 | tool + test + evidence / verified on Mac | 普通页面只读 HTTP 查询延迟基准 | [记录](changes/2026-10-14-022-page-query-latency.md) | `tools/benchmark_page_queries.py`、`backend/tests/test_page_query_benchmark.py`、`docs/PAGE_QUERY_PERFORMANCE.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md`、`README.md` |
+| CHG-20261014-023 | 2026-10-14 | fix + browser QA / verified on Mac | 浏览器页面抽样、双本机地址登录和 favicon | [记录](changes/2026-10-14-023-browser-page-qa-loopback-cors.md) | `backend/app/config.py::get_settings`、`backend/tests/test_api_journey.py`、`frontend/index.html`、`frontend/public/favicon.svg`、`.gitignore`、`docs/PAGE_QUERY_PERFORMANCE.md`、`docs/ORBSTACK_DEPLOYMENT.md` |
 
 ## 历史基线
 

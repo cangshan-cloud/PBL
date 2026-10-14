@@ -24,6 +24,8 @@ docker compose ps
 
 浏览器打开 `http://localhost:5173/`，API 健康检查位于 `http://localhost:8000/health`。Compose 将这两个端口绑定到 Mac 的 `127.0.0.1`；PostgreSQL 和 Redis 不对宿主机发布端口。API 健康后前端与 Worker 才启动。数据库使用命名卷 `fbl_postgres_data`，导入的数据与报告写到仓库 `data/runtime/`，由 API 和 Worker 共享。
 
+2026-10-14 浏览器复测后，API 默认 CORS 也允许 `http://127.0.0.1:5173` 前端来源：在现有 `fbl` 栈只重建并替换 API/Web，未重建 db、redis、worker 或数据卷；从 `127.0.0.1:5173` 以只读账号登录成功，`/favicon.svg` 返回 200，浏览器控制台无错误。若自定义 `CORS_ORIGINS`，须显式包含实际使用的前端来源；默认值不再自动追加。页面性能抽样及局限见 [`PAGE_QUERY_PERFORMANCE.md`](PAGE_QUERY_PERFORMANCE.md)。
+
 本机演示可以使用 README 中的预置账号。仓库当前默认密码和 JWT 密钥仅适用于本机课程演示；若在共享环境运行，先根据 `.env.example` 创建 `.env` 并替换密钥与账号密码。Compose 统一从 `POSTGRES_DB`、`POSTGRES_USER`、`POSTGRES_PASSWORD` 生成 API/Worker 的数据库连接；密码目前需使用 URL 安全字符（字母、数字、`-`、`_`、`.`、`~`），因为它会直接拼入连接 URL。**已有数据库卷的账号密码不会因修改 `.env` 自动轮换**，需按 PostgreSQL 的账号迁移流程处理；请先备份，不要为改密码直接删除卷。
 
 当前 Worker 容器仍以 root 运行以写入共享的 `data/` 目录；虽然 Web/API 端口只绑定本机，这套配置并非面向公网的生产加固方案。若日后扩展为共享私域部署，需要先完成非 root 权限、密钥管理、访问控制和备份策略。

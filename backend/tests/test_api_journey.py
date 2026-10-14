@@ -59,6 +59,23 @@ class ApiJourneyTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
+    def test_default_loopback_frontends_can_preflight_login(self):
+        for origin in ("http://localhost:5173", "http://127.0.0.1:5173"):
+            with self.subTest(origin=origin):
+                response = self.client.options(
+                    "/api/v1/auth/login",
+                    headers={"Origin": origin, "Access-Control-Request-Method": "POST",
+                             "Access-Control-Request-Headers": "content-type"},
+                )
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertEqual(response.headers.get("access-control-allow-origin"), origin)
+
+        rejected = self.client.options(
+            "/api/v1/auth/login",
+            headers={"Origin": "http://localhost.evil.example:5173", "Access-Control-Request-Method": "POST"},
+        )
+        self.assertNotEqual(rejected.headers.get("access-control-allow-origin"), "http://localhost.evil.example:5173")
+
     def test_publish_blocks_tampered_or_missing_draft(self):
         admin = self.auth("admin", "admin12345")
         original = b"trade_date,symbol,close\n2025-01-02,000001.SZ,10\n"

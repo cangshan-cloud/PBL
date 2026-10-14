@@ -24,7 +24,7 @@
 | §9.4：任务复现信息、文件和结果摘要 | 已验（Mac），跨机有条件 | `backend/app/services/reproducibility.py`；`backend/tests/test_reproducibility.py`；历史四文件核对见 [`HS300_BUNDLE.md`](HS300_BUNDLE.md) | 复现包不包含原始私有行情及代码副本；跨机复算须另备相同数据和代码 |
 | §8：Web/API/Worker/PostgreSQL/Redis 私域 Compose 部署 | 已验（Mac OrbStack） | `docker-compose.yml`、[`ORBSTACK_DEPLOYMENT.md`](ORBSTACK_DEPLOYMENT.md)；隔离队列、报告、四文件验收 | Windows/WSL2 离线部署未验；当前只开放本机端口，不能宣称公网或多人生产级安全 |
 | §2.3：300 股 × 3 年单因子完整检验 ≤60 秒 | 已验（单次 Mac 基准），目标环境未验 | [`PERFORMANCE_ACCEPTANCE.md`](PERFORMANCE_ACCEPTANCE.md) 记录完整 Run 1.614 秒、220,500 有效观察 | 需在最终推荐环境重复测量并记录硬件、版本；单次结果非通用性能保证 |
-| §2.3：普通页面查询 ≤2 秒 | 部分（Mac HTTP 已验） | [`PAGE_QUERY_PERFORMANCE.md`](PAGE_QUERY_PERFORMANCE.md)：六类入口首次 + 5 次重复读取，最大 86.4 ms；`tools/benchmark_page_queries.py`、`backend/tests/test_page_query_benchmark.py` | 未含浏览器渲染、真正冷启动、并发和 Windows；D 补实际页面体验，A 在最终推荐环境重测 |
+| §2.3：普通页面查询 ≤2 秒 | 部分（Mac HTTP + 浏览器抽样） | [`PAGE_QUERY_PERFORMANCE.md`](PAGE_QUERY_PERFORMANCE.md)：HTTP 六类入口最大 86.4 ms；三次已登录浏览器刷新 FCP 为 88/36/44 ms，五类切页各一次最大 150.7 ms | 浏览器切页仅单次样本，未覆盖真正冷启动、完整绘制、并发和 Windows；正式彩排及最终环境需重测 |
 | §2.2、§12：10 分钟离线演示与四人独立责任包 | 部分 | [`DEMO_REHEARSAL.md`](DEMO_REHEARSAL.md) 有剧本与只读预检；[`TEAM_PLAN.md`](TEAM_PLAN.md) 有四包划分 | D 亲自彩排并记录实际耗时；A/B/C/D 分别填写 `docs/member-deliverables/` 的署名验收材料，不能以模板代替贡献 |
 | §5.7：Ollama 摘要；P2 表达式编辑器 | 未实现，非首期放行项 | [`PRD.md`](PRD.md) 已列 P2 | P0 缺口和验收证据收齐前不启动 |
 

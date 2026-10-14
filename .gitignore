@@ -13,4 +13,5 @@ dist/
 data/runtime/
 data/real/
 artifacts/
+output/playwright/
 .DS_Store
