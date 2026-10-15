@@ -1,6 +1,6 @@
 # PRD—实现—测试证据对照表（初建 2026-10-14；更新 2026-10-15）
 
-本表供队长控制范围和课程汇报使用。逐项对照 [`PRD.md`](PRD.md) V1.0，区分“代码存在”“本机验证”“目标环境验收”。测试或脚本通过不等于四位成员已各自签名验收，也不等于研究结论有效。当前本机核对基线为 `fffad78`（2026-10-15）；本机为 macOS，Windows 部署目前不在本轮执行范围。10 月 14 日的运行记录保留为历史证据，不冒充最新运行结果。
+本表供队长控制范围和课程汇报使用。逐项对照 [`PRD.md`](PRD.md) V1.0，区分“代码存在”“本机验证”“目标环境验收”。测试或脚本通过不等于四位成员已各自签名验收，也不等于研究结论有效。最近一次明确标号的本机核对基线为 `fffad78`（2026-10-15），此后变更的验证见对应变更记录；本机为 macOS，Windows 部署目前不在本轮执行范围。10 月 14 日的运行记录保留为历史证据，不冒充最新运行结果。
 
 状态：**已验（Mac）**＝有本机自动测试或实测证据；**部分**＝流程存在但 PRD 口径尚缺项；**未验**＝尚无目标环境实测；**未实现**＝没有相应功能。私有真实行情包在 Git 忽略目录中，不能把仓库代码误称为“任意电脑开箱复现真实样本”。
 
@@ -18,7 +18,7 @@
 | §5.4：进度、日志、取消、失败重试 | 已验（Mac） | `backend/app/main.py` 任务路由、`backend/app/services/runs.py`；`backend/tests/test_persistence.py`、`test_api_journey.py`；[`TASK_EXECUTION.md`](TASK_EXECUTION.md) | D 用失败/取消样例记录界面验收证据 |
 | §5.5：IC、Rank IC、ICIR、分组／多空净值、换手率、成本口径 | 已验（Mac），非实盘回测 | `backend/app/domain/research.py`；`backend/tests/test_research.py`；[`GOLDEN_RESEARCH_VERIFICATION.md`](GOLDEN_RESEARCH_VERIFICATION.md)；[`SINGLE_FACTOR_ANALYSIS.md`](SINGLE_FACTOR_ANALYSIS.md)；[10 月 15 日逐日均值](changes/2026-10-15-010-group-daily-mean-correction.md)、[并列值分组](changes/2026-10-15-011-deterministic-factor-ties.md)、[输入校验](changes/2026-10-15-012-research-observation-validation.md) | C 亲自独立复核至少一组黄金指标并署名；不得把统计检验等同于可成交收益；旧报告不自动按新口径重算 |
 | §5.5、P1：历史沪深 300 成分与停牌/ST 可交易性 | 已验（Mac 私有包），来源边界未消除 | `backend/app/domain/historical_research.py`、`backend/app/services/historical_bundle.py`；[`HS300_BUNDLE.md`](HS300_BUNDLE.md)、[`INDEPENDENT_HS300_SPOTCHECK.md`](INDEPENDENT_HS300_SPOTCHECK.md) | 封存包需另行取得；成分生效时点、ST 源状态未全量独立核验；C/B 分别签收公式与来源证据 |
-| P1：等权多因子及相关矩阵 | 已验（Mac） | `backend/app/domain/composite.py`、`backend/tests/test_composite.py`；[`MULTI_FACTOR_ANALYSIS.md`](MULTI_FACTOR_ANALYSIS.md) | IC 加权未实现；按已确认的课程范围保留等权，不把相关性解释为因果或独立增益 |
+| P1：等权多因子及相关矩阵 | 已验（Mac） | `backend/app/domain/composite.py`、`backend/tests/test_composite.py`；[`MULTI_FACTOR_ANALYSIS.md`](MULTI_FACTOR_ANALYSIS.md)；[权重边界校验](changes/2026-10-15-014-composite-weight-validation.md) | IC 加权未实现；按已确认的课程范围保留等权，不把相关性解释为因果或独立增益 |
 | §5.6：结构化结果、图表和独立 HTML 报告 | 已验（Mac） | `backend/app/services/reports.py`、`backend/app/services/reproducibility.py`、`frontend/src/main.tsx`；`backend/tests/test_reports.py`、`test_reproducibility.py` | D 用实际浏览器走一遍报告预览、下载和限制说明 |
 | §5.6、P1：PDF 导出 | 部分 | 浏览器可打印 HTML 为 PDF；[`README.md`](../README.md) 报告中心说明 | 无服务端 PDF 文件生成接口；答辩时如称“支持 PDF”，须限定为浏览器打印并实测 |
 | §9.4：任务复现信息、文件和结果摘要 | 已验（Mac），跨机有条件 | `backend/app/services/reproducibility.py`；`backend/tests/test_reproducibility.py`；历史四文件核对见 [`HS300_BUNDLE.md`](HS300_BUNDLE.md) | 复现包不包含原始私有行情及代码副本；跨机复算须另备相同数据和代码 |
@@ -30,7 +30,7 @@
 
 ## 自动化与环境证据
 
-- **当前本机基线（2026-10-15，提交 `fffad78`）**：`.venv/bin/python -m unittest discover -s backend/tests -q` 152 项通过；`.venv/bin/python tools/verify_golden_research.py` 通过；`npm run build --prefix frontend` 通过。三项只覆盖本机自动检查；本次文档更新不改变应用代码。
+- **本机基线（2026-10-15，提交 `fffad78`）**：`.venv/bin/python -m unittest discover -s backend/tests -q` 152 项通过；`.venv/bin/python tools/verify_golden_research.py` 通过；`npm run build --prefix frontend` 通过。此后权重校验变更再次运行后端 152 项与黄金样例，结果均通过，见 [CHG-20261015-014](changes/2026-10-15-014-composite-weight-validation.md)；未重新运行前端构建，因本次未改前端。
 
 - 本机虚拟环境：`130` 项后端测试通过；黄金结果脚本在 `PYTHONIOENCODING=cp1252` 下通过；前端生产构建通过。历史采集测试曾在模拟“未安装 BaoStock”条件下 `129` 项通过，见 [CHG-20261014-018](changes/2026-10-14-018-optional-baostock-test-isolation.md)。
 - GitHub Actions：提交 `8ab9252` 的 [运行 #38538602151](https://github.com/cangshan-cloud/PBL/actions/runs/38538602151) 在 Ubuntu、Windows 后端测试均失败。测试隔离修复 `08e512b` 的 [运行 #38539572865](https://github.com/cangshan-cloud/PBL/actions/runs/38539572865) 让 Ubuntu 全部成功，Windows 仍失败；显式 UTF-8 修复 `2c5698f` 的 [运行 #38540261543](https://github.com/cangshan-cloud/PBL/actions/runs/38540261543) 使 Windows 后端测试通过，失败点转到黄金验算。`PYTHONIOENCODING=cp1252` 在本机复现了中文成功提示的 `UnicodeEncodeError`；改为 ASCII 并加回归后，提交 `c376d4a` 的 [运行 #38540761105](https://github.com/cangshan-cloud/PBL/actions/runs/38540761105) 公开页面显示整条工作流 **Success**（Ubuntu、Windows 矩阵均完成）。

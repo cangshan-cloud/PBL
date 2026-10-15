@@ -64,6 +64,7 @@
 | CHG-20261015-011 | 2026-10-15 | research reproducibility + regression / verified on Mac | 因子同值时固定分组次序 | [记录](changes/2026-10-15-011-deterministic-factor-ties.md) | `backend/app/domain/research.py::evaluate`、`backend/tests/test_research.py`、`docs/SINGLE_FACTOR_ANALYSIS.md` |
 | CHG-20261015-012 | 2026-10-15 | research input integrity + regression / verified on Mac | 单因子检验入口拒绝重复与非有限观测 | [记录](changes/2026-10-15-012-research-observation-validation.md) | `backend/app/domain/research.py::evaluate`、`backend/tests/test_research.py`、`docs/SINGLE_FACTOR_ANALYSIS.md` |
 | CHG-20261015-013 | 2026-10-15 | documentation + acceptance planning / prepared | 更新验收基线与最终彩排清单 | [记录](changes/2026-10-15-013-acceptance-baseline-rehearsal-checklist.md) | `docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md`、`docs/FINAL_REHEARSAL_CHECKLIST.md`、`docs/DEMO_REHEARSAL.md`、`README.md` |
+| CHG-20261015-014 | 2026-10-15 | research input integrity + regression / verified on Mac | 多因子合成拒绝非法权重 | [记录](changes/2026-10-15-014-composite-weight-validation.md) | `backend/app/domain/composite.py::combine_factor_observations`、`backend/tests/test_composite.py`、`docs/MULTI_FACTOR_ANALYSIS.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md` |
 
 ## 历史基线
 

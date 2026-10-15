@@ -1,6 +1,7 @@
 import sys
 import unittest
 from datetime import date
+from math import inf, nan
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -44,6 +45,11 @@ class CompositeFactorTests(unittest.TestCase):
             combine_factor_observations({"one": [item]}, {"one": 1})
         with self.assertRaisesRegex(ValueError, "non-negative"):
             combine_factor_observations({"one": [item], "two": [item]}, {"one": 1, "two": -1})
+        for invalid in (nan, inf, -inf):
+            with self.subTest(weight=invalid), self.assertRaisesRegex(ValueError, "finite and non-negative"):
+                combine_factor_observations({"one": [item], "two": [item]}, {"one": 1, "two": invalid})
+        with self.assertRaisesRegex(ValueError, "finite positive sum"):
+            combine_factor_observations({"one": [item], "two": [item]}, {"one": 1e308, "two": 1e308})
 
     def test_duplicate_observation_is_rejected_instead_of_overwritten(self):
         item = Observation(date(2025, 1, 1), "A", 1, 0.01)

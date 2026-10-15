@@ -21,10 +21,11 @@ def combine_factor_observations(
         raise ValueError("composite research requires at least two factors")
     if set(components) != set(weights):
         raise ValueError("component factors and weights must match")
-    if any(weight < 0 for weight in weights.values()) or sum(weights.values()) <= 0:
-        raise ValueError("factor weights must be non-negative with a positive sum")
-
+    if any(not math.isfinite(weight) or weight < 0 for weight in weights.values()):
+        raise ValueError("factor weights must be finite and non-negative")
     total_weight = sum(weights.values())
+    if not math.isfinite(total_weight) or total_weight <= 0:
+        raise ValueError("factor weights must have a finite positive sum")
     normalized_weights = {key: value / total_weight for key, value in weights.items()}
     processed = {
         key: preprocess_observations(
