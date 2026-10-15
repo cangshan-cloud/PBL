@@ -31,7 +31,7 @@ from app.services.dashboard import build_dashboard
 from app.services.comparisons import compare_runs, comparison_csv, comparison_html
 from app.services.conclusions import build_run_conclusion
 from app.services.historical_audit import historical_audit_csv
-from app.services.runs import create_composite_run, create_historical_run, create_research_run, execute_research_run, get_run, list_run_logs, list_runs, request_cancellation, serialize_run, transition
+from app.services.runs import create_composite_run, create_historical_run, create_research_run, execute_research_run, fail_pending_enqueue, get_run, list_run_logs, list_runs, request_cancellation, serialize_run
 from app.services.reports import get_report, list_reports, read_verified_report
 from app.services.reproducibility import build_reproducibility_bundle
 from app.tasks import celery_app, execute_research_run_task
@@ -65,9 +65,7 @@ def _enqueue_run(session: Session, run: Run) -> None:
         execute_research_run_task.apply_async(args=[run_id], task_id=run_id)
     except OperationalError as exc:
         session.rollback()
-        current = get_run(session, run_id)
-        if current is not None and current.status == RunStatus.PENDING:
-            transition(session, current, RunStatus.FAILED, error="消息队列连接失败，任务未能入队")
+        if fail_pending_enqueue(session, run_id):
             raise HTTPException(503, "消息队列连接失败；请检查 Worker/Redis 后重试失败任务") from exc
         raise HTTPException(503, "消息队列确认失败；请先检查任务状态，避免重复提交") from exc
 

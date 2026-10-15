@@ -338,6 +338,22 @@ def claim_pending_run(session: Session, run_id: str) -> tuple[Run, bool]:
     return run, claimed
 
 
+def fail_pending_enqueue(session: Session, run_id: str) -> bool:
+    """Record a broker failure only if no worker has claimed the run."""
+    reason = "消息队列连接失败，任务未能入队"
+    marked = session.execute(
+        update(Run).where(Run.id == run_id, Run.status == RunStatus.PENDING).values(
+            status=RunStatus.FAILED, finished_at=utc_now(), error_summary=reason,
+        )
+    ).rowcount == 1
+    if marked:
+        session.add(RunLog(run_id=run_id, level="error", event="failed", message=reason))
+        session.commit()
+    else:
+        session.rollback()
+    return marked
+
+
 def execute_research_run(session: Session, run_id: str) -> Run:
     run, claimed = claim_pending_run(session, run_id)
     if not claimed:

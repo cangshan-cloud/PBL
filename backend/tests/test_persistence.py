@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from app.db import Base
 from app.models import Run, RunStatus
 from app.services.datasets import import_csv, publish_dataset_version
-from app.services.runs import claim_pending_run, create_research_run, execute_research_run, get_run, list_run_logs, request_cancellation, transition
+from app.services.runs import claim_pending_run, create_research_run, execute_research_run, fail_pending_enqueue, get_run, list_run_logs, request_cancellation, transition
 from app.services.sample_data import sample_file
 
 
@@ -151,6 +151,33 @@ class PersistenceTests(unittest.TestCase):
                     self.assertEqual(cancelled_status, RunStatus.CANCELLED)
                     self.assertEqual(run.status, RunStatus.CANCELLED)
                     self.assertEqual(events, ["queued", "cancelled"])
+
+    def test_broker_failure_and_worker_claim_cannot_both_win(self):
+        for _ in range(5):
+            with Session(self.engine) as session:
+                run_id = create_research_run(session, {"factor": "momentum_20d", "groups": 5}).id
+            barrier = Barrier(2)
+
+            def claim() -> bool:
+                with Session(self.engine) as session:
+                    barrier.wait(timeout=5)
+                    return claim_pending_run(session, run_id)[1]
+
+            def fail_enqueue() -> bool:
+                with Session(self.engine) as session:
+                    barrier.wait(timeout=5)
+                    return fail_pending_enqueue(session, run_id)
+
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                claim_future = pool.submit(claim)
+                failure_future = pool.submit(fail_enqueue)
+                claimed, marked_failed = claim_future.result(), failure_future.result()
+            self.assertNotEqual(claimed, marked_failed)
+            with Session(self.engine) as session:
+                run = get_run(session, run_id)
+                events = [item.event for item in list_run_logs(session, run_id)]
+                self.assertEqual(run.status, RunStatus.RUNNING if claimed else RunStatus.FAILED)
+                self.assertEqual(events, ["queued", "started" if claimed else "failed"])
 
     def test_pending_run_can_be_cancelled_with_audit_log(self):
         with Session(self.engine, expire_on_commit=False) as session:

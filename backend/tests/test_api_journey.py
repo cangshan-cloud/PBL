@@ -18,7 +18,7 @@ from sqlalchemy.pool import StaticPool
 from app.db import get_db
 from app.main import app
 from app.models import Artifact, DatasetVersion, Run, RunStatus, User
-from app.services.runs import create_historical_run
+from app.services.runs import claim_pending_run, create_historical_run
 
 
 SAMPLE_CSV = Path(__file__).resolve().parents[2] / "data" / "sample" / "daily_prices.csv"
@@ -252,6 +252,28 @@ class ApiJourneyTests(unittest.TestCase):
         self.assertEqual(retried.status_code, 201, retried.text)
         self.assertEqual(retried.json()["status"], "pending")
         enqueue.assert_called_once()
+
+    def test_broker_error_does_not_overwrite_already_claimed_run(self):
+        researcher = self.auth("researcher", "research12345")
+
+        def claimed_then_error(*, args, task_id):
+            with Session(self.engine) as session:
+                _, claimed = claim_pending_run(session, task_id)
+                self.assertTrue(claimed)
+            raise OperationalError("redis ack unavailable")
+
+        with patch.dict(os.environ, {"TASK_EXECUTION_MODE": "celery"}), \
+             patch("app.main.execute_research_run_task.apply_async", side_effect=claimed_then_error):
+            response = self.client.post("/api/v1/research/tasks", headers=researcher,
+                                        json={"factor": "momentum_20d", "groups": 5})
+        self.assertEqual(response.status_code, 503, response.text)
+        self.assertIn("请先检查任务状态", response.json()["detail"])
+        task = self.client.get("/api/v1/research/tasks", headers=researcher).json()[0]
+        self.assertEqual(task["status"], "running")
+        events = [item["event"] for item in self.client.get(
+            f"/api/v1/research/tasks/{task['id']}/logs", headers=researcher,
+        ).json()]
+        self.assertEqual(events, ["queued", "started"])
 
     def test_historical_audit_csv_requires_owner_and_completed_historical_run(self):
         researcher = self.auth("researcher", "research12345")
