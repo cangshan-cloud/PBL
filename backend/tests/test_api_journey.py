@@ -186,6 +186,50 @@ class ApiJourneyTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(self.client.get(path, headers=other_researcher).status_code, 403)
 
+    def test_failed_historical_task_retries_in_historical_mode(self):
+        researcher = self.auth("researcher", "research12345")
+        viewer = self.auth("viewer", "viewer12345")
+        with Session(self.engine) as session:
+            owner = session.query(User).filter_by(username="researcher").one()
+            dataset = DatasetVersion(
+                dataset_key="hs300_2024", name="retry fixture", version="retry-fixture",
+                checksum="0" * 64, storage_uri="/unused/manifest.json", source_filename="manifest.json",
+                quality_report={"dataset_kind": "hs300_bundle_v1"}, status="published",
+            )
+            session.add(dataset)
+            session.commit()
+            source = create_historical_run(session, {"dataset_version_id": dataset.id, "groups": 3},
+                                           created_by_id=owner.id)
+            source.status = RunStatus.FAILED
+            source.error_summary = "isolated fixture failure"
+            session.commit()
+            source_id, dataset_id = source.id, dataset.id
+
+        url = f"/api/v1/research/tasks/{source_id}/retry"
+        self.assertEqual(self.client.post(url, headers=viewer).status_code, 403)
+        with patch.dict(os.environ, {"TASK_EXECUTION_MODE": "celery"}), \
+             patch("app.main.execute_research_run_task.apply_async") as enqueue:
+            response = self.client.post(url, headers=researcher)
+        self.assertEqual(response.status_code, 201, response.text)
+        retried = response.json()
+        self.assertNotEqual(retried["id"], source_id)
+        self.assertEqual(retried["status"], "pending")
+        self.assertEqual(retried["dataset_version_id"], dataset_id)
+        self.assertEqual(retried["parameters"]["mode"], "historical_hs300_2024")
+        self.assertEqual(retried["parameters"]["groups"], 3)
+        self.assertEqual(len(retried["parameters"]["components"]), 4)
+        enqueue.assert_called_once_with(args=[retried["id"]], task_id=retried["id"])
+        self.assertEqual(self.client.get(f"/api/v1/research/tasks/{source_id}", headers=researcher).json()["status"],
+                         "failed")
+        with Session(self.engine) as session:
+            session.get(DatasetVersion, dataset_id).status = "draft"
+            session.commit()
+        with patch.dict(os.environ, {"TASK_EXECUTION_MODE": "celery"}), \
+             patch("app.main.execute_research_run_task.apply_async") as enqueue:
+            unavailable = self.client.post(url, headers=researcher)
+        self.assertEqual(unavailable.status_code, 400, unavailable.text)
+        enqueue.assert_not_called()
+
     def test_historical_audit_csv_requires_owner_and_completed_historical_run(self):
         researcher = self.auth("researcher", "research12345")
         viewer = self.auth("viewer", "viewer12345")

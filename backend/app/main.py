@@ -409,10 +409,18 @@ def retry_task(task_id: str, user: User = Depends(require_roles(UserRole.ADMIN, 
     source = _task_for_user(task_id, user, session)
     if source.status not in {RunStatus.FAILED, RunStatus.CANCELLED}:
         raise HTTPException(409, "只有失败或已取消的任务可以重试")
-    if source.experiment.parameters.get("mode") == "composite":
-        run = create_composite_run(session, dict(source.experiment.parameters), created_by_id=user.id)
-    else:
-        run = create_research_run(session, dict(source.experiment.parameters), created_by_id=user.id)
+    parameters = dict(source.experiment.parameters)
+    try:
+        if parameters.get("mode") == "composite":
+            run = create_composite_run(session, parameters, created_by_id=user.id)
+        elif parameters.get("mode") == "historical_hs300_2024":
+            run = create_historical_run(session, parameters, created_by_id=user.id)
+        else:
+            run = create_research_run(session, parameters, created_by_id=user.id)
+    except LookupError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
     if get_settings().task_execution_mode == "inline":
         try:
             run = execute_research_run(session, run.id)
