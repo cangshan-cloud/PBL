@@ -53,6 +53,7 @@
 | CHG-20261014-024 | 2026-10-14 | tool + tests + evidence / verified on Mac | 演示备用报告只读下载与 SHA-256 预检 | [记录](changes/2026-10-14-024-demo-report-fallback-preflight.md) | `tools/check_demo_readiness.py::ApiClient.download_report`、`check_readiness`、`main`、`backend/tests/test_demo_readiness.py`、`docs/DEMO_REHEARSAL.md` |
 | CHG-20261015-001 | 2026-10-15 | data quality fix + tests / verified on Mac | 严格 CSV 交易日期格式并拒绝质量均值溢出 | [记录](changes/2026-10-15-001-csv-date-and-summary-validation.md) | `backend/app/services/datasets.py::TRADE_DATE_PATTERN`、`_numeric_summary`、`validate_csv`、`backend/tests/test_datasets.py`、`docs/DATASET_FORMAT.md` |
 | CHG-20261015-002 | 2026-10-15 | bug fix + API regression / verified on Mac | 历史研究任务重试保持原模式 | [记录](changes/2026-10-15-002-historical-retry-routing.md) | `backend/app/main.py::retry_task`、`backend/tests/test_api_journey.py::ApiJourneyTests.test_failed_historical_task_retries_in_historical_mode`、`docs/TASK_EXECUTION.md` |
+| CHG-20261015-003 | 2026-10-15 | task reliability fix + API regression / verified on Mac | 队列连接失败时记录可重试失败任务与固定错误日志 | [记录](changes/2026-10-15-003-broker-enqueue-failure.md) | `backend/app/main.py::_enqueue_run`、四个异步入口、`backend/app/services/runs.py::transition`、`backend/tests/test_api_journey.py`、`docs/TASK_EXECUTION.md` |
 
 ## 历史基线
 

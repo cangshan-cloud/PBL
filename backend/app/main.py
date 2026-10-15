@@ -7,6 +7,7 @@ from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, Response
+from kombu.exceptions import OperationalError
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
@@ -30,7 +31,7 @@ from app.services.dashboard import build_dashboard
 from app.services.comparisons import compare_runs, comparison_csv, comparison_html
 from app.services.conclusions import build_run_conclusion
 from app.services.historical_audit import historical_audit_csv
-from app.services.runs import create_composite_run, create_historical_run, create_research_run, execute_research_run, get_run, list_run_logs, list_runs, request_cancellation, serialize_run
+from app.services.runs import create_composite_run, create_historical_run, create_research_run, execute_research_run, get_run, list_run_logs, list_runs, request_cancellation, serialize_run, transition
 from app.services.reports import get_report, list_reports, read_verified_report
 from app.services.reproducibility import build_reproducibility_bundle
 from app.tasks import celery_app, execute_research_run_task
@@ -56,6 +57,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def _enqueue_run(session: Session, run: Run) -> None:
+    run_id = run.id
+    try:
+        execute_research_run_task.apply_async(args=[run_id], task_id=run_id)
+    except OperationalError as exc:
+        session.rollback()
+        current = get_run(session, run_id)
+        if current is not None and current.status == RunStatus.PENDING:
+            transition(session, current, RunStatus.FAILED, error="消息队列连接失败，任务未能入队")
+            raise HTTPException(503, "消息队列连接失败；请检查 Worker/Redis 后重试失败任务") from exc
+        raise HTTPException(503, "消息队列确认失败；请先检查任务状态，避免重复提交") from exc
 
 
 @app.get("/health")
@@ -235,7 +249,7 @@ def create_task(request: ResearchRequest, user: User = Depends(require_roles(Use
             if run is None:
                 raise HTTPException(500, "研究任务执行失败且状态不可读取")
     else:
-        execute_research_run_task.apply_async(args=[run.id], task_id=run.id)
+        _enqueue_run(session, run)
     return serialize_run(run)
 
 
@@ -253,7 +267,7 @@ def create_historical_task(request: HistoricalResearchRequest, user: User = Depe
         except Exception:
             run = get_run(session, run.id)
     else:
-        execute_research_run_task.apply_async(args=[run.id], task_id=run.id)
+        _enqueue_run(session, run)
     return serialize_run(run)
 
 
@@ -271,7 +285,7 @@ def create_composite_task(request: CompositeResearchRequest, user: User = Depend
         except Exception:
             run = get_run(session, run.id)
     else:
-        execute_research_run_task.apply_async(args=[run.id], task_id=run.id)
+        _enqueue_run(session, run)
     if run is None:
         raise HTTPException(500, "多因子任务状态不可读取")
     return serialize_run(run)
@@ -427,7 +441,7 @@ def retry_task(task_id: str, user: User = Depends(require_roles(UserRole.ADMIN, 
         except Exception:
             run = get_run(session, run.id)
     else:
-        execute_research_run_task.apply_async(args=[run.id], task_id=run.id)
+        _enqueue_run(session, run)
     if run is None:
         raise HTTPException(500, "重试任务状态不可读取")
     return serialize_run(run)

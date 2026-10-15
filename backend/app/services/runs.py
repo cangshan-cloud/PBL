@@ -245,7 +245,7 @@ def list_runs(session: Session) -> list[Run]:
 
 def transition(session: Session, run: Run, target: RunStatus, *, error: str | None = None) -> None:
     allowed = {
-        RunStatus.PENDING: {RunStatus.RUNNING, RunStatus.CANCELLED},
+        RunStatus.PENDING: {RunStatus.RUNNING, RunStatus.FAILED, RunStatus.CANCELLED},
         RunStatus.RUNNING: {RunStatus.SUCCESS, RunStatus.FAILED, RunStatus.CANCELLED},
     }
     if target not in allowed.get(run.status, set()):

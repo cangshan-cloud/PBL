@@ -10,6 +10,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from fastapi.testclient import TestClient
+from kombu.exceptions import OperationalError
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
@@ -229,6 +230,28 @@ class ApiJourneyTests(unittest.TestCase):
             unavailable = self.client.post(url, headers=researcher)
         self.assertEqual(unavailable.status_code, 400, unavailable.text)
         enqueue.assert_not_called()
+
+    def test_broker_connection_failure_records_failed_run_and_allows_retry(self):
+        researcher = self.auth("researcher", "research12345")
+        with patch.dict(os.environ, {"TASK_EXECUTION_MODE": "celery"}), \
+             patch("app.main.execute_research_run_task.apply_async", side_effect=OperationalError("redis unavailable")):
+            response = self.client.post("/api/v1/research/tasks", headers=researcher,
+                                        json={"factor": "momentum_20d", "groups": 5})
+        self.assertEqual(response.status_code, 503, response.text)
+        self.assertNotIn("redis unavailable", response.text)
+        tasks = self.client.get("/api/v1/research/tasks", headers=researcher).json()
+        self.assertEqual(len(tasks), 1)
+        failed = tasks[0]
+        self.assertEqual(failed["status"], "failed")
+        self.assertIn("消息队列连接失败", failed["error_summary"])
+        logs = self.client.get(f"/api/v1/research/tasks/{failed['id']}/logs", headers=researcher).json()
+        self.assertTrue(any(item["event"] == "failed" for item in logs))
+        with patch.dict(os.environ, {"TASK_EXECUTION_MODE": "celery"}), \
+             patch("app.main.execute_research_run_task.apply_async") as enqueue:
+            retried = self.client.post(f"/api/v1/research/tasks/{failed['id']}/retry", headers=researcher)
+        self.assertEqual(retried.status_code, 201, retried.text)
+        self.assertEqual(retried.json()["status"], "pending")
+        enqueue.assert_called_once()
 
     def test_historical_audit_csv_requires_owner_and_completed_historical_run(self):
         researcher = self.auth("researcher", "research12345")
