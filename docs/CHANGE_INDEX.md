@@ -75,6 +75,7 @@
 | CHG-20261015-022 | 2026-10-15 | seed data integrity + regression / verified on Mac | 内置演示数据种入使用同一字节快照 | [记录](changes/2026-10-15-022-demo-seed-byte-consistency.md) | `backend/app/services/catalog.py::ensure_demo_catalog`、`backend/tests/test_catalog.py`、`docs/DATASET_FORMAT.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md` |
 | CHG-20261015-023 | 2026-10-15 | research correctness + regression / verified on Mac | 全截面因子同值日不再生成代码排序伪分组收益 | [记录](changes/2026-10-15-023-constant-factor-no-signal.md) | `backend/app/domain/research.py::evaluate`、`backend/app/services/reports.py::build_report_html`、`backend/tests/test_research.py`、`docs/SINGLE_FACTOR_ANALYSIS.md` |
 | CHG-20261015-024 | 2026-10-15 | disclosure + UI + regression / verified on Mac | 工作台及结构化结论披露全同值跳过日期 | [记录](changes/2026-10-15-024-constant-factor-disclosure.md) | `frontend/src/main.tsx::Result` 与研究结果区、`backend/app/services/conclusions.py::build_run_conclusion`、`backend/tests/test_conclusions.py`、`backend/tests/test_reports.py`、`docs/RESEARCH_CONCLUSION.md` |
+| CHG-20261015-025 | 2026-10-15 | research sample integrity + disclosure / verified on Mac | 每日证券数不足目标分组数时不生成不完整分组 | [记录](changes/2026-10-15-025-insufficient-daily-group-sample.md) | `backend/app/domain/research.py::evaluate`、`backend/app/services/conclusions.py::build_run_conclusion`、`backend/app/services/reports.py::build_report_html`、`frontend/src/main.tsx`、相关测试与口径文档 |
 
 ## 历史基线
 

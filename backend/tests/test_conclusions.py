@@ -71,6 +71,14 @@ class ConclusionTests(unittest.TestCase):
             self.assertFalse(any("全截面因子同值" in item for item in
                                  build_run_conclusion(run, {"ic_series": []})["limitations"]))
 
+    def test_insufficient_daily_group_sample_is_disclosed(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(session, {"factor": "momentum_20d", "groups": 5})
+            conclusion = build_run_conclusion(run, {"ic_series": [],
+                                                     "group_skipped_insufficient_sample_days": 2})
+            self.assertTrue(any("2个交易日有效证券数少于目标分组数" in item
+                                for item in conclusion["limitations"]))
+
 
 if __name__ == "__main__":
     unittest.main()

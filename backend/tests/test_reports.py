@@ -65,8 +65,10 @@ class ReportTests(unittest.TestCase):
         with Session(self.engine, expire_on_commit=False) as session:
             run = create_research_run(session, {"factor": "momentum_20d", "lookback": 20, "groups": 5})
             rendered = build_report_html(run, {"coverage": 2, "group_returns": [],
-                                               "group_skipped_constant_factor_days": 1})
+                                               "group_skipped_constant_factor_days": 1,
+                                               "group_skipped_insufficient_sample_days": 2})
             self.assertIn("全截面因子同值而跳过分组的日期：1 天", rendered)
+            self.assertIn("有效证券数少于目标分组数而跳过的日期：2 天", rendered)
 
     def test_correlation_matrix_labels_are_html_escaped(self):
         with Session(self.engine, expire_on_commit=False) as session:

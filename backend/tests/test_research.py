@@ -128,6 +128,24 @@ class ResearchEngineTests(unittest.TestCase):
         self.assertEqual(result["long_short_series"], [])
         self.assertIsNone(result["long_short_total_return"])
 
+    def test_too_few_daily_observations_skip_incomplete_groups_but_keep_ic(self):
+        first = date(2025, 1, 1)
+        second = date(2025, 1, 2)
+        third = date(2025, 1, 3)
+        items = [
+            Observation(first, "A", 1.0, 0.01), Observation(first, "B", 2.0, 0.02),
+            Observation(second, "A", 1.0, 0.01), Observation(second, "B", 2.0, 0.02),
+            Observation(second, "C", 3.0, 0.03),
+            Observation(third, "A", 1.0, 0.01),
+        ]
+        result = evaluate(items, groups=3, winsorize=False, standardize=False)
+        self.assertEqual(result["coverage"], 6)
+        self.assertEqual(len(result["ic_series"]), 2)
+        self.assertEqual(result["group_skipped_insufficient_sample_days"], 2)
+        self.assertEqual([point["date"] for point in result["group_nav"][0]["points"]], [second.isoformat()])
+        self.assertEqual(len(result["long_short_series"]), 1)
+        self.assertAlmostEqual(result["long_short_series"][0]["return"], 0.02)
+
     def test_evaluate_rejects_duplicate_and_nonfinite_observations(self):
         day = date(2025, 1, 1)
         valid = Observation(day, "A", 1.0, 0.01)

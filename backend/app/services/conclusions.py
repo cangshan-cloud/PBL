@@ -59,6 +59,9 @@ def build_run_conclusion(run: Run, result: dict | None = None) -> dict:
     skipped_group_days = result.get("group_skipped_constant_factor_days")
     if isinstance(skipped_group_days, int) and not isinstance(skipped_group_days, bool) and skipped_group_days > 0:
         limitations.append(f"有{skipped_group_days}个交易日全截面因子同值，未生成分组和多空收益；分组统计仅覆盖其余可分组日期。")
+    insufficient_group_days = result.get("group_skipped_insufficient_sample_days")
+    if isinstance(insufficient_group_days, int) and not isinstance(insufficient_group_days, bool) and insufficient_group_days > 0:
+        limitations.append(f"有{insufficient_group_days}个交易日有效证券数少于目标分组数，未生成分组和多空收益。")
 
     next_steps = [
         ("核对历史成员生效时点、数据授权及复权/停牌口径，并复验封存包。" if historical

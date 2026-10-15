@@ -212,8 +212,10 @@ def evaluate(
     turnover_values: list[float] = []
     long_short_turnover_values: list[float] = []
     group_skipped_constant_factor_days = 0
+    group_skipped_insufficient_sample_days = 0
     for trade_date, daily in sorted(by_date.items()):
         if len(daily) < 2:
+            group_skipped_insufficient_sample_days += 1
             continue
         factors = [item.factor for item in daily]
         returns = [item.forward_return for item in daily]
@@ -223,6 +225,9 @@ def evaluate(
 
         if max(factors) == min(factors):
             group_skipped_constant_factor_days += 1
+            continue
+        if len(daily) < groups:
+            group_skipped_insufficient_sample_days += 1
             continue
 
         ordered = sorted(daily, key=lambda item: (item.factor, item.symbol))
@@ -284,6 +289,7 @@ def evaluate(
         "ic_positive_ratio": sum(value > 0 for value in valid_ic) / len(valid_ic) if valid_ic else None,
         "ic_series": ic_series,
         "group_skipped_constant_factor_days": group_skipped_constant_factor_days,
+        "group_skipped_insufficient_sample_days": group_skipped_insufficient_sample_days,
         "ic_histogram": ic_histogram(valid_ic),
         "group_returns": [
             {"group": bucket, "mean_return": fmean(group_returns[bucket])}
