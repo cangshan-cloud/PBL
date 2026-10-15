@@ -61,6 +61,13 @@ class ReportTests(unittest.TestCase):
             self.assertNotIn("<script>alert(1)</script>", rendered)
             self.assertIn("&lt;script&gt;", rendered)
 
+    def test_report_discloses_constant_factor_skip_count(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(session, {"factor": "momentum_20d", "lookback": 20, "groups": 5})
+            rendered = build_report_html(run, {"coverage": 2, "group_returns": [],
+                                               "group_skipped_constant_factor_days": 1})
+            self.assertIn("全截面因子同值而跳过分组的日期：1 天", rendered)
+
     def test_correlation_matrix_labels_are_html_escaped(self):
         with Session(self.engine, expire_on_commit=False) as session:
             run = create_research_run(session, {"factor": "momentum_20d", "lookback": 20, "groups": 5})

@@ -61,6 +61,16 @@ class ConclusionTests(unittest.TestCase):
             self.assertTrue(any("99个交易日无法计算" in item for item in conclusion["limitations"]))
             self.assertTrue(any("有效截面少于60" in item for item in conclusion["limitations"]))
 
+    def test_constant_factor_skips_are_disclosed_without_changing_old_results(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(session, {"factor": "momentum_20d", "groups": 5})
+            result = {"ic_series": [{"date": "2025-01-01", "ic": None}],
+                      "group_skipped_constant_factor_days": 1}
+            conclusion = build_run_conclusion(run, result)
+            self.assertTrue(any("1个交易日全截面因子同值" in item for item in conclusion["limitations"]))
+            self.assertFalse(any("全截面因子同值" in item for item in
+                                 build_run_conclusion(run, {"ic_series": []})["limitations"]))
+
 
 if __name__ == "__main__":
     unittest.main()

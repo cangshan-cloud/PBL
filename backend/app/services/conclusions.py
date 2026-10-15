@@ -56,6 +56,9 @@ def build_run_conclusion(run: Run, result: dict | None = None) -> dict:
         limitations.append("有效截面少于60个交易日，稳定性判断的样本基础较弱。")
     if missing_ic_days:
         limitations.append(f"IC序列有{missing_ic_days}个交易日无法计算，已从有效截面和稳定性分档中排除。")
+    skipped_group_days = result.get("group_skipped_constant_factor_days")
+    if isinstance(skipped_group_days, int) and not isinstance(skipped_group_days, bool) and skipped_group_days > 0:
+        limitations.append(f"有{skipped_group_days}个交易日全截面因子同值，未生成分组和多空收益；分组统计仅覆盖其余可分组日期。")
 
     next_steps = [
         ("核对历史成员生效时点、数据授权及复权/停牌口径，并复验封存包。" if historical
