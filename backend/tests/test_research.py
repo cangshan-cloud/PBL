@@ -62,6 +62,21 @@ class ResearchEngineTests(unittest.TestCase):
         self.assertAlmostEqual(result["long_short_total_return"], 0.02)
         self.assertEqual(result["preprocessing"]["method"], "MAD")
 
+    def test_group_mean_averages_daily_equal_weight_returns_not_all_stock_rows(self):
+        first = date(2025, 1, 1)
+        second = date(2025, 1, 2)
+        items = [
+            Observation(first, "A", 1, 0.0), Observation(first, "B", 2, 0.10),
+            Observation(second, "A", 1, 0.0), Observation(second, "B", 2, 0.0),
+            Observation(second, "C", 3, 0.30), Observation(second, "D", 4, 0.50),
+        ]
+        result = evaluate(items, groups=2, winsorize=False, standardize=False)
+        top = next(item for item in result["group_returns"] if item["group"] == 2)
+        self.assertAlmostEqual(top["mean_return"], (0.10 + 0.40) / 2)
+        top_nav = next(item for item in result["group_nav"] if item["group"] == 2)["points"]
+        self.assertAlmostEqual(top_nav[-1]["nav"], 1.10 * 1.40)
+        self.assertEqual(result["coverage"], 6)
+
     def test_preprocessing_winsorizes_outlier_and_standardizes_each_date(self):
         items = [
             Observation(date(2025, 1, 1), "A", 1, 0.01),

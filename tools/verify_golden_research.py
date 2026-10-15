@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
 from app.domain.prices import apply_price_basis  # noqa: E402
-from app.domain.research import PriceRow, evaluate, momentum_observations  # noqa: E402
+from app.domain.research import Observation, PriceRow, evaluate, momentum_observations  # noqa: E402
 
 
 def check(name: str, actual: float | int | None, expected: float) -> None:
@@ -59,8 +59,17 @@ def main() -> None:
         check(f"Q{group} mean", result["group_returns"][group - 1]["mean_return"], expected)
     check("first entry cost", result["long_short_series"][0]["cost"], 0.002)
     check("second day cost", result["long_short_series"][1]["cost"], 0)
+    unequal = evaluate([
+        Observation(date(2025, 1, 1), "A", 1, 0),
+        Observation(date(2025, 1, 1), "B", 2, 0.10),
+        Observation(date(2025, 1, 2), "A", 1, 0),
+        Observation(date(2025, 1, 2), "B", 2, 0),
+        Observation(date(2025, 1, 2), "C", 3, 0.30),
+        Observation(date(2025, 1, 2), "D", 4, 0.50),
+    ], groups=2, winsorize=False, standardize=False)
+    check("unequal cross-section Q2 daily mean", unequal["group_returns"][1]["mean_return"], 0.25)
     print("Golden research verification passed: 6 observations, IC/Rank IC, group returns, "
-          "gross/net long-short returns, and transaction costs match hand-calculated values.")
+          "gross/net long-short returns, costs, and unequal-day group means match hand-calculated values.")
 
 
 if __name__ == "__main__":

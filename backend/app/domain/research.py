@@ -208,7 +208,6 @@ def evaluate(
         daily_groups: dict[int, list[Observation]] = defaultdict(list)
         for index, item in enumerate(ordered):
             bucket = min(index * groups // len(ordered) + 1, groups)
-            group_returns[bucket].append(item.forward_return)
             daily_groups[bucket].append(item)
 
         daily_means: dict[int, float] = {}
@@ -216,6 +215,7 @@ def evaluate(
             members = daily_groups.get(bucket, [])
             if members:
                 daily_means[bucket] = fmean(item.forward_return for item in members)
+                group_returns[bucket].append(daily_means[bucket])
                 group_nav[bucket] *= 1.0 + daily_means[bucket]
             group_nav_series[bucket].append({"date": trade_date.isoformat(), "nav": group_nav[bucket]})
         current_top = {item.symbol for item in daily_groups.get(groups, [])}
