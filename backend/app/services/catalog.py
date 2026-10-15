@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -10,14 +9,6 @@ from app.models import DatasetVersion, FactorVersion, utc_now
 from app.domain.factors import FACTOR_REGISTRY
 from app.services.sample_data import sample_file
 from app.services.datasets import validate_csv
-
-
-def _checksum(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(65536), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def ensure_factor_catalog(session: Session) -> list[FactorVersion]:
@@ -86,7 +77,8 @@ def ensure_demo_catalog(session: Session) -> tuple[DatasetVersion, FactorVersion
     )
     if dataset is None:
         path = sample_file()
-        parsed = validate_csv(path.read_bytes())
+        content = path.read_bytes()
+        parsed = validate_csv(content)
         dataset = DatasetVersion(
             dataset_key="demo_daily",
             name="A股全字段演示快照",
@@ -95,7 +87,7 @@ def ensure_demo_catalog(session: Session) -> tuple[DatasetVersion, FactorVersion
             end_date=parsed.end_date,
             row_count=parsed.row_count,
             symbol_count=parsed.symbol_count,
-            checksum=_checksum(path),
+            checksum=hashlib.sha256(content).hexdigest(),
             storage_uri=str(path),
             source_filename=path.name,
             quality_report={**parsed.report, "source": "bundled_demo"},

@@ -37,6 +37,7 @@
 - **普通 CSV 缺行修正本机工作树（2026-10-15）**：后端 158 项及黄金样例通过；同一 SHA-256 的私有 10 股小样本五因子观测/日期数与既有记录一致。缺行合成案例见 [CHG-20261015-019](changes/2026-10-15-019-csv-calendar-continuity.md)；本次未重跑真实样本 API/Worker 或浏览器。
 - **CSV 质量提示本机工作树（2026-10-15）**：后端 159 项、黄金样例与前端生产构建通过；本机同一私有 10 股样本报告 117 个推断市场日、0 个内部断档，见 [CHG-20261015-020](changes/2026-10-15-020-csv-internal-gap-quality.md)。尚未执行真实浏览器交互验收。
 - **全数据集日历修正本机工作树（2026-10-15）**：后端 161 项和黄金样例通过；API 合成缺行案例验证仅选 A/B 时未选 C 仍提供日历，真实 10 股 CSV 中选 2 股得到动量 192/96、PE 232/116（观测/日期），见 [CHG-20261015-021](changes/2026-10-15-021-full-dataset-calendar.md)。未重跑真实浏览器或容器队列。
+- **内置演示种入一致性本机工作树（2026-10-15）**：后端 162 项与黄金样例通过；全新 `demo_daily` 的质量报告及摘要使用同一字节快照，见 [CHG-20261015-022](changes/2026-10-15-022-demo-seed-byte-consistency.md)。未改前端或现有演示库。
 
 - 本机虚拟环境：`130` 项后端测试通过；黄金结果脚本在 `PYTHONIOENCODING=cp1252` 下通过；前端生产构建通过。历史采集测试曾在模拟“未安装 BaoStock”条件下 `129` 项通过，见 [CHG-20261014-018](changes/2026-10-14-018-optional-baostock-test-isolation.md)。
 - GitHub Actions：提交 `8ab9252` 的 [运行 #38538602151](https://github.com/cangshan-cloud/PBL/actions/runs/38538602151) 在 Ubuntu、Windows 后端测试均失败。测试隔离修复 `08e512b` 的 [运行 #38539572865](https://github.com/cangshan-cloud/PBL/actions/runs/38539572865) 让 Ubuntu 全部成功，Windows 仍失败；显式 UTF-8 修复 `2c5698f` 的 [运行 #38540261543](https://github.com/cangshan-cloud/PBL/actions/runs/38540261543) 使 Windows 后端测试通过，失败点转到黄金验算。`PYTHONIOENCODING=cp1252` 在本机复现了中文成功提示的 `UnicodeEncodeError`；改为 ASCII 并加回归后，提交 `c376d4a` 的 [运行 #38540761105](https://github.com/cangshan-cloud/PBL/actions/runs/38540761105) 公开页面显示整条工作流 **Success**（Ubuntu、Windows 矩阵均完成）。
