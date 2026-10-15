@@ -1,3 +1,4 @@
+import os
 import sys
 import tempfile
 import unittest
@@ -8,6 +9,7 @@ from threading import Barrier
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from sqlalchemy import create_engine
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
 from app.db import Base
@@ -17,11 +19,41 @@ from app.services.runs import claim_pending_run, create_research_run, execute_re
 from app.services.sample_data import sample_file
 
 
+def _validate_test_database_url(database_url: str) -> str:
+    target = make_url(database_url)
+    if (target.drivername != "postgresql+psycopg" or target.database != "factorlab_test_concurrency"
+            or target.host not in {"127.0.0.1", "localhost"} or target.username != "factorlab_test"):
+        raise ValueError("FACTORLAB_TEST_DATABASE_URL must target the dedicated loopback test database")
+    return database_url
+
+
+class TestDatabaseTargetGuard(unittest.TestCase):
+    def test_only_dedicated_loopback_postgres_target_is_allowed(self):
+        allowed = "postgresql+psycopg://factorlab_test:secret@127.0.0.1:5432/factorlab_test_concurrency"
+        self.assertEqual(_validate_test_database_url(allowed), allowed)
+        for forbidden in (
+            "postgresql+psycopg://factorlab_test:secret@127.0.0.1:5432/factorlab",
+            "postgresql+psycopg://factorlab_test:secret@db:5432/factorlab_test_concurrency",
+            "postgresql+psycopg://factorlab:secret@127.0.0.1:5432/factorlab_test_concurrency",
+            "sqlite:///factorlab_test_concurrency.db",
+        ):
+            with self.subTest(forbidden=forbidden), self.assertRaisesRegex(ValueError, "dedicated loopback"):
+                _validate_test_database_url(forbidden)
+
+
 class PersistenceTests(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
-        database_path = Path(self.temp_dir.name) / "test.db"
-        self.engine = create_engine(f"sqlite:///{database_path}")
+        database_url = os.getenv("FACTORLAB_TEST_DATABASE_URL")
+        if database_url:
+            try:
+                self.engine = create_engine(_validate_test_database_url(database_url))
+            except (ValueError, TypeError):
+                self.temp_dir.cleanup()
+                raise
+        else:
+            database_path = Path(self.temp_dir.name) / "test.db"
+            self.engine = create_engine(f"sqlite:///{database_path}")
         Base.metadata.create_all(self.engine)
 
     def tearDown(self):

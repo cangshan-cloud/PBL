@@ -52,3 +52,9 @@ Worker 收到延迟或重复消息时，通过数据库条件更新 `pending →
 | `POST /research/comparisons/export.html` | 全部成功任务 | 仅本人成功任务 | 全部成功任务 |
 
 重试按原任务模式重新创建：普通单因子、多因子等权组合、2024 沪深 300 历史四因子任务分别走各自的数据与参数校验。新任务会生成新的实验、Run ID、排队时间和日志，原任务状态与结果保持不变。若原数据版本已不再满足发布条件，接口返回可解释的 400/404，而不是创建错误模式的任务；历史私有包文件完整性仍在实际执行时验证。
+
+## 5. PostgreSQL 隔离并发复测
+
+`backend/tests/test_persistence.py` 默认使用临时 SQLite 文件；设置 `FACTORLAB_TEST_DATABASE_URL` 后，可以把同一组持久化与并发测试运行在独立 PostgreSQL 上。安全校验只接受 loopback 主机、`postgresql+psycopg`、用户 `factorlab_test`、数据库名 `factorlab_test_concurrency`，避免误对项目主库建表。测试会在该专用库建表和写入任务，因此不能把主栈 `factorlab` 数据库 URL 传入。
+
+2026-10-15 在无持久卷的临时 `postgres:16-alpine` 容器运行最终模块，15 项通过，覆盖安全目标守卫、双 Worker 认领、取消/认领和入队失败/认领竞争；测试后已停止并自动移除容器，原 `fbl` 五项服务仍运行。此结果是单机小样本并发回归，不是高并发压力测试，也不验证 Worker 崩溃自动恢复。
