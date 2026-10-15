@@ -73,6 +73,7 @@
 | CHG-20261015-020 | 2026-10-15 | data quality + UI indication / verified on Mac | CSV 质量报告提示证券活跃期内部断档 | [记录](changes/2026-10-15-020-csv-internal-gap-quality.md) | `backend/app/services/datasets.py::validate_csv`、`backend/tests/test_datasets.py`、`frontend/src/main.tsx`、`docs/DATASET_FORMAT.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md` |
 | CHG-20261015-021 | 2026-10-15 | research time alignment + API regression / verified on Mac | 普通研究任务先取全数据集日历再筛选证券 | [记录](changes/2026-10-15-021-full-dataset-calendar.md) | `backend/app/domain/factors.py::calculate_factor`、各内置计算器、`backend/app/services/runs.py::execute_research_run`、`backend/tests/test_factors.py`、`backend/tests/test_api_journey.py`、`docs/SINGLE_FACTOR_ANALYSIS.md`、`docs/SAMPLE_SELECTION.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md` |
 | CHG-20261015-022 | 2026-10-15 | seed data integrity + regression / verified on Mac | 内置演示数据种入使用同一字节快照 | [记录](changes/2026-10-15-022-demo-seed-byte-consistency.md) | `backend/app/services/catalog.py::ensure_demo_catalog`、`backend/tests/test_catalog.py`、`docs/DATASET_FORMAT.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md` |
+| CHG-20261015-023 | 2026-10-15 | research correctness + regression / verified on Mac | 全截面因子同值日不再生成代码排序伪分组收益 | [记录](changes/2026-10-15-023-constant-factor-no-signal.md) | `backend/app/domain/research.py::evaluate`、`backend/app/services/reports.py::build_report_html`、`backend/tests/test_research.py`、`docs/SINGLE_FACTOR_ANALYSIS.md` |
 
 ## 历史基线
 

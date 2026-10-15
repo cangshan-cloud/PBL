@@ -91,8 +91,8 @@ class ResearchEngineTests(unittest.TestCase):
 
     def test_equal_factor_ties_have_input_order_independent_groups(self):
         items = [
-            Observation(date(2025, 1, 1), symbol, 1.0, forward)
-            for symbol, forward in (("A", 0.01), ("B", 0.02), ("C", 0.03), ("D", 0.04))
+            Observation(date(2025, 1, 1), symbol, factor, forward)
+            for symbol, factor, forward in (("A", 1.0, 0.01), ("B", 2.0, 0.02), ("C", 2.0, 0.03), ("D", 3.0, 0.04))
         ]
         forward = evaluate(items, groups=2, winsorize=False, standardize=False)
         reversed_input = evaluate(list(reversed(items)), groups=2, winsorize=False, standardize=False)
@@ -101,6 +101,32 @@ class ResearchEngineTests(unittest.TestCase):
         self.assertEqual(forward["long_short_series"], reversed_input["long_short_series"])
         self.assertAlmostEqual(forward["group_returns"][0]["mean_return"], 0.015)
         self.assertAlmostEqual(forward["group_returns"][1]["mean_return"], 0.035)
+
+    def test_constant_factor_day_does_not_create_ticker_order_spread(self):
+        first = date(2025, 1, 1)
+        second = date(2025, 1, 2)
+        items = [
+            Observation(first, "A", 1.0, 0.01), Observation(first, "B", 1.0, 0.09),
+            Observation(second, "A", 1.0, 0.02), Observation(second, "B", 2.0, 0.04),
+        ]
+        result = evaluate(items, groups=2, winsorize=False, standardize=False)
+        self.assertEqual(result["coverage"], 4)
+        self.assertEqual(result["group_skipped_constant_factor_days"], 1)
+        self.assertIsNone(result["ic_series"][0]["ic"])
+        self.assertEqual([point["date"] for point in result["group_nav"][0]["points"]], [second.isoformat()])
+        self.assertEqual(len(result["long_short_series"]), 1)
+        self.assertAlmostEqual(result["long_short_series"][0]["return"], 0.02)
+        self.assertAlmostEqual(result["group_returns"][0]["mean_return"], 0.02)
+
+    def test_all_constant_factor_days_have_no_group_or_spread_result(self):
+        items = [Observation(date(2025, 1, 1), symbol, 1.0, forward)
+                 for symbol, forward in (("A", 0.01), ("B", 0.09))]
+        result = evaluate(items, groups=2, winsorize=False, standardize=False)
+        self.assertEqual(result["group_skipped_constant_factor_days"], 1)
+        self.assertEqual(result["group_returns"], [])
+        self.assertTrue(all(not group["points"] for group in result["group_nav"]))
+        self.assertEqual(result["long_short_series"], [])
+        self.assertIsNone(result["long_short_total_return"])
 
     def test_evaluate_rejects_duplicate_and_nonfinite_observations(self):
         day = date(2025, 1, 1)

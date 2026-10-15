@@ -211,6 +211,7 @@ def evaluate(
     bottom_members: set[str] | None = None
     turnover_values: list[float] = []
     long_short_turnover_values: list[float] = []
+    group_skipped_constant_factor_days = 0
     for trade_date, daily in sorted(by_date.items()):
         if len(daily) < 2:
             continue
@@ -219,6 +220,10 @@ def evaluate(
         ic = pearson(factors, returns)
         rank_ic = pearson(_rank(factors), _rank(returns))
         ic_series.append({"date": trade_date.isoformat(), "ic": ic, "rank_ic": rank_ic})
+
+        if max(factors) == min(factors):
+            group_skipped_constant_factor_days += 1
+            continue
 
         ordered = sorted(daily, key=lambda item: (item.factor, item.symbol))
         daily_groups: dict[int, list[Observation]] = defaultdict(list)
@@ -278,6 +283,7 @@ def evaluate(
         "icir": ic_mean / ic_std if ic_mean is not None and ic_std else None,
         "ic_positive_ratio": sum(value > 0 for value in valid_ic) / len(valid_ic) if valid_ic else None,
         "ic_series": ic_series,
+        "group_skipped_constant_factor_days": group_skipped_constant_factor_days,
         "ic_histogram": ic_histogram(valid_ic),
         "group_returns": [
             {"group": bucket, "mean_return": fmean(group_returns[bucket])}
