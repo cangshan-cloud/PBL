@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.domain.factors import FACTOR_REGISTRY, calculate_factor, get_factor
-from app.domain.research import PriceRow
+from app.domain.research import PriceRow, calendar_positions
 from app.services.sample_data import load_sample_prices
 
 
@@ -69,6 +69,16 @@ class FactorTests(unittest.TestCase):
                     self.assertNotIn(date(2025, 1, 5), a_dates)
                     self.assertIn(date(2025, 1, 6), a_dates)
                 self.assertTrue(any(item.symbol == "B" for item in observations))
+
+    def test_full_dataset_calendar_detects_gaps_after_symbol_selection(self):
+        data = [item for item in rows(7) if not (item.symbol == "A" and item.trade_date == date(2025, 1, 3))]
+        selected = [item for item in data if item.symbol == "A"]
+        without_full_calendar = calculate_factor("pe", selected)
+        with_full_calendar = calculate_factor("pe", selected, market_positions=calendar_positions(data))
+        self.assertIn(date(2025, 1, 2), {item.trade_date for item in without_full_calendar})
+        self.assertNotIn(date(2025, 1, 2), {item.trade_date for item in with_full_calendar})
+        momentum = calculate_factor("momentum_20d", selected, 2, market_positions=calendar_positions(data))
+        self.assertEqual([item.trade_date for item in momentum], [date(2025, 1, 6)])
 
     def test_missing_field_and_unknown_factor_are_rejected(self):
         minimal = [PriceRow(item.trade_date, item.symbol, item.close) for item in rows()]

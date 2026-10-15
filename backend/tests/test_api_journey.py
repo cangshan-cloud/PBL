@@ -102,6 +102,33 @@ class ApiJourneyTests(unittest.TestCase):
         path.write_bytes(original)
         self.assertEqual(self.client.post(publish_url, headers=admin).status_code, 200)
 
+    def test_selected_symbols_keep_full_dataset_market_calendar(self):
+        admin = self.auth("admin", "admin12345")
+        researcher = self.auth("researcher", "research12345")
+        lines = ["trade_date,symbol,close,pe"]
+        for index in range(7):
+            for symbol in ("A", "B", "C"):
+                if index == 2 and symbol in {"A", "B"}:
+                    continue
+                lines.append(f"2025-01-{index + 1:02d},{symbol},{10 + index},{8 + index}")
+        imported = self.client.post(
+            "/api/v1/datasets/import", headers=admin,
+            data={"dataset_key": "calendar_gap", "name": "日历缺行样本"},
+            files={"file": ("prices.csv", ("\n".join(lines) + "\n").encode(), "text/csv")},
+        )
+        self.assertEqual(imported.status_code, 201, imported.text)
+        dataset_id = imported.json()["id"]
+        self.assertEqual(imported.json()["quality_report"]["internal_calendar_gap_count"], 2)
+        published = self.client.post(f"/api/v1/datasets/{dataset_id}/publish", headers=admin)
+        self.assertEqual(published.status_code, 200, published.text)
+        created = self.client.post(
+            "/api/v1/research/tasks", headers=researcher,
+            json={"dataset_version_id": dataset_id, "factor": "pe", "groups": 2, "symbols": ["A", "B"]},
+        )
+        self.assertEqual(created.status_code, 201, created.text)
+        self.assertEqual(created.json()["status"], "success")
+        self.assertEqual(created.json()["result"]["coverage"], 8)
+
     def test_upload_publish_research_report_and_role_boundaries(self):
         admin = self.auth("admin", "admin12345")
         researcher = self.auth("researcher", "research12345")

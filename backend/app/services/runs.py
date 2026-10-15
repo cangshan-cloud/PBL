@@ -10,7 +10,7 @@ from app.domain.factors import calculate_factor, get_factor
 from app.domain.prices import apply_price_basis
 from app.domain.composite import combine_factor_observations
 from app.domain.historical_research import FACTOR_WINDOWS, calculate_historical_observations, load_historical_bundle
-from app.domain.research import evaluate
+from app.domain.research import calendar_positions, evaluate
 from app.domain.research import Observation, PriceRow
 from app.models import Artifact, DatasetVersion, Experiment, FactorVersion, Run, RunLog, RunStatus
 from app.services.catalog import ensure_composite_factor, ensure_demo_catalog, ensure_factor_catalog
@@ -401,6 +401,7 @@ def execute_research_run(session: Session, run_id: str) -> Run:
             return get_run(session, run_id)
         rows = load_price_file(Path(dataset.storage_uri), expected_checksum=dataset.checksum)
         add_run_log(session, run, "dataset_loaded", f"数据校验通过，读取{len(rows)}行记录")
+        market_positions = calendar_positions(rows)
         rows = _filter_rows(rows, parameters.get("symbols"))
         price_basis = parameters.get("price_basis", "source_close")
         if price_basis == "factor_adjusted":
@@ -417,7 +418,7 @@ def execute_research_run(session: Session, run_id: str) -> Run:
         if parameters.get("mode") == "composite":
             component_observations = {
                 item["key"]: _filter_observations(
-                    calculate_factor(item["key"], rows, item.get("lookback")),
+                    calculate_factor(item["key"], rows, item.get("lookback"), market_positions=market_positions),
                     parameters.get("start_date"),
                     parameters.get("end_date"),
                 )
@@ -433,7 +434,7 @@ def execute_research_run(session: Session, run_id: str) -> Run:
             add_run_log(session, run, "factor_calculated", f"{len(component_observations)}个因子完成对齐，得到{len(observations)}个共同观测")
         else:
             observations = _filter_observations(
-                calculate_factor(parameters["factor"], rows, parameters.get("lookback")),
+                calculate_factor(parameters["factor"], rows, parameters.get("lookback"), market_positions=market_positions),
                 parameters.get("start_date"),
                 parameters.get("end_date"),
             )

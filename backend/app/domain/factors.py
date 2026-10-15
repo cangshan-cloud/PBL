@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from statistics import fmean, pstdev
 from typing import Callable
 
@@ -19,7 +20,7 @@ class FactorDefinition:
     description: str
     required_columns: tuple[str, ...]
     default_lookback: int | None
-    calculator: Callable[[list[PriceRow], int | None], list[Observation]]
+    calculator: Callable[[list[PriceRow], int | None, dict[date, int]], list[Observation]]
 
     def public_dict(self) -> dict:
         return {
@@ -44,10 +45,9 @@ def _observation(row: PriceRow, next_row: PriceRow, factor: float) -> Observatio
     )
 
 
-def _momentum(rows: list[PriceRow], lookback: int | None) -> list[Observation]:
+def _momentum(rows: list[PriceRow], lookback: int | None, positions: dict[date, int]) -> list[Observation]:
     period = lookback or 20
     output: list[Observation] = []
-    positions = calendar_positions(rows)
     for values in rows_by_symbol(rows).values():
         for index in range(period, len(values) - 1):
             if (positions[values[index].trade_date] - positions[values[index - period].trade_date] != period
@@ -57,17 +57,16 @@ def _momentum(rows: list[PriceRow], lookback: int | None) -> list[Observation]:
     return output
 
 
-def _reversal(rows: list[PriceRow], lookback: int | None) -> list[Observation]:
+def _reversal(rows: list[PriceRow], lookback: int | None, positions: dict[date, int]) -> list[Observation]:
     return [
         Observation(item.trade_date, item.symbol, -item.factor, item.forward_return)
-        for item in _momentum(rows, lookback or 5)
+        for item in _momentum(rows, lookback or 5, positions)
     ]
 
 
-def _volatility(rows: list[PriceRow], lookback: int | None) -> list[Observation]:
+def _volatility(rows: list[PriceRow], lookback: int | None, positions: dict[date, int]) -> list[Observation]:
     period = lookback or 20
     output: list[Observation] = []
-    positions = calendar_positions(rows)
     for values in rows_by_symbol(rows).values():
         for index in range(period, len(values) - 1):
             if (positions[values[index].trade_date] - positions[values[index - period].trade_date] != period
@@ -78,11 +77,10 @@ def _volatility(rows: list[PriceRow], lookback: int | None) -> list[Observation]
     return output
 
 
-def _rolling_field(rows: list[PriceRow], lookback: int | None, field: str) -> list[Observation]:
+def _rolling_field(rows: list[PriceRow], lookback: int | None, field: str, positions: dict[date, int]) -> list[Observation]:
     period = lookback or 20
     output: list[Observation] = []
     found = False
-    positions = calendar_positions(rows)
     for values in rows_by_symbol(rows).values():
         for index in range(period - 1, len(values) - 1):
             if (positions[values[index].trade_date] - positions[values[index - period + 1].trade_date] != period - 1
@@ -98,10 +96,9 @@ def _rolling_field(rows: list[PriceRow], lookback: int | None, field: str) -> li
     return output
 
 
-def _point_field(rows: list[PriceRow], _: int | None, field: str) -> list[Observation]:
+def _point_field(rows: list[PriceRow], _: int | None, field: str, positions: dict[date, int]) -> list[Observation]:
     output: list[Observation] = []
     found = False
-    positions = calendar_positions(rows)
     for values in rows_by_symbol(rows).values():
         for index in range(len(values) - 1):
             if positions[values[index + 1].trade_date] != positions[values[index].trade_date] + 1:
@@ -122,9 +119,9 @@ FACTOR_REGISTRY = {
         FactorDefinition("momentum_20d", "20日动量", "price", "1.0.0", "close(t) / close(t-N) - 1", "衡量过去一段时间的累计涨跌幅。", ("close",), 20, _momentum),
         FactorDefinition("reversal_5d", "5日反转", "price", "1.0.0", "-(close(t) / close(t-N) - 1)", "用短期收益的相反数衡量价格反转。", ("close",), 5, _reversal),
         FactorDefinition("volatility_20d", "20日波动率", "risk", "1.0.0", "std(daily_return, N)", "衡量窗口内日收益率的总体标准差。", ("close",), 20, _volatility),
-        FactorDefinition("turnover_20d", "20日平均换手率", "liquidity", "1.0.0", "mean(turnover_rate, N)", "衡量股票在窗口内的平均换手水平。", ("close", "turnover_rate"), 20, lambda rows, lookback: _rolling_field(rows, lookback, "turnover_rate")),
-        FactorDefinition("market_cap", "总市值", "size", "1.0.0", "total_mv(t)", "使用当日总市值衡量公司规模。", ("close", "total_mv"), None, lambda rows, lookback: _point_field(rows, lookback, "total_mv")),
-        FactorDefinition("pe", "市盈率", "valuation", "1.0.0", "pe(t)", "使用当日市盈率衡量估值水平。", ("close", "pe"), None, lambda rows, lookback: _point_field(rows, lookback, "pe")),
+        FactorDefinition("turnover_20d", "20日平均换手率", "liquidity", "1.0.0", "mean(turnover_rate, N)", "衡量股票在窗口内的平均换手水平。", ("close", "turnover_rate"), 20, lambda rows, lookback, positions: _rolling_field(rows, lookback, "turnover_rate", positions)),
+        FactorDefinition("market_cap", "总市值", "size", "1.0.0", "total_mv(t)", "使用当日总市值衡量公司规模。", ("close", "total_mv"), None, lambda rows, lookback, positions: _point_field(rows, lookback, "total_mv", positions)),
+        FactorDefinition("pe", "市盈率", "valuation", "1.0.0", "pe(t)", "使用当日市盈率衡量估值水平。", ("close", "pe"), None, lambda rows, lookback, positions: _point_field(rows, lookback, "pe", positions)),
     )
 }
 
@@ -136,11 +133,15 @@ def get_factor(key: str) -> FactorDefinition:
         raise ValueError(f"unsupported factor: {key}") from exc
 
 
-def calculate_factor(key: str, rows: list[PriceRow], lookback: int | None = None) -> list[Observation]:
+def calculate_factor(
+    key: str, rows: list[PriceRow], lookback: int | None = None,
+    *, market_positions: dict[date, int] | None = None,
+) -> list[Observation]:
     definition = get_factor(key)
     if lookback is not None and not 2 <= lookback <= 120:
         raise ValueError("lookback must be between 2 and 120")
-    observations = definition.calculator(rows, lookback or definition.default_lookback)
+    positions = market_positions if market_positions is not None else calendar_positions(rows)
+    observations = definition.calculator(rows, lookback or definition.default_lookback, positions)
     if not observations:
         raise ValueError("dataset does not have enough history for this factor")
     return observations
