@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session, selectinload
 
 from app.domain.factors import calculate_factor, get_factor
@@ -296,13 +296,30 @@ def list_run_logs(session: Session, run_id: str) -> list[RunLog]:
     return list(session.scalars(select(RunLog).where(RunLog.run_id == run_id).order_by(RunLog.created_at)))
 
 
-def execute_research_run(session: Session, run_id: str) -> Run:
+def claim_pending_run(session: Session, run_id: str) -> tuple[Run, bool]:
+    """Atomically let at most one worker move a queued run to running."""
+    result = session.execute(
+        update(Run).where(Run.id == run_id, Run.status == RunStatus.PENDING).values(
+            status=RunStatus.RUNNING, started_at=utc_now(), progress=5, error_summary=None,
+        )
+    )
+    claimed = result.rowcount == 1
+    if claimed:
+        session.add(RunLog(run_id=run_id, level="info", event="started", message="Worker开始执行研究任务"))
+        session.commit()
+    else:
+        session.rollback()
+    session.expire_all()
     run = get_run(session, run_id)
     if run is None:
         raise LookupError(f"run not found: {run_id}")
-    if run.status != RunStatus.PENDING:
+    return run, claimed
+
+
+def execute_research_run(session: Session, run_id: str) -> Run:
+    run, claimed = claim_pending_run(session, run_id)
+    if not claimed:
         return run
-    transition(session, run, RunStatus.RUNNING)
     try:
         run = _stop_if_cancelled(session, run_id)
         if run.status == RunStatus.CANCELLED:

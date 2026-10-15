@@ -1,7 +1,9 @@
 import sys
 import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Barrier
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -11,7 +13,7 @@ from sqlalchemy.orm import Session
 from app.db import Base
 from app.models import RunStatus
 from app.services.datasets import import_csv, publish_dataset_version
-from app.services.runs import create_research_run, execute_research_run, get_run, list_run_logs, request_cancellation, transition
+from app.services.runs import claim_pending_run, create_research_run, execute_research_run, get_run, list_run_logs, request_cancellation, transition
 from app.services.sample_data import sample_file
 
 
@@ -95,6 +97,27 @@ class PersistenceTests(unittest.TestCase):
             transition(session, running, RunStatus.RUNNING)
             self.assertEqual(execute_research_run(session, running.id).status, RunStatus.RUNNING)
             self.assertEqual([item.event for item in list_run_logs(session, running.id)], ["queued", "started"])
+
+    def test_two_workers_can_claim_a_pending_run_only_once(self):
+        with Session(self.engine) as session:
+            run_id = create_research_run(session, {"factor": "momentum_20d", "groups": 5}).id
+        barrier = Barrier(2)
+
+        def attempt_claim() -> bool:
+            with Session(self.engine) as session:
+                barrier.wait(timeout=5)
+                _, claimed = claim_pending_run(session, run_id)
+                return claimed
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            outcomes = list(pool.map(lambda _: attempt_claim(), range(2)))
+        self.assertEqual(sorted(outcomes), [False, True])
+        with Session(self.engine) as session:
+            run = get_run(session, run_id)
+            self.assertEqual(run.status, RunStatus.RUNNING)
+            self.assertEqual(run.progress, 5)
+            self.assertIsNotNone(run.started_at)
+            self.assertEqual([item.event for item in list_run_logs(session, run_id)], ["queued", "started"])
 
     def test_pending_run_can_be_cancelled_with_audit_log(self):
         with Session(self.engine, expire_on_commit=False) as session:
