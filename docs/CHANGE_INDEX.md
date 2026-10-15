@@ -68,6 +68,7 @@
 | CHG-20261015-015 | 2026-10-15 | CI evidence + rehearsal gate / verified for `11e0ce9` | 近期 Ubuntu/Windows CI 证据核对 | [记录](changes/2026-10-15-015-recent-ci-verification.md) | `docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md`、`docs/FINAL_REHEARSAL_CHECKLIST.md` |
 | CHG-20261015-016 | 2026-10-15 | data integrity + regression / verified on Mac | CSV 校验与解析使用同一字节快照 | [记录](changes/2026-10-15-016-verified-csv-snapshot.md) | `backend/app/services/sample_data.py::load_price_file`、`backend/app/services/datasets.py::_read_verified_csv`、`preview_dataset`、`verify_dataset_file`、`backend/tests/test_sample_data.py`、`backend/tests/test_datasets.py`、`docs/DATASET_FORMAT.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md` |
 | CHG-20261015-017 | 2026-10-15 | historical data integrity + regression / verified on Mac | 历史包实际加载文件再核验字节 | [记录](changes/2026-10-15-017-historical-load-snapshot.md) | `backend/app/domain/historical_research.py::_verified_csv_rows`、`load_historical_bundle`、`backend/tests/test_historical_research.py`、`docs/HS300_BUNDLE.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md` |
+| CHG-20261015-018 | 2026-10-15 | evidence-only / verified on Mac inline API | 历史包修正后的隔离 API 端到端复测 | [记录](changes/2026-10-15-018-historical-inline-api-qa.md) | `docs/HS300_BUNDLE.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md`（无应用代码改动） |
 
 ## 历史基线
 
