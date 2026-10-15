@@ -204,7 +204,7 @@ def evaluate(
         rank_ic = pearson(_rank(factors), _rank(returns))
         ic_series.append({"date": trade_date.isoformat(), "ic": ic, "rank_ic": rank_ic})
 
-        ordered = sorted(daily, key=lambda item: item.factor)
+        ordered = sorted(daily, key=lambda item: (item.factor, item.symbol))
         daily_groups: dict[int, list[Observation]] = defaultdict(list)
         for index, item in enumerate(ordered):
             bucket = min(index * groups // len(ordered) + 1, groups)

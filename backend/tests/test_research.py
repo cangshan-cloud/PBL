@@ -77,6 +77,19 @@ class ResearchEngineTests(unittest.TestCase):
         self.assertAlmostEqual(top_nav[-1]["nav"], 1.10 * 1.40)
         self.assertEqual(result["coverage"], 6)
 
+    def test_equal_factor_ties_have_input_order_independent_groups(self):
+        items = [
+            Observation(date(2025, 1, 1), symbol, 1.0, forward)
+            for symbol, forward in (("A", 0.01), ("B", 0.02), ("C", 0.03), ("D", 0.04))
+        ]
+        forward = evaluate(items, groups=2, winsorize=False, standardize=False)
+        reversed_input = evaluate(list(reversed(items)), groups=2, winsorize=False, standardize=False)
+        self.assertEqual(forward["group_returns"], reversed_input["group_returns"])
+        self.assertEqual(forward["group_nav"], reversed_input["group_nav"])
+        self.assertEqual(forward["long_short_series"], reversed_input["long_short_series"])
+        self.assertAlmostEqual(forward["group_returns"][0]["mean_return"], 0.015)
+        self.assertAlmostEqual(forward["group_returns"][1]["mean_return"], 0.035)
+
     def test_preprocessing_winsorizes_outlier_and_standardizes_each_date(self):
         items = [
             Observation(date(2025, 1, 1), "A", 1, 0.01),
