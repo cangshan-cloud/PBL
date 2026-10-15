@@ -70,6 +70,7 @@
 | CHG-20261015-017 | 2026-10-15 | historical data integrity + regression / verified on Mac | 历史包实际加载文件再核验字节 | [记录](changes/2026-10-15-017-historical-load-snapshot.md) | `backend/app/domain/historical_research.py::_verified_csv_rows`、`load_historical_bundle`、`backend/tests/test_historical_research.py`、`docs/HS300_BUNDLE.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md` |
 | CHG-20261015-018 | 2026-10-15 | evidence-only / verified on Mac inline API | 历史包修正后的隔离 API 端到端复测 | [记录](changes/2026-10-15-018-historical-inline-api-qa.md) | `docs/HS300_BUNDLE.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md`（无应用代码改动） |
 | CHG-20261015-019 | 2026-10-15 | research time alignment + regression / verified on Mac | 普通 CSV 因子标签与窗口不跨缺失市场日 | [记录](changes/2026-10-15-019-csv-calendar-continuity.md) | `backend/app/domain/research.py::calendar_positions`、`momentum_observations`、`backend/app/domain/factors.py`、`backend/tests/test_factors.py`、`backend/tests/test_research.py`、`docs/SINGLE_FACTOR_ANALYSIS.md`、`docs/SAMPLE_SELECTION.md`、`docs/REAL_A_SHARE_SAMPLE.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md` |
+| CHG-20261015-020 | 2026-10-15 | data quality + UI indication / verified on Mac | CSV 质量报告提示证券活跃期内部断档 | [记录](changes/2026-10-15-020-csv-internal-gap-quality.md) | `backend/app/services/datasets.py::validate_csv`、`backend/tests/test_datasets.py`、`frontend/src/main.tsx`、`docs/DATASET_FORMAT.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md` |
 
 ## 历史基线
 

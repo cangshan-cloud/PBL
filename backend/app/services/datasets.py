@@ -78,6 +78,7 @@ def validate_csv(content: bytes) -> ParsedDataset:
     seen: set[tuple[str, date]] = set()
     symbols: set[str] = set()
     dates: list[date] = []
+    symbol_dates: dict[str, list[date]] = {}
     errors: list[str] = []
     missing_counts = {column: 0 for column in columns}
     numeric_values: dict[str, list[float]] = {column: [] for column in ({"close"} | OPTIONAL_NUMERIC_COLUMNS) & columns}
@@ -128,6 +129,7 @@ def validate_csv(content: bytes) -> ParsedDataset:
             seen.add(key)
             symbols.add(symbol)
             dates.append(trade_date)
+            symbol_dates.setdefault(symbol, []).append(trade_date)
         except DatasetValidationError as exc:
             errors.append(str(exc))
             if len(errors) >= 20:
@@ -140,6 +142,11 @@ def validate_csv(content: bytes) -> ParsedDataset:
             "数据质量检查失败",
             {"valid": False, "checked_rows": rows, "error_count": len(errors), "errors": errors},
         )
+    calendar_positions = {day: index for index, day in enumerate(sorted(set(dates)))}
+    internal_gaps = [
+        calendar_positions[max(observed)] - calendar_positions[min(observed)] + 1 - len(observed)
+        for observed in symbol_dates.values()
+    ]
     return ParsedDataset(
         row_count=rows,
         symbol_count=len(symbols),
@@ -150,6 +157,9 @@ def validate_csv(content: bytes) -> ParsedDataset:
             "checked_rows": rows,
             "duplicate_count": 0,
             "error_count": 0,
+            "inferred_market_date_count": len(calendar_positions),
+            "internal_calendar_gap_count": sum(internal_gaps),
+            "symbols_with_internal_calendar_gaps": sum(count > 0 for count in internal_gaps),
             "required_columns": sorted(REQUIRED_COLUMNS),
             "columns": sorted(columns),
             "missing_counts": missing_counts,

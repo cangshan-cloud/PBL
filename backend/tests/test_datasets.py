@@ -67,6 +67,22 @@ class DatasetValidationTests(unittest.TestCase):
         self.assertEqual(parsed.report["missing_counts"]["volume"], 0)
         self.assertEqual(parsed.report["completeness"]["close"], 1.0)
         self.assertEqual(parsed.report["numeric_summary"]["close"]["min"], 8.2)
+        self.assertEqual(parsed.report["internal_calendar_gap_count"], 0)
+
+    def test_reports_internal_symbol_gaps_without_rejecting_csv(self):
+        content = b"""trade_date,symbol,close
+2025-01-02,A,10
+2025-01-04,A,12
+2025-01-02,B,20
+2025-01-03,B,21
+2025-01-04,B,22
+2025-01-04,C,30
+"""
+        parsed = validate_csv(content)
+        self.assertTrue(parsed.report["valid"])
+        self.assertEqual(parsed.report["inferred_market_date_count"], 3)
+        self.assertEqual(parsed.report["internal_calendar_gap_count"], 1)
+        self.assertEqual(parsed.report["symbols_with_internal_calendar_gaps"], 1)
 
     def test_optional_missing_values_are_reported(self):
         content = b"trade_date,symbol,close,pe\n2025-01-02,A,10,12\n2025-01-03,A,11,\n"
