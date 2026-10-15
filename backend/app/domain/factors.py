@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from statistics import fmean, pstdev
 from typing import Callable
 
-from app.domain.research import Observation, PriceRow, rows_by_symbol
+from app.domain.research import Observation, PriceRow, calendar_positions, rows_by_symbol
 
 
 @dataclass(frozen=True)
@@ -47,8 +47,12 @@ def _observation(row: PriceRow, next_row: PriceRow, factor: float) -> Observatio
 def _momentum(rows: list[PriceRow], lookback: int | None) -> list[Observation]:
     period = lookback or 20
     output: list[Observation] = []
+    positions = calendar_positions(rows)
     for values in rows_by_symbol(rows).values():
         for index in range(period, len(values) - 1):
+            if (positions[values[index].trade_date] - positions[values[index - period].trade_date] != period
+                    or positions[values[index + 1].trade_date] != positions[values[index].trade_date] + 1):
+                continue
             output.append(_observation(values[index], values[index + 1], values[index].close / values[index - period].close - 1.0))
     return output
 
@@ -63,8 +67,12 @@ def _reversal(rows: list[PriceRow], lookback: int | None) -> list[Observation]:
 def _volatility(rows: list[PriceRow], lookback: int | None) -> list[Observation]:
     period = lookback or 20
     output: list[Observation] = []
+    positions = calendar_positions(rows)
     for values in rows_by_symbol(rows).values():
         for index in range(period, len(values) - 1):
+            if (positions[values[index].trade_date] - positions[values[index - period].trade_date] != period
+                    or positions[values[index + 1].trade_date] != positions[values[index].trade_date] + 1):
+                continue
             daily_returns = [values[pos].close / values[pos - 1].close - 1.0 for pos in range(index - period + 1, index + 1)]
             output.append(_observation(values[index], values[index + 1], pstdev(daily_returns)))
     return output
@@ -74,8 +82,12 @@ def _rolling_field(rows: list[PriceRow], lookback: int | None, field: str) -> li
     period = lookback or 20
     output: list[Observation] = []
     found = False
+    positions = calendar_positions(rows)
     for values in rows_by_symbol(rows).values():
         for index in range(period - 1, len(values) - 1):
+            if (positions[values[index].trade_date] - positions[values[index - period + 1].trade_date] != period - 1
+                    or positions[values[index + 1].trade_date] != positions[values[index].trade_date] + 1):
+                continue
             window = [getattr(values[pos], field) for pos in range(index - period + 1, index + 1)]
             if any(value is None for value in window):
                 continue
@@ -89,8 +101,11 @@ def _rolling_field(rows: list[PriceRow], lookback: int | None, field: str) -> li
 def _point_field(rows: list[PriceRow], _: int | None, field: str) -> list[Observation]:
     output: list[Observation] = []
     found = False
+    positions = calendar_positions(rows)
     for values in rows_by_symbol(rows).values():
         for index in range(len(values) - 1):
+            if positions[values[index + 1].trade_date] != positions[values[index].trade_date] + 1:
+                continue
             value = getattr(values[index], field)
             if value is None:
                 continue

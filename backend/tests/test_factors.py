@@ -55,6 +55,21 @@ class FactorTests(unittest.TestCase):
         self.assertEqual(market_cap[0].factor, 1000)
         self.assertEqual(pe[0].factor, 8)
 
+    def test_missing_market_day_does_not_compress_window_or_forward_label(self):
+        data = [item for item in rows(7) if not (item.symbol == "A" and item.trade_date == date(2025, 1, 3))]
+        for factor_key in FACTOR_REGISTRY:
+            with self.subTest(factor=factor_key):
+                observations = calculate_factor(factor_key, data, 2 if factor_key in {
+                    "momentum_20d", "reversal_5d", "volatility_20d", "turnover_20d"
+                } else None)
+                a_dates = {item.trade_date for item in observations if item.symbol == "A"}
+                self.assertNotIn(date(2025, 1, 2), a_dates)  # Next A row is Jan 4, not the next market day.
+                if factor_key in {"momentum_20d", "reversal_5d", "volatility_20d"}:
+                    self.assertNotIn(date(2025, 1, 4), a_dates)  # Window crosses the missing Jan 3.
+                    self.assertNotIn(date(2025, 1, 5), a_dates)
+                    self.assertIn(date(2025, 1, 6), a_dates)
+                self.assertTrue(any(item.symbol == "B" for item in observations))
+
     def test_missing_field_and_unknown_factor_are_rejected(self):
         minimal = [PriceRow(item.trade_date, item.symbol, item.close) for item in rows()]
         with self.assertRaisesRegex(ValueError, "turnover_rate"):

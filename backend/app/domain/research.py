@@ -55,16 +55,24 @@ def rows_by_symbol(rows: list[PriceRow]) -> dict[str, list[PriceRow]]:
     return grouped
 
 
+def calendar_positions(rows: list[PriceRow]) -> dict[date, int]:
+    """Infer ordered market dates from the supplied cross-section."""
+    return {day: index for index, day in enumerate(sorted({row.trade_date for row in rows}))}
+
+
 def momentum_observations(rows: list[PriceRow], lookback: int = 20) -> list[Observation]:
     """Calculate close-to-close momentum at t and test against t+1 return."""
     if lookback < 1:
         raise ValueError("lookback must be positive")
     output: list[Observation] = []
+    positions = calendar_positions(rows)
     for symbol, values in _returns_by_symbol(rows).items():
         for i in range(lookback, len(values) - 1):
             current_date, current = values[i]
-            previous = values[i - lookback][1]
-            next_close = values[i + 1][1]
+            previous_date, previous = values[i - lookback]
+            next_date, next_close = values[i + 1]
+            if positions[current_date] - positions[previous_date] != lookback or positions[next_date] != positions[current_date] + 1:
+                continue
             output.append(
                 Observation(
                     trade_date=current_date,

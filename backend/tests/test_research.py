@@ -19,6 +19,17 @@ class ResearchEngineTests(unittest.TestCase):
         self.assertAlmostEqual(observations[0].factor, 102 / 100 - 1)
         self.assertAlmostEqual(observations[0].forward_return, 103 / 102 - 1)
 
+    def test_momentum_does_not_use_next_available_symbol_row_as_next_market_day(self):
+        start = date(2025, 1, 1)
+        rows = [PriceRow(start + timedelta(days=index), symbol, 100 + index)
+                for symbol in ("A", "B") for index in range(6)
+                if not (symbol == "A" and index == 3)]
+        observations = momentum_observations(rows, lookback=2)
+        a_dates = {item.trade_date for item in observations if item.symbol == "A"}
+        self.assertNotIn(start + timedelta(days=2), a_dates)
+        self.assertNotIn(start + timedelta(days=4), a_dates)
+        self.assertIn(start + timedelta(days=2), {item.trade_date for item in observations if item.symbol == "B"})
+
     def test_perfect_ic(self):
         self.assertAlmostEqual(pearson([1, 2, 3], [2, 4, 6]), 1.0)
 
