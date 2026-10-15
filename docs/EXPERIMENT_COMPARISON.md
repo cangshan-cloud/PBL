@@ -56,3 +56,5 @@ Content-Type: application/json
 - `POST /api/v1/research/comparisons/export.html`：自包含的中文对比报告，包含核心指标、排名、可比性检查和解释边界，可用浏览器打印为 PDF。
 
 两个导出接口使用与对比接口相同的 JSON 请求体和权限规则。导出是即时生成的便携文件，不作为新报告存入数据库。
+
+隔离 HTTP 回归会实际创建两条成功任务，调用对比接口并下载 CSV/HTML，核对新增的共同多空日期字段和导出内容；测试不访问现有运行数据库。

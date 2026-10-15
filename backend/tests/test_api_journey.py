@@ -129,6 +129,30 @@ class ApiJourneyTests(unittest.TestCase):
         self.assertEqual(created.json()["status"], "success")
         self.assertEqual(created.json()["result"]["coverage"], 8)
 
+    def test_comparison_api_and_exports_include_actual_group_dates(self):
+        researcher = self.auth("researcher", "research12345")
+        run_ids = []
+        for factor in ("momentum_20d", "reversal_5d"):
+            created = self.client.post("/api/v1/research/tasks", headers=researcher,
+                                       json={"factor": factor, "groups": 5, "start_date": "2025-02-03"})
+            self.assertEqual(created.status_code, 201, created.text)
+            self.assertEqual(created.json()["status"], "success")
+            run_ids.append(created.json()["id"])
+
+        payload = {"run_ids": run_ids}
+        compared = self.client.post("/api/v1/research/comparisons", headers=researcher, json=payload)
+        self.assertEqual(compared.status_code, 200, compared.text)
+        result = compared.json()
+        self.assertEqual(result["common_group_date_count"], result["common_ic_date_count"])
+        self.assertTrue(all(item["group_date_count"] > 0 for item in result["items"]))
+
+        csv_export = self.client.post("/api/v1/research/comparisons/export.csv", headers=researcher, json=payload)
+        self.assertEqual(csv_export.status_code, 200, csv_export.text)
+        self.assertIn("共同多空分组日期数", csv_export.content.decode("utf-8-sig"))
+        html_export = self.client.post("/api/v1/research/comparisons/export.html", headers=researcher, json=payload)
+        self.assertEqual(html_export.status_code, 200, html_export.text)
+        self.assertIn("共同多空分组日期", html_export.text)
+
     def test_upload_publish_research_report_and_role_boundaries(self):
         admin = self.auth("admin", "admin12345")
         researcher = self.auth("researcher", "research12345")
