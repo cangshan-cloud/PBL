@@ -16,6 +16,7 @@
 ## 会前门槛（不计入十分钟）
 
 - [ ] 记录 `git rev-parse --short HEAD`；确认演示代码、Worker 与报告口径一致。若使用旧报告，明确其任务提交版本，不把旧数值当成本版新运行结果。
+- [ ] 核对演示提交对应的 GitHub Actions Ubuntu/Windows 两个作业并记录运行链接与结论；若离线无法访问，明确记为“未核对”，不可借用上一提交的绿色状态。
 - [ ] 宿主机实际打开 `http://localhost:5173/` 且 `http://127.0.0.1:8000/health` 正常；仅有 `docker compose ps healthy` 不算通过。
 - [ ] 在本机环境变量中提供三种账号密码，不写入文档、截图或仓库。执行 `python3 tools/check_demo_readiness.py --check-worker --compose-project fbl` 并保存脱敏终端输出。
 - [ ] 若计划用旧报告作为备用，增加 `--require-report-fallback` 并确认校验通过；否则在现场不宣称有备用报告。
