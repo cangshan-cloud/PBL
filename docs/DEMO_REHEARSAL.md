@@ -45,6 +45,8 @@ python3 tools/check_demo_readiness.py --require-historical
 
 ## 彩排记录模板
 
+正式逐项执行与签收请使用 [`FINAL_REHEARSAL_CHECKLIST.md`](FINAL_REHEARSAL_CHECKLIST.md)；下表仅是简版摘要，不代表已彩排。
+
 由成员 D 本人填写并签名，不要把开发者预检结果直接记为 D 的个人验收：
 
 | 字段 | 待填写 |
