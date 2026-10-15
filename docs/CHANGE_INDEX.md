@@ -62,6 +62,7 @@
 | CHG-20261015-009 | 2026-10-15 | read-only preflight + tests + evidence / verified on Mac | 演示前可选检查长期等待/运行任务 | [记录](changes/2026-10-15-009-stale-task-demo-preflight.md) | `tools/check_demo_readiness.py::check_active_task_age`、`check_readiness`、`main`、`backend/tests/test_demo_readiness.py`、`docs/DEMO_REHEARSAL.md` |
 | CHG-20261015-010 | 2026-10-15 | research correctness + golden regression / verified on Mac | 分组平均收益统一按逐日组合口径 | [记录](changes/2026-10-15-010-group-daily-mean-correction.md) | `backend/app/domain/research.py::evaluate`、`backend/tests/test_research.py`、`tools/verify_golden_research.py`、`docs/SINGLE_FACTOR_ANALYSIS.md`、`docs/GOLDEN_RESEARCH_VERIFICATION.md` |
 | CHG-20261015-011 | 2026-10-15 | research reproducibility + regression / verified on Mac | 因子同值时固定分组次序 | [记录](changes/2026-10-15-011-deterministic-factor-ties.md) | `backend/app/domain/research.py::evaluate`、`backend/tests/test_research.py`、`docs/SINGLE_FACTOR_ANALYSIS.md` |
+| CHG-20261015-012 | 2026-10-15 | research input integrity + regression / verified on Mac | 单因子检验入口拒绝重复与非有限观测 | [记录](changes/2026-10-15-012-research-observation-validation.md) | `backend/app/domain/research.py::evaluate`、`backend/tests/test_research.py`、`docs/SINGLE_FACTOR_ANALYSIS.md` |
 
 ## 历史基线
 

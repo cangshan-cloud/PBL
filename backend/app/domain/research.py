@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date
-from math import sqrt
+from math import isfinite, sqrt
 from statistics import fmean, median, pstdev
 
 
@@ -174,6 +174,14 @@ def evaluate(
         raise ValueError("groups must be at least 2")
     if not 0 <= transaction_cost_bps <= 100:
         raise ValueError("transaction_cost_bps must be between 0 and 100")
+    seen: set[tuple[date, str]] = set()
+    for item in observations:
+        key = (item.trade_date, item.symbol)
+        if key in seen:
+            raise ValueError(f"duplicate research observation: {item.trade_date} {item.symbol}")
+        seen.add(key)
+        if not isfinite(item.factor) or not isfinite(item.forward_return):
+            raise ValueError(f"non-finite research observation: {item.trade_date} {item.symbol}")
     processed = preprocess_observations(
         observations,
         winsorize=winsorize,

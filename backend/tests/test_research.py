@@ -1,6 +1,7 @@
 import sys
 import unittest
 from datetime import date, timedelta
+from math import inf, nan
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -89,6 +90,15 @@ class ResearchEngineTests(unittest.TestCase):
         self.assertEqual(forward["long_short_series"], reversed_input["long_short_series"])
         self.assertAlmostEqual(forward["group_returns"][0]["mean_return"], 0.015)
         self.assertAlmostEqual(forward["group_returns"][1]["mean_return"], 0.035)
+
+    def test_evaluate_rejects_duplicate_and_nonfinite_observations(self):
+        day = date(2025, 1, 1)
+        valid = Observation(day, "A", 1.0, 0.01)
+        with self.assertRaisesRegex(ValueError, "duplicate research observation"):
+            evaluate([valid, valid], groups=2)
+        for invalid in (Observation(day, "B", nan, 0.02), Observation(day, "B", 2.0, inf)):
+            with self.subTest(invalid=invalid), self.assertRaisesRegex(ValueError, "non-finite research observation"):
+                evaluate([valid, invalid], groups=2)
 
     def test_preprocessing_winsorizes_outlier_and_standardizes_each_date(self):
         items = [
