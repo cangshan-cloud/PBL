@@ -25,6 +25,22 @@ from app.services.runs import create_research_run, execute_research_run  # noqa:
 FACTORS = ("momentum_20d", "reversal_5d", "volatility_20d", "turnover_20d", "pe")
 
 
+def group_date_audit(result: dict, factor: str) -> dict:
+    group_dates = [item["date"] for item in result["long_short_series"]]
+    for group in result["group_nav"]:
+        if [point["date"] for point in group["points"]] != group_dates:
+            raise ValueError(f"group NAV dates differ from long-short dates: {factor}")
+    if not set(group_dates).issubset({item["date"] for item in result["ic_series"]}):
+        raise ValueError(f"group dates are absent from IC calendar: {factor}")
+    return {
+        "coverage": result["coverage"],
+        "ic_dates": len(result["ic_series"]),
+        "group_dates": len(group_dates),
+        "skipped_constant_factor_days": result["group_skipped_constant_factor_days"],
+        "skipped_insufficient_sample_days": result["group_skipped_insufficient_sample_days"],
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input-dir", type=Path, default=ROOT / "data" / "real")
@@ -65,7 +81,7 @@ def main() -> None:
                         result = next(item.content for item in run.artifacts if item.artifact_type == "metrics")
                         if run.status.value != "success" or result["coverage"] <= 0:
                             raise ValueError(f"factor did not produce valid observations: {factor}")
-                        results[factor] = {"coverage": result["coverage"], "ic_dates": len(result["ic_series"])}
+                        results[factor] = group_date_audit(result, factor)
             finally:
                 engine.dispose()
 

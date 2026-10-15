@@ -5,6 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
 
 from fetch_real_a_share_sample import normalize_row
+from verify_real_a_share_sample import group_date_audit
 
 
 VALID = {
@@ -15,6 +16,17 @@ VALID = {
 
 
 class RealSampleAcquisitionTests(unittest.TestCase):
+    def test_group_date_audit_rejects_misaligned_nav(self):
+        result = {"coverage": 2, "ic_series": [{"date": "2024-01-02"}],
+                  "long_short_series": [{"date": "2024-01-02"}],
+                  "group_nav": [{"points": [{"date": "2024-01-03"}]}],
+                  "group_skipped_constant_factor_days": 0,
+                  "group_skipped_insufficient_sample_days": 0}
+        with self.assertRaisesRegex(ValueError, "group NAV dates differ"):
+            group_date_audit(result, "test")
+        result["group_nav"][0]["points"][0]["date"] = "2024-01-02"
+        self.assertEqual(group_date_audit(result, "test")["group_dates"], 1)
+
     def test_maps_source_fields_without_changing_units(self):
         row = normalize_row(VALID, "sh.600000")
         self.assertEqual(row["symbol"], "600000.SH")
