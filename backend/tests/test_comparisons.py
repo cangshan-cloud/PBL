@@ -62,6 +62,36 @@ class ComparisonTests(unittest.TestCase):
             self.assertTrue(result["comparable"])
             self.assertEqual(result["items"][0]["ic_start_date"], "2025-02-03")
 
+    def test_same_ic_dates_but_different_group_dates_are_not_fully_comparable(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            first = execute_research_run(session, create_research_run(session, {
+                "factor": "momentum_20d", "groups": 5, "start_date": "2025-02-03",
+            }).id)
+            second = execute_research_run(session, create_research_run(session, {
+                "factor": "reversal_5d", "groups": 5, "start_date": "2025-02-03",
+            }).id)
+            artifact = next(item for item in second.artifacts if item.artifact_type == "metrics")
+            artifact.content = {**artifact.content,
+                                "long_short_series": artifact.content["long_short_series"][1:]}
+            result = compare_runs([first, second])
+            self.assertEqual(result["items"][0]["ic_date_count"], result["items"][1]["ic_date_count"])
+            self.assertNotEqual(result["items"][0]["group_date_count"], result["items"][1]["group_date_count"])
+            self.assertFalse(result["comparable"])
+            self.assertTrue(any("多空分组日期集合不同" in item for item in result["warnings"]))
+            self.assertIn("共同多空分组日期数", comparison_csv(result).decode("utf-8-sig"))
+            self.assertIn("共同多空分组日期", comparison_html(result))
+
+    def test_missing_metric_is_not_ranked_as_last_place(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            runs = [execute_research_run(session, create_research_run(session, {
+                "factor": factor, "groups": 5, "start_date": "2025-02-03",
+            }).id) for factor in ("momentum_20d", "reversal_5d")]
+            artifact = next(item for item in runs[1].artifacts if item.artifact_type == "metrics")
+            artifact.content = {**artifact.content, "long_short_net_total_return": None}
+            result = compare_runs(runs)
+            self.assertEqual(result["rankings"]["long_short_net_total_return"], [runs[0].id])
+            self.assertTrue(any("未保存成本后收益" in item for item in result["warnings"]))
+
     def test_different_stock_pool_and_preprocessing_are_disclosed(self):
         with Session(self.engine, expire_on_commit=False) as session:
             runs = [execute_research_run(session, create_research_run(session, parameters).id) for parameters in (
