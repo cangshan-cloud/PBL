@@ -270,16 +270,38 @@ def transition(session: Session, run: Run, target: RunStatus, *, error: str | No
 
 
 def request_cancellation(session: Session, run: Run, actor_name: str) -> Run:
-    if run.status in TERMINAL_STATUSES:
-        raise ValueError("terminal run cannot be cancelled")
-    if run.status == RunStatus.PENDING:
-        transition(session, run, RunStatus.CANCELLED, error=f"由{actor_name}在执行前取消")
+    run_id = run.id
+    reason = f"由{actor_name}在执行前取消"
+    requested = False
+    cancelled = session.execute(
+        update(Run).where(Run.id == run_id, Run.status == RunStatus.PENDING).values(
+            status=RunStatus.CANCELLED, finished_at=utc_now(), error_summary=reason,
+        )
+    ).rowcount == 1
+    if cancelled:
+        session.add(RunLog(run_id=run_id, level="warning", event="cancelled", message=reason))
+        session.commit()
     else:
-        if run.cancellation_requested_at is None:
-            run.cancellation_requested_at = utc_now()
-            run.logs.append(RunLog(level="warning", event="cancellation_requested", message=f"{actor_name}请求取消运行中任务"))
+        session.rollback()
+        requested = session.execute(
+            update(Run).where(
+                Run.id == run_id, Run.status == RunStatus.RUNNING,
+                Run.cancellation_requested_at.is_(None),
+            ).values(cancellation_requested_at=utc_now())
+        ).rowcount == 1
+        if requested:
+            session.add(RunLog(run_id=run_id, level="warning", event="cancellation_requested",
+                               message=f"{actor_name}请求取消运行中任务"))
             session.commit()
-    return get_run(session, run.id)
+        else:
+            session.rollback()
+    session.expire_all()
+    current = get_run(session, run_id)
+    if current is None:
+        raise LookupError(f"run not found: {run_id}")
+    if not cancelled and not requested and current.status in TERMINAL_STATUSES:
+        raise ValueError("terminal run cannot be cancelled")
+    return current
 
 
 def _stop_if_cancelled(session: Session, run_id: str) -> Run:

@@ -56,6 +56,7 @@
 | CHG-20261015-003 | 2026-10-15 | task reliability fix + API regression / verified on Mac | 队列连接失败时记录可重试失败任务与固定错误日志 | [记录](changes/2026-10-15-003-broker-enqueue-failure.md) | `backend/app/main.py::_enqueue_run`、四个异步入口、`backend/app/services/runs.py::transition`、`backend/tests/test_api_journey.py`、`docs/TASK_EXECUTION.md` |
 | CHG-20261015-004 | 2026-10-15 | worker reliability fix + regression / verified on Mac | 延迟或重复消息不重算非待执行任务 | [记录](changes/2026-10-15-004-late-delivery-idempotence.md) | `backend/app/services/runs.py::execute_research_run`、`backend/tests/test_persistence.py::PersistenceTests.test_late_or_duplicate_delivery_does_not_reexecute_nonpending_run`、`docs/TASK_EXECUTION.md` |
 | CHG-20261015-005 | 2026-10-15 | worker concurrency fix + regression / verified on Mac | 数据库条件认领避免同一 Run 被两个 Worker 同时执行 | [记录](changes/2026-10-15-005-atomic-run-claim.md) | `backend/app/services/runs.py::claim_pending_run`、`execute_research_run`、`backend/tests/test_persistence.py::PersistenceTests.test_two_workers_can_claim_a_pending_run_only_once`、`docs/TASK_EXECUTION.md` |
+| CHG-20261015-006 | 2026-10-15 | task concurrency fix + regression / verified on Mac | 条件更新协调取消与 Worker 认领 | [记录](changes/2026-10-15-006-atomic-cancel-vs-claim.md) | `backend/app/services/runs.py::request_cancellation`、`backend/tests/test_persistence.py::PersistenceTests.test_cancellation_and_worker_claim_have_one_consistent_outcome`、`docs/TASK_EXECUTION.md` |
 
 ## 历史基线
 

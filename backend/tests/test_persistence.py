@@ -11,7 +11,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from app.db import Base
-from app.models import RunStatus
+from app.models import Run, RunStatus
 from app.services.datasets import import_csv, publish_dataset_version
 from app.services.runs import claim_pending_run, create_research_run, execute_research_run, get_run, list_run_logs, request_cancellation, transition
 from app.services.sample_data import sample_file
@@ -118,6 +118,39 @@ class PersistenceTests(unittest.TestCase):
             self.assertEqual(run.progress, 5)
             self.assertIsNotNone(run.started_at)
             self.assertEqual([item.event for item in list_run_logs(session, run_id)], ["queued", "started"])
+
+    def test_cancellation_and_worker_claim_have_one_consistent_outcome(self):
+        for _ in range(5):
+            with Session(self.engine) as session:
+                run_id = create_research_run(session, {"factor": "momentum_20d", "groups": 5}).id
+            barrier = Barrier(2)
+
+            def claim() -> bool:
+                with Session(self.engine) as session:
+                    barrier.wait(timeout=5)
+                    return claim_pending_run(session, run_id)[1]
+
+            def cancel() -> RunStatus:
+                with Session(self.engine) as session:
+                    barrier.wait(timeout=5)
+                    return request_cancellation(session, Run(id=run_id), "测试用户").status
+
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                claim_future = pool.submit(claim)
+                cancel_future = pool.submit(cancel)
+                claimed, cancelled_status = claim_future.result(), cancel_future.result()
+            with Session(self.engine) as session:
+                run = get_run(session, run_id)
+                events = [item.event for item in list_run_logs(session, run_id)]
+                if claimed:
+                    self.assertEqual(cancelled_status, RunStatus.RUNNING)
+                    self.assertEqual(run.status, RunStatus.RUNNING)
+                    self.assertIsNotNone(run.cancellation_requested_at)
+                    self.assertEqual(events, ["queued", "started", "cancellation_requested"])
+                else:
+                    self.assertEqual(cancelled_status, RunStatus.CANCELLED)
+                    self.assertEqual(run.status, RunStatus.CANCELLED)
+                    self.assertEqual(events, ["queued", "cancelled"])
 
     def test_pending_run_can_be_cancelled_with_audit_log(self):
         with Session(self.engine, expire_on_commit=False) as session:
