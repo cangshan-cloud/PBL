@@ -169,12 +169,18 @@ def verify_dataset_file(dataset: DatasetVersion) -> Path:
     if (dataset.quality_report or {}).get("dataset_kind") == "hs300_bundle_v1":
         verify_historical_bundle(path, dataset.checksum)
         return path
+    _read_verified_csv(dataset)
+    return path
+
+
+def _read_verified_csv(dataset: DatasetVersion) -> bytes:
+    path = Path(dataset.storage_uri)
     if not path.is_file():
         raise FileNotFoundError("dataset file not found")
-    with path.open("rb") as handle:
-        if hashlib.file_digest(handle, "sha256").hexdigest() != dataset.checksum:
-            raise ValueError("dataset checksum mismatch")
-    return path
+    content = path.read_bytes()
+    if hashlib.sha256(content).hexdigest() != dataset.checksum:
+        raise ValueError("dataset checksum mismatch")
+    return content
 
 
 def preview_dataset(dataset: DatasetVersion, limit: int = 20) -> dict:
@@ -191,15 +197,14 @@ def preview_dataset(dataset: DatasetVersion, limit: int = 20) -> dict:
         return {"dataset_id": dataset.id, "columns": ["item", "value"], "rows": rows,
                 "preview_count": len(rows), "total_rows": len(rows), "truncated": False}
     limit = max(1, min(limit, 100))
-    path = verify_dataset_file(dataset)
-    with path.open(encoding="utf-8-sig", newline="") as handle:
-        reader = csv.DictReader(handle)
-        columns = [column.strip() for column in (reader.fieldnames or [])]
-        rows = []
-        for index, raw in enumerate(reader):
-            if index >= limit:
-                break
-            rows.append({column: (raw.get(column) or "")[:200] for column in columns})
+    content = _read_verified_csv(dataset)
+    reader = csv.DictReader(io.StringIO(content.decode("utf-8-sig"), newline=""))
+    columns = [column.strip() for column in (reader.fieldnames or [])]
+    rows = []
+    for index, raw in enumerate(reader):
+        if index >= limit:
+            break
+        rows.append({column: (raw.get(column) or "")[:200] for column in columns})
     return {
         "dataset_id": dataset.id,
         "columns": columns,

@@ -121,6 +121,18 @@ class DatasetPersistenceTests(unittest.TestCase):
             self.assertEqual(published.status, "published")
             self.assertIsNotNone(published.published_at)
 
+    def test_preview_parses_the_verified_byte_snapshot(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            dataset = import_csv(
+                session, content=VALID_CSV, source_filename="daily.csv",
+                dataset_key="course_demo", name="课程演示数据", data_root=Path(self.temp_dir.name),
+            )
+            Path(dataset.storage_uri).write_bytes(VALID_CSV.replace(b"10.5,1000", b"99.0,1000"))
+            with patch.object(Path, "read_bytes", return_value=VALID_CSV) as read_bytes:
+                preview = preview_dataset(dataset, limit=1)
+            read_bytes.assert_called_once_with()
+            self.assertEqual(preview["rows"][0]["close"], "10.5")
+
     def test_publish_rejects_changed_or_missing_file_without_changing_draft(self):
         with Session(self.engine, expire_on_commit=False) as session:
             dataset = import_csv(

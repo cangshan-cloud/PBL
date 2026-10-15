@@ -9,7 +9,7 @@
 | PRD 条款与验收点 | 当前状态 | 实现位置与现有证据 | 剩余工作／放行条件 |
 | --- | --- | --- | --- |
 | §3、§5.1：登录、三角色、后端资源权限 | 已验（Mac） | `backend/app/auth.py`、`backend/app/main.py` 登录与权限路由；`backend/tests/test_auth.py`、`test_api_journey.py` | B/C/D 人员自行按角色完成手工验收；Windows 暂缓 |
-| §5.2：CSV 导入、质量校验、SHA-256、发布不可变版本 | 已验（Mac） | `backend/app/services/datasets.py`；`backend/tests/test_datasets.py`、`test_versioning.py`、`test_storage_audit.py`；[`DATASET_FORMAT.md`](DATASET_FORMAT.md) | B 提交来源、字段、异常样本和签名导入记录 |
+| §5.2：CSV 导入、质量校验、SHA-256、发布不可变版本 | 已验（Mac） | `backend/app/services/datasets.py`、`backend/app/services/sample_data.py`；`backend/tests/test_datasets.py`、`test_sample_data.py`、`test_versioning.py`、`test_storage_audit.py`；[`DATASET_FORMAT.md`](DATASET_FORMAT.md)；[已校验字节快照](changes/2026-10-15-016-verified-csv-snapshot.md) | B 提交来源、字段、异常样本和签名导入记录 |
 | §4、§5.2、§7：Parquet 导入及 DuckDB/Parquet 大数据存储 | 未实现 | 当前入口为 CSV；PostgreSQL 存元数据，历史包为封存 CSV；[`PROJECT_STATUS_2026-10-12.md`](PROJECT_STATUS_2026-10-12.md) 已列为缺口 | 属 PRD 与当前实现的显式偏差；在课程评分要求确认前不扩大范围，最终需修订 PRD 或实现并实测 |
 | §5.2：证券主表、日历、复权、行业历史、基准行情与财务披露时点 | 部分 | CSV 字段和价格口径见 [`DATASET_FORMAT.md`](DATASET_FORMAT.md)、[`PRICE_BASIS.md`](PRICE_BASIS.md)；历史包含日历、成员、行情、交易/ST 状态 | 行业历史、完整基准和财务公告时点未形成通用数据链路；不得宣称财务无前视偏差 |
 | §5.3：六个版本化内置因子 | 已验（Mac），真实样本有限制 | `backend/app/domain/factors.py::FACTOR_REGISTRY`、`backend/app/services/catalog.py`；`backend/tests/test_factors.py` | 演示 CSV 可覆盖六因子；真实 BaoStock 样本不含总市值，2024 历史包仅跑四个价格/换手率因子；C 需明确解释差异 |
@@ -31,6 +31,7 @@
 ## 自动化与环境证据
 
 - **本机基线（2026-10-15，提交 `fffad78`）**：`.venv/bin/python -m unittest discover -s backend/tests -q` 152 项通过；`.venv/bin/python tools/verify_golden_research.py` 通过；`npm run build --prefix frontend` 通过。此后权重校验变更再次运行后端 152 项与黄金样例，结果均通过，见 [CHG-20261015-014](changes/2026-10-15-014-composite-weight-validation.md)；未重新运行前端构建，因本次未改前端。
+- **CSV 快照修正本机工作树（2026-10-15）**：后端 155 项和黄金样例通过，详见 [CHG-20261015-016](changes/2026-10-15-016-verified-csv-snapshot.md)；本次未改前端，未重复构建。提交后 CI 仍须另查。
 
 - 本机虚拟环境：`130` 项后端测试通过；黄金结果脚本在 `PYTHONIOENCODING=cp1252` 下通过；前端生产构建通过。历史采集测试曾在模拟“未安装 BaoStock”条件下 `129` 项通过，见 [CHG-20261014-018](changes/2026-10-14-018-optional-baostock-test-isolation.md)。
 - GitHub Actions：提交 `8ab9252` 的 [运行 #38538602151](https://github.com/cangshan-cloud/PBL/actions/runs/38538602151) 在 Ubuntu、Windows 后端测试均失败。测试隔离修复 `08e512b` 的 [运行 #38539572865](https://github.com/cangshan-cloud/PBL/actions/runs/38539572865) 让 Ubuntu 全部成功，Windows 仍失败；显式 UTF-8 修复 `2c5698f` 的 [运行 #38540261543](https://github.com/cangshan-cloud/PBL/actions/runs/38540261543) 使 Windows 后端测试通过，失败点转到黄金验算。`PYTHONIOENCODING=cp1252` 在本机复现了中文成功提示的 `UnicodeEncodeError`；改为 ASCII 并加回归后，提交 `c376d4a` 的 [运行 #38540761105](https://github.com/cangshan-cloud/PBL/actions/runs/38540761105) 公开页面显示整条工作流 **Success**（Ubuntu、Windows 矩阵均完成）。
