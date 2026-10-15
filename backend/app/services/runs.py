@@ -300,6 +300,8 @@ def execute_research_run(session: Session, run_id: str) -> Run:
     run = get_run(session, run_id)
     if run is None:
         raise LookupError(f"run not found: {run_id}")
+    if run.status != RunStatus.PENDING:
+        return run
     transition(session, run, RunStatus.RUNNING)
     try:
         run = _stop_if_cancelled(session, run_id)

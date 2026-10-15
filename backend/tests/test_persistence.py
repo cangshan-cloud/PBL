@@ -70,6 +70,32 @@ class PersistenceTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "invalid run transition"):
                 transition(session, completed, RunStatus.RUNNING)
 
+    def test_late_or_duplicate_delivery_does_not_reexecute_nonpending_run(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            succeeded = create_research_run(session, {"factor": "momentum_20d", "groups": 5})
+            completed = execute_research_run(session, succeeded.id)
+            before_events = [item.event for item in list_run_logs(session, succeeded.id)]
+            before_artifacts = [item.id for item in completed.artifacts]
+            replayed = execute_research_run(session, succeeded.id)
+            self.assertEqual(replayed.status, RunStatus.SUCCESS)
+            self.assertEqual([item.event for item in list_run_logs(session, succeeded.id)], before_events)
+            self.assertEqual([item.id for item in replayed.artifacts], before_artifacts)
+
+            cancelled = create_research_run(session, {"factor": "momentum_20d", "groups": 5})
+            request_cancellation(session, cancelled, "测试用户")
+            self.assertEqual(execute_research_run(session, cancelled.id).status, RunStatus.CANCELLED)
+            self.assertEqual([item.event for item in list_run_logs(session, cancelled.id)], ["queued", "cancelled"])
+
+            failed = create_research_run(session, {"factor": "momentum_20d", "groups": 5})
+            transition(session, failed, RunStatus.FAILED, error="消息队列连接失败，任务未能入队")
+            self.assertEqual(execute_research_run(session, failed.id).status, RunStatus.FAILED)
+            self.assertEqual([item.event for item in list_run_logs(session, failed.id)], ["queued", "failed"])
+
+            running = create_research_run(session, {"factor": "momentum_20d", "groups": 5})
+            transition(session, running, RunStatus.RUNNING)
+            self.assertEqual(execute_research_run(session, running.id).status, RunStatus.RUNNING)
+            self.assertEqual([item.event for item in list_run_logs(session, running.id)], ["queued", "started"])
+
     def test_pending_run_can_be_cancelled_with_audit_log(self):
         with Session(self.engine, expire_on_commit=False) as session:
             run = create_research_run(session, {"factor": "momentum_20d", "lookback": 20, "groups": 5})
