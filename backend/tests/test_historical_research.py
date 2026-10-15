@@ -1,11 +1,14 @@
 import sys
+import hashlib
+import tempfile
 import unittest
 from datetime import date, timedelta
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.domain.historical_research import HistoricalBar, calculate_historical_observations
+from app.domain.historical_research import HistoricalBar, _verified_csv_rows, calculate_historical_observations
 
 
 def bar(close=100.0, turnover=1.0, volume=100.0, status="1", st="0"):
@@ -25,6 +28,23 @@ class HistoricalResearchTests(unittest.TestCase):
         self.assertAlmostEqual(observations[0].forward_return, 121 / 120 - 1)
         self.assertEqual(audit["totals"]["candidate_count"], 2)
         self.assertEqual(audit["totals"]["nonmember_count"], 0)
+
+    def test_historical_csv_parser_uses_only_verified_bytes(self):
+        verified = b"date,code,close\n2025-01-01,sh.600000,10\n"
+        changed = b"date,code,close\n2025-01-01,sh.600000,99\n"
+        relative = "prices_source/symbols/sh_600000.csv"
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / relative
+            path.parent.mkdir(parents=True)
+            path.write_bytes(changed)
+            hashes = {relative: hashlib.sha256(verified).hexdigest()}
+            with patch.object(Path, "read_bytes", return_value=verified) as read_bytes:
+                rows = _verified_csv_rows(root, relative, hashes)
+            read_bytes.assert_called_once_with()
+            self.assertEqual(rows[0]["close"], "10")
+            with self.assertRaisesRegex(ValueError, "historical bundle file checksum mismatch"):
+                _verified_csv_rows(root, relative, hashes)
 
     def test_missing_intermediate_day_does_not_compress_window(self):
         del self.bars["A"][self.days[10]]

@@ -67,6 +67,7 @@
 | CHG-20261015-014 | 2026-10-15 | research input integrity + regression / verified on Mac | 多因子合成拒绝非法权重 | [记录](changes/2026-10-15-014-composite-weight-validation.md) | `backend/app/domain/composite.py::combine_factor_observations`、`backend/tests/test_composite.py`、`docs/MULTI_FACTOR_ANALYSIS.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md` |
 | CHG-20261015-015 | 2026-10-15 | CI evidence + rehearsal gate / verified for `11e0ce9` | 近期 Ubuntu/Windows CI 证据核对 | [记录](changes/2026-10-15-015-recent-ci-verification.md) | `docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md`、`docs/FINAL_REHEARSAL_CHECKLIST.md` |
 | CHG-20261015-016 | 2026-10-15 | data integrity + regression / verified on Mac | CSV 校验与解析使用同一字节快照 | [记录](changes/2026-10-15-016-verified-csv-snapshot.md) | `backend/app/services/sample_data.py::load_price_file`、`backend/app/services/datasets.py::_read_verified_csv`、`preview_dataset`、`verify_dataset_file`、`backend/tests/test_sample_data.py`、`backend/tests/test_datasets.py`、`docs/DATASET_FORMAT.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md` |
+| CHG-20261015-017 | 2026-10-15 | historical data integrity + regression / verified on Mac | 历史包实际加载文件再核验字节 | [记录](changes/2026-10-15-017-historical-load-snapshot.md) | `backend/app/domain/historical_research.py::_verified_csv_rows`、`load_historical_bundle`、`backend/tests/test_historical_research.py`、`docs/HS300_BUNDLE.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md` |
 
 ## 历史基线
 

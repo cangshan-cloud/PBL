@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import csv
+import hashlib
+import io
 from collections import Counter
 from dataclasses import dataclass
 from datetime import date
@@ -32,22 +34,28 @@ def _bar(raw: dict[str, str]) -> HistoricalBar:
     return HistoricalBar(number("close"), number("turn"), number("volume"), raw["tradestatus"], raw["isST"])
 
 
+def _verified_csv_rows(root: Path, relative: str, hashes: dict[str, str]) -> list[dict[str, str]]:
+    path = root / relative
+    content = path.read_bytes()
+    if hashlib.sha256(content).hexdigest() != hashes.get(relative):
+        raise ValueError(f"historical bundle file checksum mismatch: {relative}")
+    return list(csv.DictReader(io.StringIO(content.decode("utf-8-sig"), newline="")))
+
+
 def load_historical_bundle(manifest_path: Path, expected_checksum: str | None = None) -> tuple[list[date], dict[date, set[str]], dict[str, dict[date, HistoricalBar]]]:
     """Revalidate all files before loading; reject unknown member-day state."""
-    verify_historical_bundle(manifest_path, expected_checksum)
+    verified = verify_historical_bundle(manifest_path, expected_checksum)
     root = manifest_path.parent
+    hashes = verified["manifest"]["file_sha256"]
     calendar: list[date] = []
-    with (root / "prices_source" / "trade_calendar.csv").open(newline="", encoding="utf-8") as handle:
-        for row in csv.DictReader(handle):
-            if row["is_trading_day"] == "1":
-                calendar.append(date.fromisoformat(row["calendar_date"]))
+    for row in _verified_csv_rows(root, "prices_source/trade_calendar.csv", hashes):
+        if row["is_trading_day"] == "1":
+            calendar.append(date.fromisoformat(row["calendar_date"]))
     if not calendar or calendar != sorted(set(calendar)):
         raise ValueError("invalid historical trading calendar")
     members: dict[date, set[str]] = {}
     for day in (item for item in calendar if item.year == 2024):
-        roster = root / "members_source" / "daily_rosters" / f"{day.isoformat()}.csv"
-        with roster.open(newline="", encoding="utf-8") as handle:
-            rows = list(csv.DictReader(handle))
+        rows = _verified_csv_rows(root, f"members_source/daily_rosters/{day.isoformat()}.csv", hashes)
         if len(rows) != 300 or any(row["query_date"] != day.isoformat() or not row["update_date"] for row in rows):
             raise ValueError(f"invalid historical roster: {day}")
         codes = {row["code"] for row in rows}
@@ -57,13 +65,13 @@ def load_historical_bundle(manifest_path: Path, expected_checksum: str | None = 
     bars: dict[str, dict[date, HistoricalBar]] = {}
     for path in sorted((root / "prices_source" / "symbols").glob("*.csv")):
         symbol_bars: dict[date, HistoricalBar] = {}
-        with path.open(newline="", encoding="utf-8") as handle:
-            for row in csv.DictReader(handle):
-                code = row["code"]
-                day = date.fromisoformat(row["date"])
-                if code.replace(".", "_") != path.stem or day in symbol_bars:
-                    raise ValueError(f"invalid historical price row: {path.name} {day}")
-                symbol_bars[day] = _bar(row)
+        relative = path.relative_to(root).as_posix()
+        for row in _verified_csv_rows(root, relative, hashes):
+            code = row["code"]
+            day = date.fromisoformat(row["date"])
+            if code.replace(".", "_") != path.stem or day in symbol_bars:
+                raise ValueError(f"invalid historical price row: {path.name} {day}")
+            symbol_bars[day] = _bar(row)
         bars[path.stem.replace("_", ".")] = symbol_bars
     for day, codes in members.items():
         for code in codes:
