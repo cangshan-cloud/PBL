@@ -13,6 +13,7 @@ import os
 import re
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -77,8 +78,33 @@ def check_web_page(url: str) -> None:
         raise ValueError("web entry is not the FactorLab page")
 
 
+def check_active_task_age(tasks: list[dict], max_age_minutes: int, *, now: datetime | None = None) -> str:
+    if max_age_minutes <= 0:
+        raise ValueError("max active task age must be a positive number of minutes")
+    now = now or datetime.now(timezone.utc)
+    stale = []
+    for item in tasks:
+        status = item.get("status")
+        if status not in {"pending", "running"}:
+            continue
+        timestamp_key = "queued_at" if status == "pending" else "started_at"
+        raw = item.get(timestamp_key)
+        try:
+            timestamp = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except (AttributeError, TypeError, ValueError) as exc:
+            raise ValueError(f"active task {item.get('id', '<unknown>')} has invalid {timestamp_key}") from exc
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
+        age_minutes = (now - timestamp).total_seconds() / 60
+        if age_minutes > max_age_minutes:
+            stale.append(f"{item.get('id', '<unknown>')} ({status}, {age_minutes:.0f} min)")
+    if stale:
+        raise ValueError(f"{len(stale)} active task(s) older than {max_age_minutes} min: " + "; ".join(stale[:5]))
+    return f"no pending/running task older than {max_age_minutes} min"
+
+
 def check_readiness(client: ApiClient, passwords: dict[str, str], *, require_historical: bool = False,
-                    require_report_fallback: bool = False) -> list[str]:
+                    require_report_fallback: bool = False, max_active_age_minutes: int | None = None) -> list[str]:
     tokens = {}
     for role in ROLES:
         password = passwords.get(role)
@@ -109,6 +135,8 @@ def check_readiness(client: ApiClient, passwords: dict[str, str], *, require_his
 
     checks = ["three demo accounts and roles", "verified demo_daily 0.2.0 file (2400 rows / 20 symbols)",
               "six built-in factors", "viewer task and report listings"]
+    if max_active_age_minutes is not None:
+        checks.append(check_active_task_age(tasks, max_active_age_minutes))
     if require_report_fallback:
         demo_runs = {item["id"] for item in tasks if item.get("dataset_version_id") == demo["id"] and
                      item.get("status") == "success"}
@@ -176,15 +204,20 @@ def main() -> int:
     parser.add_argument("--require-report-fallback", action="store_true",
                         help="Require a downloadable, checksum-valid report from a successful demo_daily 0.2.0 task")
     parser.add_argument("--check-worker", action="store_true", help="Read-only Celery ping through Docker Compose")
+    parser.add_argument("--max-active-age-minutes", type=int,
+                        help="Fail if a pending/running task has exceeded this age; read-only stale-task warning")
     parser.add_argument("--compose-project", help="Compose project for --check-worker; defaults to the repository project")
     args = parser.parse_args()
     if args.compose_project and not args.check_worker:
         parser.error("--compose-project requires --check-worker")
+    if args.max_active_age_minutes is not None and args.max_active_age_minutes <= 0:
+        parser.error("--max-active-age-minutes must be positive")
     passwords = {role: os.getenv(f"FACTORLAB_DEMO_{role.upper()}_PASSWORD", "") for role in ROLES}
     try:
         check_web_page(args.web_url)
         checks = check_readiness(ApiClient(args.api_url), passwords, require_historical=args.require_historical,
-                                 require_report_fallback=args.require_report_fallback)
+                                 require_report_fallback=args.require_report_fallback,
+                                 max_active_age_minutes=args.max_active_age_minutes)
         if args.check_worker:
             check_worker(compose_project=args.compose_project)
             checks.append("Celery worker answered Compose ping")

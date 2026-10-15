@@ -2,17 +2,18 @@ import hashlib
 import sys
 import subprocess
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from tools.check_demo_readiness import ApiClient, FACTORS, check_readiness, check_web_page, check_worker
+from tools.check_demo_readiness import ApiClient, FACTORS, check_active_task_age, check_readiness, check_web_page, check_worker
 
 
 class FakeClient:
     def __init__(self, *, historical=True, factors=None, bad_preview=None, report_bytes=None,
-                 report_checksum=None, report_available=True):
+                 report_checksum=None, report_available=True, tasks=None):
         self.calls = []
         self.historical = historical
         self.factors = factors if factors is not None else FACTORS
@@ -20,6 +21,7 @@ class FakeClient:
         self.report_bytes = report_bytes if report_bytes is not None else b"<!doctype html><title>Demo report</title>"
         self.report_checksum = report_checksum or hashlib.sha256(self.report_bytes).hexdigest()
         self.report_available = report_available
+        self.tasks = tasks
         self.downloads = []
 
     def download_report(self, run_id, *, token, timeout=10):
@@ -54,6 +56,8 @@ class FakeClient:
         if path == "/factors":
             return [{"id": key} for key in self.factors]
         if path == "/research/tasks":
+            if self.tasks is not None:
+                return self.tasks
             return ([{"id": "demo-run", "dataset_version_id": "demo-id", "status": "success"}]
                     if self.report_available else [])
         if path == "/reports":
@@ -94,6 +98,32 @@ class DemoReadinessTests(unittest.TestCase):
             check_readiness(FakeClient(report_available=False), self.passwords, require_report_fallback=True)
         with self.assertRaisesRegex(ValueError, "no demo report fallback passed download verification"):
             check_readiness(FakeClient(report_checksum="0" * 64), self.passwords, require_report_fallback=True)
+
+    def test_optional_active_task_age_check_is_read_only(self):
+        now = datetime(2026, 10, 15, 8, 0, tzinfo=timezone.utc)
+        tasks = [
+            {"id": "old-success", "status": "success", "queued_at": "2026-01-01T00:00:00Z"},
+            {"id": "recent-pending", "status": "pending", "queued_at": "2026-10-15T07:50:00Z"},
+            {"id": "recent-running", "status": "running", "started_at": "2026-10-15T15:45:00+08:00"},
+        ]
+        self.assertIn("no pending/running", check_active_task_age(tasks, 30, now=now))
+        client = FakeClient(tasks=[])
+        checks = check_readiness(client, self.passwords, max_active_age_minutes=30)
+        self.assertTrue(any("no pending/running" in item for item in checks))
+        self.assertTrue(all(payload is None for path, _, payload, _ in client.calls if path != "/auth/login"))
+
+    def test_active_task_age_rejects_stale_and_unreadable_timestamps(self):
+        now = datetime(2026, 10, 15, 8, 0, tzinfo=timezone.utc)
+        with self.assertRaisesRegex(ValueError, "stale-run \\(running, 31 min\\)"):
+            check_active_task_age([{"id": "stale-run", "status": "running",
+                                    "started_at": "2026-10-15T07:29:00Z"}], 30, now=now)
+        with self.assertRaisesRegex(ValueError, "stale-pending"):
+            check_active_task_age([{"id": "stale-pending", "status": "pending",
+                                    "queued_at": "2026-10-15T07:00:00"}], 30, now=now)
+        with self.assertRaisesRegex(ValueError, "invalid started_at"):
+            check_active_task_age([{"id": "bad", "status": "running", "started_at": None}], 30, now=now)
+        with self.assertRaisesRegex(ValueError, "positive"):
+            check_active_task_age([], 0, now=now)
 
     def test_report_download_requires_html_and_has_size_limit(self):
         class Response:

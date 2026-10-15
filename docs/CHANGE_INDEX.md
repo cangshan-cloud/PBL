@@ -59,6 +59,7 @@
 | CHG-20261015-006 | 2026-10-15 | task concurrency fix + regression / verified on Mac | 条件更新协调取消与 Worker 认领 | [记录](changes/2026-10-15-006-atomic-cancel-vs-claim.md) | `backend/app/services/runs.py::request_cancellation`、`backend/tests/test_persistence.py::PersistenceTests.test_cancellation_and_worker_claim_have_one_consistent_outcome`、`docs/TASK_EXECUTION.md` |
 | CHG-20261015-007 | 2026-10-15 | task concurrency fix + regressions / verified on Mac | 入队失败标记与 Worker 认领互斥 | [记录](changes/2026-10-15-007-enqueue-failure-claim-race.md) | `backend/app/services/runs.py::fail_pending_enqueue`、`backend/app/main.py::_enqueue_run`、`backend/tests/test_persistence.py`、`backend/tests/test_api_journey.py`、`docs/TASK_EXECUTION.md` |
 | CHG-20261015-008 | 2026-10-15 | test harness + PostgreSQL QA / verified on Mac | 专用 loopback PostgreSQL 复测任务持久化与条件更新竞争 | [记录](changes/2026-10-15-008-postgres-concurrency-qa.md) | `backend/tests/test_persistence.py::PersistenceTests.setUp`、`TestDatabaseTargetGuard`、`docs/TASK_EXECUTION.md` |
+| CHG-20261015-009 | 2026-10-15 | read-only preflight + tests + evidence / verified on Mac | 演示前可选检查长期等待/运行任务 | [记录](changes/2026-10-15-009-stale-task-demo-preflight.md) | `tools/check_demo_readiness.py::check_active_task_age`、`check_readiness`、`main`、`backend/tests/test_demo_readiness.py`、`docs/DEMO_REHEARSAL.md` |
 
 ## 历史基线
 
