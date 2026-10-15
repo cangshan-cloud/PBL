@@ -51,6 +51,7 @@
 | CHG-20261014-022 | 2026-10-14 | tool + test + evidence / verified on Mac | 普通页面只读 HTTP 查询延迟基准 | [记录](changes/2026-10-14-022-page-query-latency.md) | `tools/benchmark_page_queries.py`、`backend/tests/test_page_query_benchmark.py`、`docs/PAGE_QUERY_PERFORMANCE.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md`、`README.md` |
 | CHG-20261014-023 | 2026-10-14 | fix + browser QA / verified on Mac | 浏览器页面抽样、双本机地址登录和 favicon | [记录](changes/2026-10-14-023-browser-page-qa-loopback-cors.md) | `backend/app/config.py::get_settings`、`backend/tests/test_api_journey.py`、`frontend/index.html`、`frontend/public/favicon.svg`、`.gitignore`、`docs/PAGE_QUERY_PERFORMANCE.md`、`docs/ORBSTACK_DEPLOYMENT.md` |
 | CHG-20261014-024 | 2026-10-14 | tool + tests + evidence / verified on Mac | 演示备用报告只读下载与 SHA-256 预检 | [记录](changes/2026-10-14-024-demo-report-fallback-preflight.md) | `tools/check_demo_readiness.py::ApiClient.download_report`、`check_readiness`、`main`、`backend/tests/test_demo_readiness.py`、`docs/DEMO_REHEARSAL.md` |
+| CHG-20261015-001 | 2026-10-15 | data quality fix + tests / verified on Mac | 严格 CSV 交易日期格式并拒绝质量均值溢出 | [记录](changes/2026-10-15-001-csv-date-and-summary-validation.md) | `backend/app/services/datasets.py::TRADE_DATE_PATTERN`、`_numeric_summary`、`validate_csv`、`backend/tests/test_datasets.py`、`docs/DATASET_FORMAT.md` |
 
 ## 历史基线
 

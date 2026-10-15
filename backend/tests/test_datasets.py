@@ -31,6 +31,20 @@ class DatasetValidationTests(unittest.TestCase):
                         validate_csv(content)
                     self.assertIn("有限数值", caught.exception.report["errors"][0])
 
+    def test_trade_date_requires_exact_calendar_format(self):
+        for value in ("20250102", "2025-W01-4", "2025-02-30"):
+            with self.subTest(value=value):
+                content = f"trade_date,symbol,close\n{value},A,10\n".encode()
+                with self.assertRaises(DatasetValidationError) as caught:
+                    validate_csv(content)
+                self.assertIn("YYYY-MM-DD", caught.exception.report["errors"][0])
+
+    def test_rejects_finite_rows_whose_quality_mean_overflows(self):
+        content = b"trade_date,symbol,close\n2025-01-02,A,1e308\n2025-01-02,B,1e308\n"
+        with self.assertRaises(DatasetValidationError) as caught:
+            validate_csv(content)
+        self.assertIn("均值溢出", caught.exception.report["errors"][0])
+
     def test_rejects_duplicate_headers_and_misaligned_rows(self):
         for content in (
             b"trade_date,symbol,close,close\n2025-01-02,A,10,11\n",

@@ -20,6 +20,7 @@ from app.services.historical_bundle import BUNDLE_ID, verify_historical_bundle
 REQUIRED_COLUMNS = {"trade_date", "symbol", "close"}
 OPTIONAL_NUMERIC_COLUMNS = {"open", "high", "low", "volume", "amount", "adj_factor", "turnover_rate", "total_mv", "pe"}
 DATASET_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9_]{2,49}$")
+TRADE_DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 class DatasetValidationError(ValueError):
@@ -47,6 +48,13 @@ def _number(value: str, column: str, line: int) -> float:
     if not math.isfinite(number):
         raise DatasetValidationError(f"第{line}行的{column}必须是有限数值")
     return number
+
+
+def _numeric_summary(values: list[float], column: str) -> dict:
+    mean = sum(values) / len(values)
+    if not math.isfinite(mean):
+        raise DatasetValidationError(f"{column}的均值溢出，请检查异常数值")
+    return {"count": len(values), "min": min(values), "max": max(values), "mean": mean}
 
 
 def validate_csv(content: bytes) -> ParsedDataset:
@@ -85,8 +93,11 @@ def validate_csv(content: bytes) -> ParsedDataset:
             symbol = (raw.get("symbol") or "").strip()
             if not symbol:
                 raise DatasetValidationError(f"第{line}行的symbol不能为空")
+            trade_date_text = (raw.get("trade_date") or "").strip()
             try:
-                trade_date = date.fromisoformat((raw.get("trade_date") or "").strip())
+                if not TRADE_DATE_PATTERN.fullmatch(trade_date_text):
+                    raise ValueError("trade_date format")
+                trade_date = date.fromisoformat(trade_date_text)
             except ValueError as exc:
                 raise DatasetValidationError(f"第{line}行的trade_date不是YYYY-MM-DD格式") from exc
             key = (symbol, trade_date)
@@ -146,12 +157,7 @@ def validate_csv(content: bytes) -> ParsedDataset:
                 column: (rows - missing_counts[column]) / rows for column in sorted(columns)
             },
             "numeric_summary": {
-                column: {
-                    "count": len(values),
-                    "min": min(values),
-                    "max": max(values),
-                    "mean": sum(values) / len(values),
-                }
+                column: _numeric_summary(values, column)
                 for column, values in sorted(numeric_values.items()) if values
             },
         },
