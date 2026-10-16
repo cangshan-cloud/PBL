@@ -18,6 +18,8 @@ python3 tools/check_demo_readiness.py --max-active-age-minutes 30 --check-worker
 python3 tools/check_demo_readiness.py --require-historical
 ```
 
+当前预检把 `demo_daily` 0.2.0 的目录摘要固定为课程演示快照 SHA-256 `c65db778f6a08c69e4b8d246e146bc67f158fd4d313350d8340009337614a10e`，再通过预览接口触发实际文件字节与目录摘要核对；同规模但内容不同的 CSV 不会通过。若将来有意更新演示样本，应同步升级数据版本、剧本数字、预期摘要及其测试，而不是直接替换 0.2.0 文件。
+
 脚本先从宿主机读取 FactorLab 前端 HTML，再登录并读取账号角色、已发布 `demo_daily` 0.2.0（2,400 行／20 只股票）、六因子目录，以及查看者可读的任务/报告列表。它还通过数据预览接口对演示 CSV 做只读 SHA-256 校验；加 `--require-report-fallback` 时，至少需要一份属于成功 `demo_daily` 0.2.0 任务、可由查看者下载且下载字节与目录 SHA-256 一致的旧 HTML 报告。没有旧报告的全新部署仍可用默认模式预检，但不能宣称具备报告降级方案。加 `--max-active-age-minutes N` 时，检查 `pending` 的排队时间和 `running` 的开始时间；超出阈值便报出任务 ID、状态与时长，不自动改变状态。接口若返回无时区时间，按服务端 UTC 口径解读。该提示可能是正常长任务，不能单凭阈值断定 Worker 崩溃；先查看任务日志与 Worker 再人工处理。加 `--require-historical` 时，对已发布历史包逐一调用预览，触发整包文件清单与哈希校验，至少一个可用才通过。历史包校验需要读取本机私有文件，时间会长于普通预检。`--check-worker` 通过 Docker Compose 对 Celery 做只读 `ping`；`--compose-project` 明确目标项目，未指定时使用当前仓库的默认项目。可用 `--web-url` 和 `--api-url` 指定非默认本地端口。预检**不创建任务、不重算因子，也不验证新任务执行或浏览器交互**；Worker `pong` 只能证明进程当下可响应。若端口访问、账号或数据检查失败，先停止彩排并记录环境与错误；不要现场反复重装、删卷或重置数据库。需要验证真实任务与报告时，再在隔离或允许留下验收记录的环境运行 `tools/verify_compose_stack.py`，该脚本会创建任务。
 
 2026-10-14 实测：只读预检在独立 SQLite API 上通过；`--require-historical` 在未发布历史包时按预期失败。同日原有 `fbl` OrbStack 容器一度显示健康但宿主机的 8000/5173 端口连接被拒绝。只定向重启 API 和 Web 后，两个宿主机入口均恢复；增强后的预检检查前端页面、三账号、演示数据、六因子与只读列表全部通过。此结果不代表新任务/Worker 或正式彩排已通过，也不证明 OrbStack 转发故障不会复发。定向恢复过程见 [`ORBSTACK_DEPLOYMENT.md`](ORBSTACK_DEPLOYMENT.md)。

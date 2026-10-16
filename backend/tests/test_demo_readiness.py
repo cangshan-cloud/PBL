@@ -8,12 +8,12 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from tools.check_demo_readiness import ApiClient, FACTORS, check_active_task_age, check_readiness, check_web_page, check_worker
+from tools.check_demo_readiness import ApiClient, DEMO_DAILY_020_SHA256, FACTORS, check_active_task_age, check_readiness, check_web_page, check_worker
 
 
 class FakeClient:
     def __init__(self, *, historical=True, factors=None, bad_preview=None, report_bytes=None,
-                 report_checksum=None, report_available=True, tasks=None):
+                 report_checksum=None, report_available=True, tasks=None, demo_checksum=DEMO_DAILY_020_SHA256):
         self.calls = []
         self.historical = historical
         self.factors = factors if factors is not None else FACTORS
@@ -22,6 +22,7 @@ class FakeClient:
         self.report_checksum = report_checksum or hashlib.sha256(self.report_bytes).hexdigest()
         self.report_available = report_available
         self.tasks = tasks
+        self.demo_checksum = demo_checksum
         self.downloads = []
 
     def download_report(self, run_id, *, token, timeout=10):
@@ -36,7 +37,7 @@ class FakeClient:
             return {"role": token, "is_active": True}
         if path == "/datasets":
             datasets = [{"id": "demo-id", "dataset_key": "demo_daily", "version": "0.2.0", "status": "published",
-                         "row_count": 2400, "symbol_count": 20}]
+                         "row_count": 2400, "symbol_count": 20, "checksum": self.demo_checksum}]
             if self.historical:
                 datasets.append({"id": "historical-id", "dataset_key": "hs300_2024", "version": "0375298bd2c8ac52",
                                  "status": "published", "quality_report": {"dataset_kind": "hs300_bundle_v1",
@@ -85,6 +86,14 @@ class DemoReadinessTests(unittest.TestCase):
             check_readiness(FakeClient(factors={"momentum_20d"}), self.passwords)
         with self.assertRaisesRegex(ValueError, "no published historical"):
             check_readiness(FakeClient(historical=False), self.passwords, require_historical=True)
+
+    def test_demo_snapshot_is_pinned_even_when_dimensions_match(self):
+        sample = Path(__file__).resolve().parents[2] / "data" / "sample" / "daily_prices.csv"
+        self.assertEqual(hashlib.sha256(sample.read_bytes()).hexdigest(), DEMO_DAILY_020_SHA256)
+        client = FakeClient(demo_checksum="0" * 64)
+        with self.assertRaisesRegex(ValueError, "pinned course-demo snapshot"):
+            check_readiness(client, self.passwords)
+        self.assertNotIn("/datasets/demo-id/preview", [path for path, _, _, _ in client.calls])
 
     def test_optional_report_fallback_is_read_only_and_verifies_download_checksum(self):
         client = FakeClient()

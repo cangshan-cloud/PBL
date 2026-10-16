@@ -20,6 +20,7 @@ from urllib.request import Request, urlopen
 
 
 FACTORS = {"momentum_20d", "reversal_5d", "volatility_20d", "turnover_20d", "market_cap", "pe"}
+DEMO_DAILY_020_SHA256 = "c65db778f6a08c69e4b8d246e146bc67f158fd4d313350d8340009337614a10e"
 ROLES = ("admin", "researcher", "viewer")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -122,6 +123,8 @@ def check_readiness(client: ApiClient, passwords: dict[str, str], *, require_his
                  item["version"] == "0.2.0" and item["status"] == "published"), None)
     if not demo or demo["row_count"] != 2400 or demo["symbol_count"] != 20:
         raise ValueError("published demo_daily 0.2.0 with 2400 rows and 20 symbols is unavailable")
+    if demo.get("checksum") != DEMO_DAILY_020_SHA256:
+        raise ValueError("published demo_daily 0.2.0 checksum differs from the pinned course-demo snapshot")
     demo_preview = client.request(f"/datasets/{demo['id']}/preview", token=tokens["admin"])
     if demo_preview.get("dataset_id") != demo["id"] or demo_preview.get("total_rows") != 2400:
         raise ValueError("demo_daily file preview does not match the published catalog")
