@@ -38,3 +38,7 @@
 - 新任务 `c6f2dc2e-a40a-465e-84ac-31d4fa286716` 经 API→Redis→Celery Worker 执行成功，Worker 日志核对任务 ID；进度 100%，报告目录摘要和复现包结果／报告摘要均通过。主 `fbl` 栈未改动，详见 [`../ASYNC_ACCEPTANCE_2026-10-16.md`](../ASYNC_ACCEPTANCE_2026-10-16.md)。
 - 本责任包结论：Mac 隔离异步链路通过；Windows 部署、正式演示镜像及个人操作未验。责任占比仍是计划分工，不表示 A 本人完成该测试。
 
+## 2026-10-16 当前 Web→Celery 浏览器验收（开发者代执行）
+
+代码基线 `2f21021`；独立五服务 Compose、PostgreSQL 卷、loopback 端口和 API CORS 均按合并配置核对。浏览器创建 Run `4c05d255-32b8-4e92-b89d-8647e3953448`，Worker 日志确认接收并完成，报告和复现摘要通过。详见 [`../FULL_STACK_BROWSER_ACCEPTANCE_2026-10-16.md`](../FULL_STACK_BROWSER_ACCEPTANCE_2026-10-16.md)。本轮集成通过；Windows、多人负载与备份恢复未验。实际执行者：Codex。
+

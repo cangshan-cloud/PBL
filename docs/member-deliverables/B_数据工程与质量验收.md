@@ -37,3 +37,7 @@ Parquet 未实现；不能因模板写有“CSV 或 Parquet”就声称两者都
 - 本机真实 10 股私有 CSV 的 SHA-256 为 `958e7bdcd5f6269d4e9630f586b91814b40019c043d610b344bd7d5ac381b652`，1,170 行，五因子样本回归通过；私有文件未提交。详见 [`../ASYNC_ACCEPTANCE_2026-10-16.md`](../ASYNC_ACCEPTANCE_2026-10-16.md)。
 - 本责任包结论：本轮数据读取与样本完整性回归通过；来源许可、成员生效时点与 ST 全量核验未由本轮覆盖。无需 B 个人签收，但不记为 B 本人操作。
 
+## 2026-10-16 当前 Web→Celery 浏览器验收（开发者代执行）
+
+隔离 API/Worker 只读挂载内置 `demo_daily` 0.2.0，浏览器默认选择并成功生成 1,980 个有效观测；本机私有 10 股样本 SHA-256 `958e7bdcd5f6269d4e9630f586b91814b40019c043d610b344bd7d5ac381b652` 的五因子回归再次通过。详见 [`../FULL_STACK_BROWSER_ACCEPTANCE_2026-10-16.md`](../FULL_STACK_BROWSER_ACCEPTANCE_2026-10-16.md)。未复核来源许可和真实历史状态；实际执行者：Codex。
+

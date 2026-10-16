@@ -39,3 +39,7 @@
 - `tools/verify_golden_research.py` 固定六观测黄金样例通过；后端全量 185 项通过。详见 [`../ASYNC_ACCEPTANCE_2026-10-16.md`](../ASYNC_ACCEPTANCE_2026-10-16.md)。
 - 本责任包结论：软件指标口径与固定黄金期望通过；本轮未独立重算真实市场全样本，也不宣称因子投资有效性。
 
+## 2026-10-16 当前 Web→Celery 浏览器验收（开发者代执行）
+
+同一 Run `4c05d255-32b8-4e92-b89d-8647e3953448` 在工作台、任务中心与 HTML 报告显示 99 个有效 IC 截面及一致的核心指标；JSON 与报告 SHA-256 离线核对通过。黄金样例脚本、后端 185 项测试再次通过。详见 [`../FULL_STACK_BROWSER_ACCEPTANCE_2026-10-16.md`](../FULL_STACK_BROWSER_ACCEPTANCE_2026-10-16.md)。不据此宣称真实市场或样本外收益有效；实际执行者：Codex。
+
