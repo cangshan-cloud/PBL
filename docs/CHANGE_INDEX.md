@@ -89,6 +89,7 @@
 | CHG-20261016-008 | 2026-10-16 | comparison evidence correctness + regression / verified on Mac | 共同 IC 日期仅计有限 IC 截面 | [记录](changes/2026-10-16-008-valid-ic-comparison-dates.md) | `backend/app/services/comparisons.py::compare_runs`、`comparison_csv`、`comparison_html`、`backend/tests/test_comparisons.py`、`frontend/src/main.tsx` 实验对比区、`docs/EXPERIMENT_COMPARISON.md` |
 | CHG-20261016-009 | 2026-10-16 | export safety + regression / verified on Mac | 实验对比 CSV 文本公式防护 | [记录](changes/2026-10-16-009-comparison-csv-formula-guard.md) | `backend/app/services/comparisons.py::_spreadsheet_safe`、`comparison_csv`、`backend/tests/test_comparisons.py`、`docs/EXPERIMENT_COMPARISON.md` |
 | CHG-20261016-010 | 2026-10-16 | independent export verification + regression / verified on Mac | 普通任务复现导出离线核对 | [记录](changes/2026-10-16-010-ordinary-repro-export-verifier.md) | `tools/verify_reproducibility_export.py`、`backend/tests/test_reproducibility.py`、`docs/REPRODUCIBILITY_EXPORT_CHECK.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md` |
+| CHG-20261016-011 | 2026-10-16 | acceptance evidence + team handoff / developer Mac rehearsal | 隔离技术彩排与四人验收材料预填 | [记录](changes/2026-10-16-011-isolated-rehearsal-and-member-packets.md) | `docs/DEV_REHEARSAL_2026-10-16.md`、`docs/FINAL_REHEARSAL_CHECKLIST.md`、`docs/member-deliverables/A_系统架构与集成验收.md`、`B_数据工程与质量验收.md`、`C_因子研究与指标验证.md`、`D_产品测试与展示验收.md` |
 
 ## 历史基线
 
