@@ -30,6 +30,8 @@
 
 ## 自动化与环境证据
 
+- **工作台结果归属本机工作树（2026-10-16）**：前端构建、后端 191 项、固定六观测黄金验算通过；隔离浏览器确认配置变更隐藏旧指标、三分组新任务显示 `Q3 − Q1` 和新 Run ID，见 [`RESULT_PROVENANCE_BROWSER_QA_2026-10-16.md`](RESULT_PROVENANCE_BROWSER_QA_2026-10-16.md)。这是 SQLite 内联模式的页面行为，不是本次提交的 Celery、Windows 或正式十分钟演示验收。
+
 - **本机基线（2026-10-15，提交 `fffad78`）**：`.venv/bin/python -m unittest discover -s backend/tests -q` 152 项通过；`.venv/bin/python tools/verify_golden_research.py` 通过；`npm run build --prefix frontend` 通过。此后权重校验变更再次运行后端 152 项与黄金样例，结果均通过，见 [CHG-20261015-014](changes/2026-10-15-014-composite-weight-validation.md)；未重新运行前端构建，因本次未改前端。
 - **CSV 快照修正本机工作树（2026-10-15）**：后端 155 项和黄金样例通过，详见 [CHG-20261015-016](changes/2026-10-15-016-verified-csv-snapshot.md)；本次未改前端，未重复构建。提交后 CI 仍须另查。
 - **历史包加载修正本机工作树（2026-10-15）**：后端 156 项、黄金样例与本机私有包只读加载通过；加载得到 292 个日历日、242 个成员日、328 只证券、95,776 条行情，见 [CHG-20261015-017](changes/2026-10-15-017-historical-load-snapshot.md)。本次未重新运行浏览器任务或 Windows 部署。
