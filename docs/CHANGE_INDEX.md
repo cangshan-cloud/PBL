@@ -79,6 +79,7 @@
 | CHG-20261015-026 | 2026-10-15 | comparison correctness + UI / verified on Mac | 实验对比检查实际多空日期并排除缺失指标排名 | [记录](changes/2026-10-15-026-comparison-group-dates-and-missing-ranks.md) | `backend/app/services/comparisons.py::compare_runs`、`comparison_csv`、`comparison_html`、`frontend/src/main.tsx` 实验对比区、`backend/tests/test_comparisons.py`、`docs/EXPERIMENT_COMPARISON.md` |
 | CHG-20261015-027 | 2026-10-15 | real-data regression evidence / verified on Mac | 真实 A 股样本复验实际分组日期与跳过计数 | [记录](changes/2026-10-15-027-real-sample-group-date-audit.md) | `tools/verify_real_a_share_sample.py::group_date_audit`、`backend/tests/test_real_sample_acquisition.py`、`docs/REAL_A_SHARE_SAMPLE.md` |
 | CHG-20261015-028 | 2026-10-15 | HTTP integration regression / verified on Mac | 实验对比新增字段及 CSV/HTML 导出接口闭环 | [记录](changes/2026-10-15-028-comparison-http-integration.md) | `backend/tests/test_api_journey.py::ApiJourneyTests.test_comparison_api_and_exports_include_actual_group_dates`、`docs/EXPERIMENT_COMPARISON.md` |
+| CHG-20261016-001 | 2026-10-16 | composite input integrity + regression / verified on Mac | 多因子合成预处理前拒绝非有限成分观测 | [记录](changes/2026-10-16-001-composite-observation-integrity.md) | `backend/app/domain/composite.py::combine_factor_observations`、`backend/tests/test_composite.py`、`docs/MULTI_FACTOR_ANALYSIS.md` |
 
 ## 历史基线
 

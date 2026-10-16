@@ -57,6 +57,14 @@ class CompositeFactorTests(unittest.TestCase):
             combine_factor_observations({"one": [item, item], "two": [item]},
                                         {"one": 1, "two": 1}, winsorize=False, standardize=False)
 
+    def test_nonfinite_component_observation_is_rejected_even_outside_intersection(self):
+        day = date(2025, 1, 1)
+        valid = Observation(day, "A", 1, 0.01)
+        for invalid in (Observation(day, "B", nan, 0.02), Observation(day, "B", 2, inf)):
+            with self.subTest(invalid=invalid), self.assertRaisesRegex(ValueError, "non-finite factor observation: two"):
+                combine_factor_observations({"one": [valid], "two": [valid, invalid]},
+                                            {"one": 1, "two": 1}, winsorize=False, standardize=False)
+
     def test_conflicting_forward_returns_are_rejected(self):
         day = date(2025, 1, 1)
         first = [Observation(day, "A", 1, 0.01), Observation(day, "B", 2, 0.02)]

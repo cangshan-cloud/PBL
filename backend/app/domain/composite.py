@@ -26,6 +26,10 @@ def combine_factor_observations(
     total_weight = sum(weights.values())
     if not math.isfinite(total_weight) or total_weight <= 0:
         raise ValueError("factor weights must have a finite positive sum")
+    for factor_key, values in components.items():
+        for item in values:
+            if not math.isfinite(item.factor) or not math.isfinite(item.forward_return):
+                raise ValueError(f"non-finite factor observation: {factor_key} {item.trade_date} {item.symbol}")
     normalized_weights = {key: value / total_weight for key, value in weights.items()}
     processed = {
         key: preprocess_observations(
