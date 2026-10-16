@@ -14,6 +14,21 @@ from urllib.request import Request, urlopen
 BASE_URL = os.environ.get("FACTORLAB_SMOKE_URL", "http://127.0.0.1:8000/api/v1").rstrip("/")
 
 
+def verify_snapshot(bundle: dict, run: dict, report: str) -> None:
+    task = bundle.get("task")
+    if bundle.get("schema_version") != 1 or not isinstance(task, dict) or task.get("id") != run["id"]:
+        raise RuntimeError("reproducibility bundle does not match the completed run")
+    result = bundle.get("result")
+    if not isinstance(result, dict) or result != run.get("result"):
+        raise RuntimeError("reproducibility result differs from the task response")
+    canonical = json.dumps(result, ensure_ascii=False, sort_keys=True,
+                           separators=(",", ":"), allow_nan=False).encode("utf-8")
+    if hashlib.sha256(canonical).hexdigest() != bundle.get("result_sha256"):
+        raise RuntimeError("reproducibility result checksum mismatch")
+    if hashlib.sha256(report.encode("utf-8")).hexdigest() != bundle.get("report_sha256"):
+        raise RuntimeError("reproducibility report checksum mismatch")
+
+
 def request(path: str, *, method: str = "GET", payload: dict | None = None, token: str | None = None):
     headers = {"Accept": "application/json"}
     if token:
@@ -85,6 +100,8 @@ def main() -> int:
     summary = next((item for item in summaries if item["run_id"] == run_id), None)
     if summary is None or hashlib.sha256(report.encode("utf-8")).hexdigest() != summary["checksum"]:
         raise RuntimeError(f"Run {run_id} report checksum does not match its catalog record")
+    bundle = request(f"/research/tasks/{run_id}/reproducibility.json", token=token)
+    verify_snapshot(bundle, run, report)
 
     print(f"PASS run_id={run_id} status={run['status']} progress={run['progress']}")
     print(f"PASS dataset={demo['dataset_key']} version={demo['version']} events={','.join(sorted(events))}")
@@ -92,6 +109,7 @@ def main() -> int:
     print(f"PASS group_nav_series={len(groups)} points_per_group={len(groups[0]['points'])}")
     print(f"PASS backend_source_fingerprint={code_version[:23]}…")
     print(f"PASS report_html_chars={len(report)} svg=present checksum=verified")
+    print("PASS reproducibility_result_and_report_sha256=verified")
     return 0
 
 

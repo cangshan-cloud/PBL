@@ -1,6 +1,6 @@
 # 十分钟课程演示与会前就绪检查
 
-本稿供成员 D 组织彩排、队长统一提交；它不是任何成员已经完成彩排或个人验收的证明。现场优先展示仓库自带的合成 `demo_daily`，因为它可随 Git 离线复现；真实沪深 300 私有包仅在已提前核验并发布的 Mac 环境中作为可选加分演示，不能让演示依赖临时网络采集。
+本稿供项目组组织彩排、队长统一提交；它不是已经完成正式计时彩排的证明。按队长 2026-10-16 约定，开发者可代执行 A/B/C/D 四责任包并记录实际执行者，不要求成员个人签收；队长后续自行测试产品时补充数据。现场优先展示仓库自带的合成 `demo_daily`，因为它可随 Git 离线复现；真实沪深 300 私有包仅在已提前核验并发布的 Mac 环境中作为可选加分演示，不能让演示依赖临时网络采集。
 
 ## 会前只读预检（不计入十分钟）
 
@@ -47,7 +47,7 @@ python3 tools/check_demo_readiness.py --require-historical
 
 正式逐项执行与签收请使用 [`FINAL_REHEARSAL_CHECKLIST.md`](FINAL_REHEARSAL_CHECKLIST.md)；下表仅是简版摘要，不代表已彩排。
 
-由成员 D 本人填写并签名，不要把开发者预检结果直接记为 D 的个人验收：
+由实际操作人填写，不要把开发者预检结果记成正式连续计时彩排：
 
 | 字段 | 待填写 |
 | --- | --- |
@@ -57,6 +57,6 @@ python3 tools/check_demo_readiness.py --require-historical
 | 只读预检与实际任务脚本结果 | 【通过/失败 + 任务 ID】 |
 | 各环节用时、总时长 | 【待填写】 |
 | 发现的缺陷、降级方案、复测结论 | 【待填写】 |
-| 负责人签名、交叉复核人 | 【待填写】 |
+| 实际操作人、证据整理人 | 【待填写】 |
 
 配套材料：[`MAC_E2E_ACCEPTANCE.md`](MAC_E2E_ACCEPTANCE.md)、[`ORBSTACK_DEPLOYMENT.md`](ORBSTACK_DEPLOYMENT.md)、[`HS300_BUNDLE.md`](HS300_BUNDLE.md)、[`member-deliverables/D_产品测试与展示验收.md`](member-deliverables/D_产品测试与展示验收.md)。

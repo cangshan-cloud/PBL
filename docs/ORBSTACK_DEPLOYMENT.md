@@ -39,7 +39,7 @@ docker compose exec worker celery -A app.tasks:celery_app inspect ping
 FACTORLAB_SMOKE_PASSWORD=research12345 python3 tools/verify_compose_stack.py
 ```
 
-如果修改了研究员密码，把验收命令中的演示密码换成实际密码。该脚本使用已发布的 `demo_daily` 数据集提交一次单因子研究，轮询成功状态、检查执行日志、报告 HTML 与目录记录的 SHA-256；每运行一次会在数据库和 `data/runtime/artifacts/` 中留下一条真实验收记录。提交研究任务后，应在 API 返回的任务中看到由 `pending` 转为 `success`，Worker 日志出现对应任务，报告中心出现 HTML 报告。首次构建会下载基础镜像和 Python/Node 依赖，耗时取决于镜像仓库与包仓库的网络状态。
+如果修改了研究员密码，把验收命令中的演示密码换成实际密码。该脚本使用已发布的 `demo_daily` 数据集提交一次单因子研究，轮询成功状态、检查执行日志、报告 HTML 与目录记录的 SHA-256；每运行一次会在数据库和 `data/runtime/artifacts/` 中留下一条真实验收记录。当前脚本还核对同一任务的 JSON 复现包、结果与报告双摘要；摘要一致仅表示导出内部一致，不是签名或行情来源认证。2026-10-16 的隔离异步复测见 [`ASYNC_ACCEPTANCE_2026-10-16.md`](ASYNC_ACCEPTANCE_2026-10-16.md)。提交研究任务后，应在 API 返回的任务中看到由 `pending` 转为 `success`，Worker 日志出现对应任务，报告中心出现 HTML 报告。首次构建会下载基础镜像和 Python/Node 依赖，耗时取决于镜像仓库与包仓库的网络状态。
 
 2026-10-12 在 macOS OrbStack 实测：五个服务启动，API 健康检查通过，Worker `inspect ping` 返回 `pong`；验收脚本创建的运行 `ca31ae86-3ac3-4253-8bdc-5d2518f7ee41` 达到 `success / 100%`，Worker 日志确认接收并完成，HTML 报告含 SVG 图表。该结论只覆盖本机演示数据，不代表真实 A 股数据源或 Windows 环境已经验收。
 
