@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+import argparse
 import os
 import sys
 import time
@@ -12,6 +13,16 @@ from urllib.request import Request, urlopen
 
 
 BASE_URL = os.environ.get("FACTORLAB_SMOKE_URL", "http://127.0.0.1:8000/api/v1").rstrip("/")
+
+
+def require_explicit_write_target(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="Run a write-producing Compose acceptance check.")
+    parser.add_argument("--acknowledge-writes", action="store_true", help="Confirm that this check creates persistent data and tasks.")
+    args = parser.parse_args(argv)
+    if not args.acknowledge_writes:
+        parser.error("this check writes persistent data; pass --acknowledge-writes")
+    if not os.environ.get("FACTORLAB_SMOKE_URL", "").strip():
+        parser.error("set FACTORLAB_SMOKE_URL explicitly to the intended API before writing")
 
 
 def verify_snapshot(bundle: dict, run: dict, report: str) -> None:
@@ -49,7 +60,8 @@ def request(path: str, *, method: str = "GET", payload: dict | None = None, toke
         raise RuntimeError(f"{method} {path}: {exc.reason}") from exc
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    require_explicit_write_target(argv)
     password = os.environ.get("FACTORLAB_SMOKE_PASSWORD")
     if not password:
         print("Set FACTORLAB_SMOKE_PASSWORD to the researcher account password.", file=sys.stderr)

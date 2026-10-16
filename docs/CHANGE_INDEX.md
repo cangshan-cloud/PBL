@@ -92,6 +92,7 @@
 | CHG-20261016-011 | 2026-10-16 | acceptance evidence + team handoff / developer Mac rehearsal | 隔离技术彩排与四人验收材料预填 | [记录](changes/2026-10-16-011-isolated-rehearsal-and-member-packets.md) | `docs/DEV_REHEARSAL_2026-10-16.md`、`docs/FINAL_REHEARSAL_CHECKLIST.md`、`docs/member-deliverables/A_系统架构与集成验收.md`、`B_数据工程与质量验收.md`、`C_因子研究与指标验证.md`、`D_产品测试与展示验收.md` |
 | CHG-20261016-012 | 2026-10-16 | isolated Compose QA + team evidence / verified on Mac | 当前版本异步链路与四责任包同步验收 | [记录](changes/2026-10-16-012-current-async-qa-four-packets.md) | `tools/verify_compose_stack.py::verify_snapshot`、`backend/tests/test_compose_stack_verify.py`、`docs/ASYNC_ACCEPTANCE_2026-10-16.md`、四责任包材料及团队验收约定文档 |
 | CHG-20261016-013 | 2026-10-16 | full-stack browser QA + four-role evidence / verified on Mac | 当前五服务浏览器异步闭环 | [记录](changes/2026-10-16-013-current-compose-browser-journey.md) | `docs/FULL_STACK_BROWSER_ACCEPTANCE_2026-10-16.md`、`docs/FINAL_REHEARSAL_CHECKLIST.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md`、A/B/C/D 四责任包材料 |
+| CHG-20261016-014 | 2026-10-16 | acceptance-tool write safety / verified on Mac | Compose 写入式验收入口显式确认 | [记录](changes/2026-10-16-014-compose-smoke-write-guard.md) | `tools/verify_compose_stack.py::require_explicit_write_target`、`tools/verify_compose_real_sample.py::main`、测试、操作文档与 A/B/C/D 四责任包 |
 
 ## 历史基线
 

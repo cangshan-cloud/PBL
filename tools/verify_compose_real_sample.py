@@ -12,7 +12,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from uuid import uuid4
 
-from verify_compose_stack import request
+from verify_compose_stack import request, require_explicit_write_target
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -48,7 +48,8 @@ def upload_csv(content: bytes, token: str) -> dict:
         raise RuntimeError(f"dataset upload failed: {exc.reason}") from exc
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    require_explicit_write_target(argv)
     admin_password = os.environ.get("FACTORLAB_REAL_ADMIN_PASSWORD")
     researcher_password = os.environ.get("FACTORLAB_REAL_RESEARCHER_PASSWORD")
     if not admin_password or not researcher_password:

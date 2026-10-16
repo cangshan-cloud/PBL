@@ -42,3 +42,7 @@
 
 代码基线 `2f21021`；独立五服务 Compose、PostgreSQL 卷、loopback 端口和 API CORS 均按合并配置核对。浏览器创建 Run `4c05d255-32b8-4e92-b89d-8647e3953448`，Worker 日志确认接收并完成，报告和复现摘要通过。详见 [`../FULL_STACK_BROWSER_ACCEPTANCE_2026-10-16.md`](../FULL_STACK_BROWSER_ACCEPTANCE_2026-10-16.md)。本轮集成通过；Windows、多人负载与备份恢复未验。实际执行者：Codex。
 
+## 2026-10-16 写入式验收工具防误操作（开发者代执行）
+
+两个 Compose 验收入口现均要求显式目标 URL 和 `--acknowledge-writes`；缺少门槛时单测确认不发网络请求。后端 189 项通过。此项仅加固操作入口，不替代前述 Celery 集成证据；主栈本轮未新增任务。实际执行者：Codex。
+

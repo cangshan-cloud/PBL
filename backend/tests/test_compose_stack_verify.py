@@ -1,12 +1,18 @@
 import hashlib
+import io
 import json
+import os
 import sys
 import unittest
+from contextlib import redirect_stderr
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
 
-from tools.verify_compose_stack import verify_snapshot
+from tools.verify_compose_stack import main, verify_snapshot
+from verify_compose_real_sample import main as real_sample_main
 
 
 class ComposeStackSnapshotTests(unittest.TestCase):
@@ -48,6 +54,40 @@ class ComposeStackSnapshotTests(unittest.TestCase):
         self.bundle["result"] = None
         with self.assertRaisesRegex(RuntimeError, "differs from the task"):
             verify_snapshot(self.bundle, self.run, self.report)
+
+    def test_write_check_requires_acknowledgement_before_network(self):
+        with patch.dict(os.environ, {"FACTORLAB_SMOKE_URL": "http://127.0.0.1:18002/api/v1"}), \
+                patch("tools.verify_compose_stack.request") as request, redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit) as raised:
+                main([])
+        self.assertEqual(raised.exception.code, 2)
+        request.assert_not_called()
+
+    def test_write_check_requires_explicit_target_before_network(self):
+        with patch.dict(os.environ, {"FACTORLAB_SMOKE_PASSWORD": "test"}, clear=True), \
+                patch("tools.verify_compose_stack.request") as request, redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit) as raised:
+                main(["--acknowledge-writes"])
+        self.assertEqual(raised.exception.code, 2)
+        request.assert_not_called()
+
+    def test_confirmed_target_reaches_login(self):
+        with patch.dict(os.environ, {"FACTORLAB_SMOKE_URL": "http://127.0.0.1:18002/api/v1",
+                                      "FACTORLAB_SMOKE_PASSWORD": "test"}), \
+                patch("tools.verify_compose_stack.request", side_effect=RuntimeError("sentinel")) as request:
+            with self.assertRaisesRegex(RuntimeError, "sentinel"):
+                main(["--acknowledge-writes"])
+        request.assert_called_once()
+
+    def test_real_sample_requires_acknowledgement_before_file_or_network(self):
+        with patch.dict(os.environ, {"FACTORLAB_SMOKE_URL": "http://127.0.0.1:18002/api/v1"}), \
+                patch("verify_compose_real_sample.request") as request, \
+                patch("verify_compose_real_sample.Path.read_bytes") as read_bytes, redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit) as raised:
+                real_sample_main([])
+        self.assertEqual(raised.exception.code, 2)
+        request.assert_not_called()
+        read_bytes.assert_not_called()
 
 
 if __name__ == "__main__":

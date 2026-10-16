@@ -53,8 +53,11 @@ python tools/verify_real_a_share_sample.py
 ```bash
 FACTORLAB_REAL_ADMIN_PASSWORD='<管理员密码>' \
 FACTORLAB_REAL_RESEARCHER_PASSWORD='<研究员密码>' \
-python tools/verify_compose_real_sample.py
+FACTORLAB_SMOKE_URL=http://127.0.0.1:8000/api/v1 \
+python tools/verify_compose_real_sample.py --acknowledge-writes
 ```
+
+复跑前须确认 URL 指向准备写入的 API，优先使用隔离 Compose 栈；显式确认不阻止把主栈地址填入，仍需人工核对。脚本可能上传／发布数据集，并新增六项研究任务，不能作为只读预检运行。
 
 本次数据版本 ID 为 `ec570162-789e-436b-bf5f-ea1f754d0d07`；文件校验和与上文采集清单一致。六条最终验收任务均成功，验证了 Worker 的 `started/completed` 日志、HTML 报告与目录校验和、JSON 复现包中的数据校验和及代码指纹。结果如下，数值仅表示软件产生有效观测，不代表因子有效性：
 

@@ -36,8 +36,12 @@ docker compose ps
 docker compose ps
 docker compose logs --tail=100 api worker db redis web
 docker compose exec worker celery -A app.tasks:celery_app inspect ping
-FACTORLAB_SMOKE_PASSWORD=research12345 python3 tools/verify_compose_stack.py
+FACTORLAB_SMOKE_URL=http://127.0.0.1:8000/api/v1 \
+FACTORLAB_SMOKE_PASSWORD=research12345 \
+python3 tools/verify_compose_stack.py --acknowledge-writes
 ```
+
+运行前须核对 `FACTORLAB_SMOKE_URL` 指向准备写入的目标，建议优先使用隔离栈端口。两个 Compose 写入式验收脚本都要求显式 URL 和 `--acknowledge-writes`；这只是防误操作门槛，指向主栈仍会写入主栈。
 
 如果修改了研究员密码，把验收命令中的演示密码换成实际密码。该脚本使用已发布的 `demo_daily` 数据集提交一次单因子研究，轮询成功状态、检查执行日志、报告 HTML 与目录记录的 SHA-256；每运行一次会在数据库和 `data/runtime/artifacts/` 中留下一条真实验收记录。当前脚本还核对同一任务的 JSON 复现包、结果与报告双摘要；摘要一致仅表示导出内部一致，不是签名或行情来源认证。2026-10-16 的隔离异步复测见 [`ASYNC_ACCEPTANCE_2026-10-16.md`](ASYNC_ACCEPTANCE_2026-10-16.md)。提交研究任务后，应在 API 返回的任务中看到由 `pending` 转为 `success`，Worker 日志出现对应任务，报告中心出现 HTML 报告。首次构建会下载基础镜像和 Python/Node 依赖，耗时取决于镜像仓库与包仓库的网络状态。
 
