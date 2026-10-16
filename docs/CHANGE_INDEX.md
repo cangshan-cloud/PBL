@@ -88,6 +88,7 @@
 | CHG-20261016-007 | 2026-10-16 | research empty-state disclosure / verified on Mac | 无可分组结果时明确提示不可评价多空表现 | [记录](changes/2026-10-16-007-no-group-result-empty-state.md) | `backend/app/services/conclusions.py::build_run_conclusion`、`backend/app/services/reports.py::build_report_html`、`frontend/src/main.tsx` 研究结果区、相关测试与口径文档 |
 | CHG-20261016-008 | 2026-10-16 | comparison evidence correctness + regression / verified on Mac | 共同 IC 日期仅计有限 IC 截面 | [记录](changes/2026-10-16-008-valid-ic-comparison-dates.md) | `backend/app/services/comparisons.py::compare_runs`、`comparison_csv`、`comparison_html`、`backend/tests/test_comparisons.py`、`frontend/src/main.tsx` 实验对比区、`docs/EXPERIMENT_COMPARISON.md` |
 | CHG-20261016-009 | 2026-10-16 | export safety + regression / verified on Mac | 实验对比 CSV 文本公式防护 | [记录](changes/2026-10-16-009-comparison-csv-formula-guard.md) | `backend/app/services/comparisons.py::_spreadsheet_safe`、`comparison_csv`、`backend/tests/test_comparisons.py`、`docs/EXPERIMENT_COMPARISON.md` |
+| CHG-20261016-010 | 2026-10-16 | independent export verification + regression / verified on Mac | 普通任务复现导出离线核对 | [记录](changes/2026-10-16-010-ordinary-repro-export-verifier.md) | `tools/verify_reproducibility_export.py`、`backend/tests/test_reproducibility.py`、`docs/REPRODUCIBILITY_EXPORT_CHECK.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md` |
 
 ## 历史基线
 

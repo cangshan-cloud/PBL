@@ -1,11 +1,13 @@
 import hashlib
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from fastapi import HTTPException
 from sqlalchemy import create_engine
@@ -15,6 +17,7 @@ from app.db import Base
 from app.main import download_reproducibility_bundle
 from app.models import UserRole
 from app.services.runs import create_research_run, execute_research_run
+from tools.verify_reproducibility_export import verify_export
 
 
 class ReproducibilityTests(unittest.TestCase):
@@ -46,6 +49,34 @@ class ReproducibilityTests(unittest.TestCase):
             self.assertEqual(len(bundle["report_sha256"]), 64)
             self.assertTrue(any(item["event"] == "completed" for item in bundle["logs"]))
             self.assertNotIn("storage_uri", response.body.decode("utf-8"))
+
+            with tempfile.TemporaryDirectory() as directory:
+                bundle_path = Path(directory) / "reproducibility.json"
+                bundle_path.write_bytes(response.body)
+                self.assertEqual(verify_export(bundle_path), {"result_verified": True})
+                damaged = dict(bundle)
+                damaged["result"] = {**bundle["result"], "coverage": -1}
+                bundle_path.write_text(json.dumps(damaged), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "result checksum mismatch"):
+                    verify_export(bundle_path)
+
+    def test_offline_verifier_checks_optional_report_bytes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            bundle_path = Path(directory) / "reproducibility.json"
+            report_path = Path(directory) / "report.html"
+            result = {"ic_mean": 0.1}
+            report_path.write_bytes(b"<html>research report</html>")
+            canonical = json.dumps(result, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+            bundle_path.write_text(json.dumps({
+                "schema_version": 1, "result": result,
+                "result_sha256": hashlib.sha256(canonical.encode()).hexdigest(),
+                "report_sha256": hashlib.sha256(report_path.read_bytes()).hexdigest(),
+            }), encoding="utf-8")
+            self.assertEqual(verify_export(bundle_path, report_path),
+                             {"result_verified": True, "report_verified": True})
+            report_path.write_bytes(b"<html>changed</html>")
+            with self.assertRaisesRegex(ValueError, "report checksum mismatch"):
+                verify_export(bundle_path, report_path)
 
     def test_pending_bundle_has_no_result_and_respects_owner(self):
         with Session(self.engine, expire_on_commit=False) as session:

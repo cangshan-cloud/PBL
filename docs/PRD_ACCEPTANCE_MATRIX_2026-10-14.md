@@ -21,7 +21,7 @@
 | P1：等权多因子及相关矩阵 | 已验（Mac） | `backend/app/domain/composite.py`、`backend/tests/test_composite.py`；[`MULTI_FACTOR_ANALYSIS.md`](MULTI_FACTOR_ANALYSIS.md)；[权重边界校验](changes/2026-10-15-014-composite-weight-validation.md) | IC 加权未实现；按已确认的课程范围保留等权，不把相关性解释为因果或独立增益 |
 | §5.6：结构化结果、图表和独立 HTML 报告 | 已验（Mac） | `backend/app/services/reports.py`、`backend/app/services/reproducibility.py`、`frontend/src/main.tsx`；`backend/tests/test_reports.py`、`test_reproducibility.py` | D 用实际浏览器走一遍报告预览、下载和限制说明 |
 | §5.6、P1：PDF 导出 | 部分 | 浏览器可打印 HTML 为 PDF；[`README.md`](../README.md) 报告中心说明 | 无服务端 PDF 文件生成接口；答辩时如称“支持 PDF”，须限定为浏览器打印并实测 |
-| §9.4：任务复现信息、文件和结果摘要 | 已验（Mac），跨机有条件 | `backend/app/services/reproducibility.py`；`backend/tests/test_reproducibility.py`；历史四文件核对见 [`HS300_BUNDLE.md`](HS300_BUNDLE.md) | 复现包不包含原始私有行情及代码副本；跨机复算须另备相同数据和代码 |
+| §9.4：任务复现信息、文件和结果摘要 | 已验（Mac），跨机有条件 | `backend/app/services/reproducibility.py`；`backend/tests/test_reproducibility.py`；普通任务离线摘要核对见 [`REPRODUCIBILITY_EXPORT_CHECK.md`](REPRODUCIBILITY_EXPORT_CHECK.md)，历史四文件核对见 [`HS300_BUNDLE.md`](HS300_BUNDLE.md) | 复现包不包含原始私有行情及代码副本；跨机复算须另备相同数据和代码 |
 | §8：Web/API/Worker/PostgreSQL/Redis 私域 Compose 部署 | 已验（Mac OrbStack） | `docker-compose.yml`、[`ORBSTACK_DEPLOYMENT.md`](ORBSTACK_DEPLOYMENT.md)；隔离队列、报告、四文件验收 | Windows/WSL2 离线部署未验；当前只开放本机端口，不能宣称公网或多人生产级安全 |
 | §2.3：300 股 × 3 年单因子完整检验 ≤60 秒 | 已验（单次 Mac 基准），目标环境未验 | [`PERFORMANCE_ACCEPTANCE.md`](PERFORMANCE_ACCEPTANCE.md) 记录完整 Run 1.614 秒、220,500 有效观察 | 需在最终推荐环境重复测量并记录硬件、版本；单次结果非通用性能保证 |
 | §2.3：普通页面查询 ≤2 秒 | 部分（Mac HTTP + 浏览器抽样） | [`PAGE_QUERY_PERFORMANCE.md`](PAGE_QUERY_PERFORMANCE.md)：HTTP 六类入口最大 86.4 ms；三次已登录浏览器刷新 FCP 为 88/36/44 ms，五类切页各一次最大 150.7 ms | 浏览器切页仅单次样本，未覆盖真正冷启动、完整绘制、并发和 Windows；正式彩排及最终环境需重测 |
