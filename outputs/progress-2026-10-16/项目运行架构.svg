@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#47725b"/></marker>
+    <style>
+      text{font-family:Arial,"PingFang SC","Microsoft YaHei",sans-serif;fill:#18352a}
+      .title{font-size:28px;font-weight:700}.sub{font-size:16px;fill:#62766a}.label{font-size:22px;font-weight:700}.detail{font-size:16px;fill:#5c7064}.small{font-size:14px;fill:#6b7c72}
+      .box{fill:white;stroke:#b7ccbb;stroke-width:2;rx:14}.platform{fill:#eef4eb;stroke:#d6e4d7;stroke-width:2;rx:22}.flow{fill:none;stroke:#47725b;stroke-width:3;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="650" fill="#fafbf8"/>
+  <text x="48" y="55" class="title">量化投资多因子研发平台运行架构</text>
+  <text x="48" y="83" class="sub">产品功能运行在平台服务之上；研究结论由研究任务与报告生成，平台本身不产生投资结论。</text>
+
+  <rect x="34" y="118" width="1132" height="488" class="platform"/>
+  <text x="59" y="152" class="small">产品功能  数据版本 · 因子配置 · 单因子和等权多因子检验 · 图表与报告</text>
+
+  <rect x="72" y="190" width="220" height="114" class="box"/>
+  <text x="100" y="231" class="label">研究人员</text>
+  <text x="100" y="261" class="detail">管理员  研究员  只读用户</text>
+
+  <rect x="370" y="190" width="220" height="114" class="box"/>
+  <text x="400" y="231" class="label">Web 前端</text>
+  <text x="400" y="261" class="detail">React 工作台与报告页</text>
+
+  <rect x="670" y="190" width="220" height="114" class="box"/>
+  <text x="700" y="231" class="label">API 服务</text>
+  <text x="700" y="261" class="detail">FastAPI 权限与业务接口</text>
+
+  <path d="M292 247 H370" class="flow"/>
+  <path d="M590 247 H670" class="flow"/>
+
+  <rect x="670" y="365" width="220" height="114" class="box"/>
+  <text x="700" y="405" class="label">Redis 队列</text>
+  <text x="700" y="435" class="detail">异步任务投递</text>
+
+  <rect x="946" y="365" width="190" height="114" class="box"/>
+  <text x="973" y="405" class="label">Worker</text>
+  <text x="973" y="435" class="detail">Celery 研究计算</text>
+
+  <path d="M780 304 V365" class="flow"/>
+  <path d="M890 422 H946" class="flow"/>
+
+  <rect x="72" y="365" width="220" height="114" class="box"/>
+  <text x="100" y="405" class="label">PostgreSQL</text>
+  <text x="100" y="435" class="detail">用户  版本  任务  日志</text>
+
+  <rect x="370" y="365" width="220" height="114" class="box"/>
+  <text x="400" y="405" class="label">共享文件目录</text>
+  <text x="400" y="435" class="detail">CSV 快照与 HTML 报告</text>
+
+  <path d="M670 281 C510 324 240 300 182 365" class="flow"/>
+  <path d="M670 289 C610 327 515 325 480 365" class="flow"/>
+  <path d="M1040 479 C900 565 385 565 200 479" class="flow"/>
+  <path d="M1030 479 C900 530 650 535 505 479" class="flow"/>
+
+  <text x="72" y="554" class="small">平台责任：权限、数据存放、任务调度、持久化和服务协作</text>
+  <text x="72" y="579" class="small">验收边界：Mac OrbStack 已验证；Windows 实机与正式十分钟演示未完成</text>
+</svg>

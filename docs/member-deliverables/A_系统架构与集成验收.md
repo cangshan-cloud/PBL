@@ -54,3 +54,7 @@
 
 隔离 SQLite 接口测试验证 `pending → cancelled`、日志与一次非强制 Celery 撤销调用，以及重试新建 `pending` 任务；后端 191 项通过。Celery 入队/撤销均由 mock 代替，不能当作真实队列或 Worker 验收。实际执行者：Codex。
 
+## 2026-10-16 页面布局隔离联调（开发者代执行）
+
+以临时 SQLite、内联 API 与 Vite 启动独立 Mac 浏览器环境，完成两次演示研究、任务／报告／对比页面检查；前端构建及后端 191 项回归通过。代码位置与宽度测试见 [`../LAYOUT_BROWSER_QA_2026-10-16.md`](../LAYOUT_BROWSER_QA_2026-10-16.md)。本次不是五服务 Celery 或 Windows 集成重验，最终提交号及 CI 仍待填。实际执行者：Codex。
+
