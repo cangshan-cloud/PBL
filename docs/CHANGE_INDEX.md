@@ -81,6 +81,7 @@
 | CHG-20261015-028 | 2026-10-15 | HTTP integration regression / verified on Mac | 实验对比新增字段及 CSV/HTML 导出接口闭环 | [记录](changes/2026-10-15-028-comparison-http-integration.md) | `backend/tests/test_api_journey.py::ApiJourneyTests.test_comparison_api_and_exports_include_actual_group_dates`、`docs/EXPERIMENT_COMPARISON.md` |
 | CHG-20261016-001 | 2026-10-16 | composite input integrity + regression / verified on Mac | 多因子合成预处理前拒绝非有限成分观测 | [记录](changes/2026-10-16-001-composite-observation-integrity.md) | `backend/app/domain/composite.py::combine_factor_observations`、`backend/tests/test_composite.py`、`docs/MULTI_FACTOR_ANALYSIS.md` |
 | CHG-20261016-002 | 2026-10-16 | numerical correctness + regression / verified on Mac | Pearson 缩放计算避免有限大数平方和溢出 | [记录](changes/2026-10-16-002-pearson-scaled-correlation.md) | `backend/app/domain/research.py::pearson`、`backend/tests/test_research.py`、`docs/SINGLE_FACTOR_ANALYSIS.md` |
+| CHG-20261016-003 | 2026-10-16 | result integrity + regression / verified on Mac | 研究结果落库前拒绝非有限派生指标 | [记录](changes/2026-10-16-003-derived-result-finite-guard.md) | `backend/app/domain/research.py::_ensure_finite_result`、`evaluate`、`backend/app/domain/composite.py::combine_factor_observations`、`backend/tests/test_research.py`、研究口径文档 |
 
 ## 历史基线
 

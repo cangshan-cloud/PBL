@@ -179,6 +179,17 @@ def ic_histogram(values: list[float]) -> list[dict[str, float | int]]:
     ]
 
 
+def _ensure_finite_result(value: object, path: str = "result") -> None:
+    if isinstance(value, float) and not isfinite(value):
+        raise ValueError(f"non-finite research result: {path}")
+    if isinstance(value, dict):
+        for key, item in value.items():
+            _ensure_finite_result(item, f"{path}.{key}")
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            _ensure_finite_result(item, f"{path}[{index}]")
+
+
 def evaluate(
     observations: list[Observation],
     groups: int = 5,
@@ -291,7 +302,7 @@ def evaluate(
     ) if len(valid_ic) > 1 else None
     long_short_returns = [item["return"] for item in long_short_series]
     long_short_net_returns = [item["net_return"] for item in long_short_series]
-    return {
+    result = {
         "coverage": len(processed),
         "ic_mean": ic_mean,
         "ic_std": ic_std,
@@ -326,3 +337,5 @@ def evaluate(
             "mad_scale": mad_scale if winsorize else None,
         },
     }
+    _ensure_finite_result(result)
+    return result

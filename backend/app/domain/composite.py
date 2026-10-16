@@ -65,6 +65,8 @@ def combine_factor_observations(
         ):
             raise ValueError(f"component forward returns disagree: {item_key[0]} {item_key[1]}")
         factor_value = sum(indexed[key][item_key].factor * normalized_weights[key] for key in indexed)
+        if not math.isfinite(factor_value):
+            raise ValueError(f"non-finite combined factor observation: {item_key[0]} {item_key[1]}")
         combined.append(Observation(source.trade_date, source.symbol, factor_value, source.forward_return))
 
     matrix: list[dict] = []

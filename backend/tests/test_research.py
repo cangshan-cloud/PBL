@@ -42,6 +42,12 @@ class ResearchEngineTests(unittest.TestCase):
         result = evaluate(items, groups=3, winsorize=False, standardize=False)
         self.assertAlmostEqual(result["ic_mean"], 1.0)
 
+    def test_nonfinite_derived_portfolio_result_is_rejected(self):
+        items = [Observation(date(2025, 1, 1), "A", 1.0, -1e308),
+                 Observation(date(2025, 1, 1), "B", 2.0, 1e308)]
+        with self.assertRaisesRegex(ValueError, "non-finite research result"):
+            evaluate(items, groups=2, winsorize=False, standardize=False)
+
     def test_ic_histogram_uses_fixed_bins_and_excludes_missing_days(self):
         first = date(2025, 1, 1)
         items = [
