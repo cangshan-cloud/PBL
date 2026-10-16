@@ -33,6 +33,15 @@ class ResearchEngineTests(unittest.TestCase):
     def test_perfect_ic(self):
         self.assertAlmostEqual(pearson([1, 2, 3], [2, 4, 6]), 1.0)
 
+    def test_pearson_large_finite_values_do_not_overflow(self):
+        self.assertAlmostEqual(pearson([1e200, -1e200], [1e200, -1e200]), 1.0)
+        self.assertAlmostEqual(pearson([1e308, 1e308, -1e308], [-1e308, -1e308, 1e308]), -1.0)
+        items = [Observation(date(2025, 1, 1), symbol, factor, forward)
+                 for symbol, factor, forward in (("A", -1e200, -1e200),
+                                                 ("B", 0.0, 0.0), ("C", 1e200, 1e200))]
+        result = evaluate(items, groups=3, winsorize=False, standardize=False)
+        self.assertAlmostEqual(result["ic_mean"], 1.0)
+
     def test_ic_histogram_uses_fixed_bins_and_excludes_missing_days(self):
         first = date(2025, 1, 1)
         items = [

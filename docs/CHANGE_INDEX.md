@@ -80,6 +80,7 @@
 | CHG-20261015-027 | 2026-10-15 | real-data regression evidence / verified on Mac | 真实 A 股样本复验实际分组日期与跳过计数 | [记录](changes/2026-10-15-027-real-sample-group-date-audit.md) | `tools/verify_real_a_share_sample.py::group_date_audit`、`backend/tests/test_real_sample_acquisition.py`、`docs/REAL_A_SHARE_SAMPLE.md` |
 | CHG-20261015-028 | 2026-10-15 | HTTP integration regression / verified on Mac | 实验对比新增字段及 CSV/HTML 导出接口闭环 | [记录](changes/2026-10-15-028-comparison-http-integration.md) | `backend/tests/test_api_journey.py::ApiJourneyTests.test_comparison_api_and_exports_include_actual_group_dates`、`docs/EXPERIMENT_COMPARISON.md` |
 | CHG-20261016-001 | 2026-10-16 | composite input integrity + regression / verified on Mac | 多因子合成预处理前拒绝非有限成分观测 | [记录](changes/2026-10-16-001-composite-observation-integrity.md) | `backend/app/domain/composite.py::combine_factor_observations`、`backend/tests/test_composite.py`、`docs/MULTI_FACTOR_ANALYSIS.md` |
+| CHG-20261016-002 | 2026-10-16 | numerical correctness + regression / verified on Mac | Pearson 缩放计算避免有限大数平方和溢出 | [记录](changes/2026-10-16-002-pearson-scaled-correlation.md) | `backend/app/domain/research.py::pearson`、`backend/tests/test_research.py`、`docs/SINGLE_FACTOR_ANALYSIS.md` |
 
 ## 历史基线
 

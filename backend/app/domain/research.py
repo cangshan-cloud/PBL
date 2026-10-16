@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date
-from math import isfinite, sqrt
+from math import fsum, isfinite, sqrt
 from statistics import fmean, median, pstdev
 
 
@@ -103,12 +103,23 @@ def _rank(values: list[float]) -> list[float]:
 def pearson(left: list[float], right: list[float]) -> float | None:
     if len(left) != len(right) or len(left) < 2:
         return None
-    left_mean, right_mean = fmean(left), fmean(right)
-    numerator = sum((x - left_mean) * (y - right_mean) for x, y in zip(left, right))
-    left_sum = sum((x - left_mean) ** 2 for x in left)
-    right_sum = sum((y - right_mean) ** 2 for y in right)
-    denominator = sqrt(left_sum * right_sum)
-    return numerator / denominator if denominator else None
+    if not all(isfinite(value) for value in (*left, *right)):
+        return None
+    left_scale, right_scale = max(map(abs, left)), max(map(abs, right))
+    if not left_scale or not right_scale:
+        return None
+    scaled_left = [value / left_scale for value in left]
+    scaled_right = [value / right_scale for value in right]
+    left_mean, right_mean = fmean(scaled_left), fmean(scaled_right)
+    centered_left = [value - left_mean for value in scaled_left]
+    centered_right = [value - right_mean for value in scaled_right]
+    left_sum = fsum(value * value for value in centered_left)
+    right_sum = fsum(value * value for value in centered_right)
+    denominator = sqrt(left_sum) * sqrt(right_sum)
+    if not denominator:
+        return None
+    correlation = fsum(x * y for x, y in zip(centered_left, centered_right)) / denominator
+    return max(-1.0, min(1.0, correlation))
 
 
 def preprocess_observations(
