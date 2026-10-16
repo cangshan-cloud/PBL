@@ -1,5 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
+import { buildResearchConfiguration, longShortGroupLabel, resultForConfiguration } from "./research-config";
 import "./styles.css";
 import "./layout.css";
 
@@ -143,16 +144,23 @@ function App() {
   const selectedFactor = factors.find(item => item.id === selectedFactorKey) ?? factors[0];
   const selectedTask = tasks.find(item => item.id === selectedTaskId) ?? tasks[0];
   const selectedReport = reports.find(item => item.run_id === selectedReportId) ?? reports[0];
-  const symbols = sampleSymbols.split(/[\s,;]+/).map(value => value.trim()).filter(Boolean);
-  const sample = { start_date: sampleStart || null, end_date: sampleEnd || null, symbols: symbols.length ? symbols : null };
-  const researchParameters: Record<string, unknown> | null = !selected ? null : researchMode === "historical"
-    ? { dataset_version_id: selected.id, groups }
-    : researchMode === "composite"
-    ? { factors: compositeFactors, dataset_version_id: selected.id, groups, winsorize, standardize, mad_scale: 3, transaction_cost_bps: transactionCostBps, price_basis: priceBasis, ...sample }
-    : !selectedFactor ? null
-    : { factor: selectedFactor.id, dataset_version_id: selected.id, groups, winsorize, standardize, mad_scale: 3, transaction_cost_bps: transactionCostBps, price_basis: priceBasis, ...sample, ...(selectedFactor.default_lookback !== null ? { lookback } : {}) };
-  const researchConfigKey = JSON.stringify({ mode: researchMode, parameters: researchParameters });
-  const task = taskConfigKey === researchConfigKey ? rawTask : null;
+  const { parameters: researchParameters, key: researchConfigKey } = buildResearchConfiguration({
+    mode: researchMode,
+    datasetId: selected?.id ?? null,
+    factorId: selectedFactor?.id ?? null,
+    factorDefaultLookback: selectedFactor?.default_lookback ?? null,
+    compositeFactors,
+    lookback,
+    groups,
+    winsorize,
+    standardize,
+    transactionCostBps,
+    priceBasis,
+    sampleStart,
+    sampleEnd,
+    sampleSymbols,
+  });
+  const task = resultForConfiguration(rawTask, taskConfigKey, researchConfigKey);
 
   const loadDatasets = React.useCallback(async () => {
     const response = await apiFetch("/datasets");
@@ -494,7 +502,7 @@ function App() {
       <section className="preprocess card"><strong>截面预处理</strong><label><input type="checkbox" checked={winsorize} onChange={event => setWinsorize(event.target.checked)} /> MAD 3倍去极值</label><label><input type="checkbox" checked={standardize} onChange={event => setStandardize(event.target.checked)} /> Z-score标准化</label><label className="cost-input">单边成本 <input type="number" min="0" max="100" step="1" value={transactionCostBps} onChange={event => setTransactionCostBps(Number(event.target.value))} /> bps</label><small>按多空两边实际成员换手扣减固定成本。</small></section></>}
       {rawTask && !task && <div className="notice" role="status">研究配置已改变，工作台已隐藏旧任务的指标与图表。旧结果仍可在任务中心按 Run ID 查看；请重新运行当前配置。</div>}
       {task?.id && task.id !== "local-error" && <div className="result-provenance" role="status">当前结果绑定 Run <code>{task.id.slice(0, 8)}</code> · 数据版本 {task.dataset_version ?? "处理中"} · {statusLabel(task.status)}</div>}
-      <section className="metrics"><article className="card"><label>有效观测</label><b>{task?.result?.coverage ?? "—"}</b><small>股票 × 交易日</small></article><article className="card"><label>IC 均值</label><b>{number(task?.result?.ic_mean)}</b><small>Pearson 相关</small></article><article className="card"><label>Rank IC</label><b>{number(task?.result?.rank_ic_mean)}</b><small>Spearman 相关</small></article><article className="card"><label>ICIR</label><b>{number(task?.result?.icir)}</b><small>未年化</small></article><article className="card"><label>IC为正比例</label><b>{number(task?.result?.ic_positive_ratio, true)}</b><small>方向稳定性</small></article><article className="card"><label>毛多空累计收益</label><b>{number(task?.result?.long_short_total_return, true)}</b><small>Q{groups} − Q1</small></article><article className="card"><label>成本后多空收益</label><b>{number(task?.result?.long_short_net_total_return, true)}</b><small>单边 {task?.result?.transaction_cost_bps ?? transactionCostBps} bps</small></article><article className="card"><label>多空双边换手</label><b>{number(task?.result?.long_short_turnover, true)}</b><small>包含首次建仓</small></article></section>
+      <section className="metrics"><article className="card"><label>有效观测</label><b>{task?.result?.coverage ?? "—"}</b><small>股票 × 交易日</small></article><article className="card"><label>IC 均值</label><b>{number(task?.result?.ic_mean)}</b><small>Pearson 相关</small></article><article className="card"><label>Rank IC</label><b>{number(task?.result?.rank_ic_mean)}</b><small>Spearman 相关</small></article><article className="card"><label>ICIR</label><b>{number(task?.result?.icir)}</b><small>未年化</small></article><article className="card"><label>IC为正比例</label><b>{number(task?.result?.ic_positive_ratio, true)}</b><small>方向稳定性</small></article><article className="card"><label>毛多空累计收益</label><b>{number(task?.result?.long_short_total_return, true)}</b><small>{longShortGroupLabel(groups)}</small></article><article className="card"><label>成本后多空收益</label><b>{number(task?.result?.long_short_net_total_return, true)}</b><small>单边 {task?.result?.transaction_cost_bps ?? transactionCostBps} bps</small></article><article className="card"><label>多空双边换手</label><b>{number(task?.result?.long_short_turnover, true)}</b><small>包含首次建仓</small></article></section>
       <section className="card result"><div className="section-title"><div><p className="eyebrow">QUANTILE RETURN</p><h2>分组平均下一日收益</h2></div><span className={`status ${task?.status ?? "idle"}`}>{task?.status === "success" ? "计算完成" : task?.status === "failed" ? "运行失败" : task ? `${task.progress ?? 0}%` : "等待运行"}</span></div>{task?.error_summary && <p className="error">{task.error_summary}</p>}{task?.result?.group_returns.length ? <div className="bars">{task.result.group_returns.map(item => <div className="bar-row" key={item.group}><span>Q{item.group}</span><div><i style={{width: `${Math.min(100, Math.abs(item.mean_return) * 4000 + 8)}%`}} /></div><strong>{number(item.mean_return, true)}</strong></div>)}</div> : <div className="empty">{task?.result ? "本次没有可计算的分组收益；空值不代表零收益。" : "尚无当前配置的分组结果；未计算不代表零收益。"}</div>}</section>
       <div className="workspace-step results-step"><span>02</span><div><h2>图表与诊断</h2><p>先看关键指标与分组收益，再结合时间序列和限制解释结果。</p></div></div>
       {(task?.result?.group_skipped_constant_factor_days ?? 0) > 0 && <div className="notice">有 {task!.result!.group_skipped_constant_factor_days} 个交易日全截面因子同值：IC 不可计算，分组与多空收益未生成；图表仅展示其余可分组日期。</div>}

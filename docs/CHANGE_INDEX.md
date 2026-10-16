@@ -99,6 +99,7 @@
 | CHG-20261016-018 | 2026-10-16 | progress reporting / visual QA complete | Word 阶段汇报与项目结构图 | [记录](changes/2026-10-16-018-word-progress-and-architecture-diagram.md) | `outputs/progress-2026-10-16/阶段进展汇报.docx`、`项目运行架构.svg`、`项目运行架构.png`、`docs/PROGRESS_BRIEF_2026-10-16.md` |
 | CHG-20261016-019 | 2026-10-16 | responsive layout / isolated browser QA on Mac | 工作台、任务、报告和对比页面优化 | [记录](changes/2026-10-16-019-responsive-layout-browser-qa.md) | `frontend/src/main.tsx`、`frontend/src/layout.css`、`docs/LAYOUT_BROWSER_QA_2026-10-16.md`、A/B/C/D 四责任包 |
 | CHG-20261016-020 | 2026-10-16 | research result provenance / isolated browser QA on Mac | 工作台配置与结果绑定、防假零及动态分组标签 | [记录](changes/2026-10-16-020-research-result-provenance.md) | `frontend/src/main.tsx`、`frontend/src/layout.css`、`docs/RESULT_PROVENANCE_BROWSER_QA_2026-10-16.md`、A/B/C/D 四责任包 |
+| CHG-20261016-021 | 2026-10-16 | frontend regression + CI / verified on Mac | 研究配置与结果归属自动回归 | [记录](changes/2026-10-16-021-frontend-config-regression.md) | `frontend/src/research-config.ts`、`frontend/tests/research-config.test.ts`、`frontend/src/main.tsx`、`frontend/package.json`、`.github/workflows/ci.yml`、A/B/C/D 四责任包 |
 
 ## 历史基线
 

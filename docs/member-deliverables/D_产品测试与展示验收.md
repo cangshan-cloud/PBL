@@ -61,3 +61,7 @@ HTTP 负例覆盖查看者、其他研究员不可取消/重试，本人重复�
 
 隔离浏览器覆盖初始未运行、五分组动量成功、切换反转隐藏旧结果、三分组反转成功和任务中心保留历史记录；页面 Run 归属可见，空态不再显示假零。浏览器控制台错误 0、警告 0；前端构建、后端 191 项与黄金验算通过。私有历史审计 CSV 按钮本轮未点测，十分钟正式连续演示和队长本人产品测试仍待补。见 [`../RESULT_PROVENANCE_BROWSER_QA_2026-10-16.md`](../RESULT_PROVENANCE_BROWSER_QA_2026-10-16.md)。实际执行者：Codex。
 
+## 2026-10-16 前端配置自动回归（开发者代执行）
+
+旧结果随配置变化隐藏的规则已纳入七项自动回归；前端生产构建通过。上一轮隔离浏览器证据仍见 [`../RESULT_PROVENANCE_BROWSER_QA_2026-10-16.md`](../RESULT_PROVENANCE_BROWSER_QA_2026-10-16.md)，本轮没有重新做浏览器操作或正式十分钟连续演示；队长本人产品测试数据仍待补。见 [`../FRONTEND_CONFIGURATION_REGRESSION_2026-10-16.md`](../FRONTEND_CONFIGURATION_REGRESSION_2026-10-16.md)。实际执行者：Codex。
+

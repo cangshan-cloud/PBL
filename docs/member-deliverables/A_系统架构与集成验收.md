@@ -62,3 +62,7 @@
 
 隔离 Mac SQLite 与内联 API 中完成两条任务，前端展示绑定提交时配置与 Run ID；后端 191 项、前端构建和黄金验算通过。历史审计下载目标已改为工作台当前 Run，私有历史包按钮未在浏览器实测；本轮未重做 Celery／Compose 或 Windows 集成。见 [`../RESULT_PROVENANCE_BROWSER_QA_2026-10-16.md`](../RESULT_PROVENANCE_BROWSER_QA_2026-10-16.md)。实际执行者：Codex。
 
+## 2026-10-16 前端配置自动回归（开发者代执行）
+
+CI 已加入 Node 22 前端测试步骤；Mac 本机七项前端测试、生产构建、后端 191 项及黄金验算通过。远端 Ubuntu／Windows CI 尚待核对；本轮未重做 Celery、Compose 或 Windows 部署验收。见 [`../FRONTEND_CONFIGURATION_REGRESSION_2026-10-16.md`](../FRONTEND_CONFIGURATION_REGRESSION_2026-10-16.md)。实际执行者：Codex。
+

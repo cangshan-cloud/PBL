@@ -61,3 +61,7 @@ Parquet 未实现；不能因模板写有“CSV 或 Parquet”就声称两者都
 
 两条浏览器任务均使用固定内置合成版本 `demo_daily` 0.2.0；工作台 Run 归属条显示版本，数据选择属于配置键，变更后旧指标隐藏。后端 191 项通过；本轮未修改导入、质量、SHA-256 或真实数据来源口径，也未重新采集样本。见 [`../RESULT_PROVENANCE_BROWSER_QA_2026-10-16.md`](../RESULT_PROVENANCE_BROWSER_QA_2026-10-16.md)。实际执行者：Codex。
 
+## 2026-10-16 前端配置自动回归（开发者代执行）
+
+七项前端测试覆盖数据集与样本股票变更后的结果归属判断；后端 191 项及黄金验算通过。本轮未新增采集、导入或数据质量规则，也未复核真实样本来源许可。见 [`../FRONTEND_CONFIGURATION_REGRESSION_2026-10-16.md`](../FRONTEND_CONFIGURATION_REGRESSION_2026-10-16.md)。实际执行者：Codex。
+
