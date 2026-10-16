@@ -1,4 +1,6 @@
 import sys
+import json
+import math
 import unittest
 from pathlib import Path
 
@@ -6,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
+from fastapi.encoders import jsonable_encoder
 
 from app.db import Base
 from app.services.comparisons import compare_runs, comparison_csv, comparison_html
@@ -90,7 +93,27 @@ class ComparisonTests(unittest.TestCase):
             artifact.content = {**artifact.content, "long_short_net_total_return": None}
             result = compare_runs(runs)
             self.assertEqual(result["rankings"]["long_short_net_total_return"], [runs[0].id])
-            self.assertTrue(any("未保存成本后收益" in item for item in result["warnings"]))
+            self.assertTrue(any("成本后收益缺失" in item for item in result["warnings"]))
+
+    def test_legacy_nonfinite_metrics_are_missing_in_all_exports(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            runs = [execute_research_run(session, create_research_run(session, {
+                "factor": factor, "groups": 5, "start_date": "2025-02-03",
+            }).id) for factor in ("momentum_20d", "reversal_5d")]
+            artifact = next(item for item in runs[1].artifacts if item.artifact_type == "metrics")
+            artifact.content = {**artifact.content, "ic_mean": math.nan,
+                                "long_short_net_total_return": math.inf,
+                                "coverage": 10 ** 1000}
+            result = compare_runs(runs)
+            self.assertIsNone(result["items"][1]["metrics"]["ic_mean"])
+            self.assertIsNone(result["items"][1]["metrics"]["long_short_net_total_return"])
+            self.assertIsNone(result["items"][1]["metrics"]["coverage"])
+            self.assertIsNone(result["items"][1]["delta_from_baseline"]["ic_mean"])
+            self.assertEqual(result["rankings"]["ic_mean"], [runs[0].id])
+            self.assertTrue(any("成本后收益缺失" in item for item in result["warnings"]))
+            json.dumps(jsonable_encoder(result), allow_nan=False)
+            self.assertNotIn("nan", comparison_csv(result).decode("utf-8-sig").lower())
+            self.assertIn("—", comparison_html(result))
 
     def test_different_stock_pool_and_preprocessing_are_disclosed(self):
         with Session(self.engine, expire_on_commit=False) as session:

@@ -63,7 +63,7 @@ def compare_runs(runs: Iterable[Run]) -> dict:
                 "groups": parameters.get("groups"),
                 "transaction_cost_bps": result.get("transaction_cost_bps"),
                 "finished_at": run.finished_at,
-                "metrics": {key: result.get(key) for key in METRICS},
+                "metrics": {key: _finite_metric(result.get(key)) for key in METRICS},
                 "ic_date_count": len(dates),
                 "group_date_count": len(group_dates),
                 "ic_start_date": min(dates) if dates else None,
@@ -98,7 +98,7 @@ def compare_runs(runs: Iterable[Run]) -> dict:
     if len({item["transaction_cost_bps"] for item in items}) > 1:
         warnings.append("所选任务的成本假设不同，成本后收益不能直接归因于因子差异。")
     if any(item["metrics"].get("long_short_net_total_return") is None for item in items):
-        warnings.append("部分历史任务未保存成本后收益，请创建新任务以获得成本分析。")
+        warnings.append("部分任务的成本后收益缺失或不是有限数，无法比较该指标。")
     if not common_dates:
         warnings.append("所选任务没有共同的 IC 交易日。")
     elif any(dates != date_sets[0] for dates in date_sets[1:]):
@@ -131,13 +131,23 @@ def compare_runs(runs: Iterable[Run]) -> dict:
 
 
 def _difference(value: object, baseline: object) -> float | int | None:
-    if not isinstance(value, (int, float)) or not isinstance(baseline, (int, float)):
+    if _finite_metric(value) is None or _finite_metric(baseline) is None:
         return None
-    return value - baseline
+    difference = value - baseline
+    return difference if _finite_metric(difference) is not None else None
+
+
+def _finite_metric(value: object) -> float | int | None:
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return None
+    try:
+        return value if math.isfinite(value) else None
+    except OverflowError:
+        return None
 
 
 def _rank_value(value: object) -> float | None:
-    return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) else None
+    return float(value) if _finite_metric(value) is not None else None
 
 
 def comparison_csv(result: dict) -> bytes:
@@ -186,7 +196,7 @@ def comparison_html(result: dict) -> str:
     )
     return f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FactorLab实验对比报告</title><style>
 body{{font-family:Inter,'PingFang SC','Microsoft YaHei',sans-serif;color:#173128;background:#f4f5ef;margin:0}}main{{max-width:1100px;margin:auto;padding:52px 36px}}header{{border-bottom:4px solid #173128;padding-bottom:22px}}h1{{font-size:38px;margin:8px 0}}.tag{{font-size:11px;letter-spacing:2px;color:#6b7c73}}table{{width:100%;border-collapse:collapse;background:white;margin-top:18px}}th,td{{padding:12px;border-bottom:1px solid #e5e9e2;text-align:left}}thead th{{background:#173128;color:white}}th small,td small{{display:block;font-weight:400;opacity:.7;margin-top:5px}}.check{{background:{'#edf7da' if result['comparable'] else '#fff5db'};border-left:4px solid {'#89ad43' if result['comparable'] else '#d5a22f'};padding:16px;margin:25px 0}}.rankings{{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}}.rankings section{{background:white;padding:14px;border:1px solid #dfe5dc;border-radius:10px}}li{{margin:7px 0}}footer{{margin-top:36px;color:#78877f;font-size:12px}}@media print{{body{{background:white}}main{{padding:16px}}}}@media(max-width:800px){{.rankings{{grid-template-columns:1fr 1fr}}}}
-</style></head><body><main><header><p class="tag">FACTORLAB · EXPERIMENT COMPARISON</p><h1>实验对比报告</h1><p>首个任务为差值基准；本报告基于已保存的不可变研究结果生成。</p></header><div class="check"><b>{'口径一致，可以直接比较' if result['comparable'] else '存在口径差异，请谨慎解释'}</b><p>共同 IC 交易日：{result['common_ic_date_count']}；共同多空分组日期：{result['common_group_date_count']}</p><ul>{warnings}</ul></div><h2>一、核心指标</h2><div style="overflow:auto"><table><thead><tr><th>指标</th>{headers}</tr></thead><tbody>{rows}</tbody></table></div><h2>二、指标排名</h2><div class="rankings">{rankings}</div><h2>三、解释边界</h2><p>差值和排名不代表统计显著性、因果关系或未来表现。多空收益未计交易成本、冲击成本和涨跌停约束。</p><footer>仅用于课程研究，不构成投资建议。</footer></main></body></html>"""
+</style></head><body><main><header><p class="tag">FACTORLAB · EXPERIMENT COMPARISON</p><h1>实验对比报告</h1><p>首个任务为差值基准；本报告基于已保存的不可变研究结果生成。</p></header><div class="check"><b>{'口径一致，可以直接比较' if result['comparable'] else '存在口径差异，请谨慎解释'}</b><p>共同 IC 交易日：{result['common_ic_date_count']}；共同多空分组日期：{result['common_group_date_count']}</p><ul>{warnings}</ul></div><h2>一、核心指标</h2><div style="overflow:auto"><table><thead><tr><th>指标</th>{headers}</tr></thead><tbody>{rows}</tbody></table></div><h2>二、指标排名</h2><div class="rankings">{rankings}</div><h2>三、解释边界</h2><p>差值和排名不代表统计显著性、因果关系或未来表现。毛多空收益未计费用；成本后多空收益仅扣固定换手成本，均未模拟冲击成本、涨跌停和实际成交约束。</p><footer>仅用于课程研究，不构成投资建议。</footer></main></body></html>"""
 
 
 def _export_number(value: object, key: str, signed: bool = False) -> str:

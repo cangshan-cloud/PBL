@@ -83,6 +83,7 @@
 | CHG-20261016-002 | 2026-10-16 | numerical correctness + regression / verified on Mac | Pearson 缩放计算避免有限大数平方和溢出 | [记录](changes/2026-10-16-002-pearson-scaled-correlation.md) | `backend/app/domain/research.py::pearson`、`backend/tests/test_research.py`、`docs/SINGLE_FACTOR_ANALYSIS.md` |
 | CHG-20261016-003 | 2026-10-16 | result integrity + regression / verified on Mac | 研究结果落库前拒绝非有限派生指标 | [记录](changes/2026-10-16-003-derived-result-finite-guard.md) | `backend/app/domain/research.py::_ensure_finite_result`、`evaluate`、`backend/app/domain/composite.py::combine_factor_observations`、`backend/tests/test_research.py`、研究口径文档 |
 | CHG-20261016-004 | 2026-10-16 | preprocessing numerical stability + regression / verified on Mac | 截面预处理缩放避免极大有限因子值溢出 | [记录](changes/2026-10-16-004-scaled-cross-section-preprocessing.md) | `backend/app/domain/research.py::preprocess_observations`、`backend/tests/test_research.py`、`docs/SINGLE_FACTOR_ANALYSIS.md` |
+| CHG-20261016-005 | 2026-10-16 | legacy comparison resilience + regression / verified on Mac | 实验对比将旧结果非法数值视为缺失并修正成本说明 | [记录](changes/2026-10-16-005-legacy-comparison-finite-metrics.md) | `backend/app/services/comparisons.py::compare_runs`、`_finite_metric`、`_difference`、`comparison_html`、`backend/tests/test_comparisons.py`、`docs/EXPERIMENT_COMPARISON.md` |
 
 ## 历史基线
 
