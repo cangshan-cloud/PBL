@@ -82,6 +82,7 @@
 | CHG-20261016-001 | 2026-10-16 | composite input integrity + regression / verified on Mac | 多因子合成预处理前拒绝非有限成分观测 | [记录](changes/2026-10-16-001-composite-observation-integrity.md) | `backend/app/domain/composite.py::combine_factor_observations`、`backend/tests/test_composite.py`、`docs/MULTI_FACTOR_ANALYSIS.md` |
 | CHG-20261016-002 | 2026-10-16 | numerical correctness + regression / verified on Mac | Pearson 缩放计算避免有限大数平方和溢出 | [记录](changes/2026-10-16-002-pearson-scaled-correlation.md) | `backend/app/domain/research.py::pearson`、`backend/tests/test_research.py`、`docs/SINGLE_FACTOR_ANALYSIS.md` |
 | CHG-20261016-003 | 2026-10-16 | result integrity + regression / verified on Mac | 研究结果落库前拒绝非有限派生指标 | [记录](changes/2026-10-16-003-derived-result-finite-guard.md) | `backend/app/domain/research.py::_ensure_finite_result`、`evaluate`、`backend/app/domain/composite.py::combine_factor_observations`、`backend/tests/test_research.py`、研究口径文档 |
+| CHG-20261016-004 | 2026-10-16 | preprocessing numerical stability + regression / verified on Mac | 截面预处理缩放避免极大有限因子值溢出 | [记录](changes/2026-10-16-004-scaled-cross-section-preprocessing.md) | `backend/app/domain/research.py::preprocess_observations`、`backend/tests/test_research.py`、`docs/SINGLE_FACTOR_ANALYSIS.md` |
 
 ## 历史基线
 

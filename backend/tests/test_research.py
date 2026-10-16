@@ -183,6 +183,20 @@ class ResearchEngineTests(unittest.TestCase):
         self.assertAlmostEqual(sum(value * value for value in values) / len(values), 1.0)
         self.assertLess(max(values), 2.0)
 
+    def test_preprocessing_large_finite_cross_section_stays_finite(self):
+        day = date(2025, 1, 1)
+        items = [Observation(day, symbol, factor, 0.01)
+                 for symbol, factor in (("A", -1e308), ("B", -1e308),
+                                        ("C", 1e308), ("D", 1e308))]
+        values = [item.factor for item in preprocess_observations(items)]
+        self.assertEqual(values, [-1.0, -1.0, 1.0, 1.0])
+        self.assertEqual([item.factor for item in preprocess_observations(items, standardize=False)],
+                         [-1e308, -1e308, 1e308, 1e308])
+        self.assertEqual([item.factor for item in preprocess_observations(items, winsorize=False, standardize=False)],
+                         [item.factor for item in items])
+        with self.assertRaisesRegex(ValueError, "mad_scale must be finite and positive"):
+            preprocess_observations(items, mad_scale=nan)
+
     def test_turnover_and_ic_positive_ratio(self):
         day1 = date(2025, 1, 1)
         day2 = date(2025, 1, 2)

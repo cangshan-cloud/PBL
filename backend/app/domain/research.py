@@ -130,8 +130,8 @@ def preprocess_observations(
     mad_scale: float = 3.0,
 ) -> list[Observation]:
     """Apply MAD winsorization and z-score normalization within each date."""
-    if mad_scale <= 0:
-        raise ValueError("mad_scale must be positive")
+    if not isfinite(mad_scale) or mad_scale <= 0:
+        raise ValueError("mad_scale must be finite and positive")
     by_date: dict[date, list[Observation]] = defaultdict(list)
     for item in observations:
         by_date[item.trade_date].append(item)
@@ -139,18 +139,28 @@ def preprocess_observations(
     output: list[Observation] = []
     for daily in by_date.values():
         values = [item.factor for item in daily]
-        transformed = values[:]
+        if not all(isfinite(value) for value in values):
+            raise ValueError(f"non-finite factor observation: {daily[0].trade_date}")
+        scale = max(map(abs, values), default=0.0)
+        transformed = [value / scale for value in values] if scale else values[:]
+        clipped = False
         if winsorize and len(values) > 1:
-            center = median(values)
-            mad = median(abs(value - center) for value in values)
+            center = median(transformed)
+            mad = median(abs(value - center) for value in transformed)
             if mad > 0:
                 distance = mad_scale * 1.4826 * mad
-                transformed = [min(center + distance, max(center - distance, value)) for value in transformed]
+                winsorized = [min(center + distance, max(center - distance, value)) for value in transformed]
+                clipped = winsorized != transformed
+                transformed = winsorized
         if standardize and len(transformed) > 1:
             mean = fmean(transformed)
             deviation = pstdev(transformed)
             if deviation > 0:
                 transformed = [(value - mean) / deviation for value in transformed]
+            else:
+                transformed = [value * scale for value in transformed] if clipped else values[:]
+        else:
+            transformed = [value * scale for value in transformed] if clipped else values[:]
         output.extend(
             Observation(item.trade_date, item.symbol, factor, item.forward_return)
             for item, factor in zip(daily, transformed)
