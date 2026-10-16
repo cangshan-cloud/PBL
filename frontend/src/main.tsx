@@ -2,6 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { buildResearchConfiguration, longShortGroupLabel, resultForConfiguration, validateResearchConfiguration } from "./research-config";
 import { pollResearchTask } from "./research-task";
+import { forSelectedId, type SelectedResource } from "./selected-resource";
 import "./styles.css";
 import "./layout.css";
 
@@ -111,13 +112,13 @@ function App() {
   const [taskConfigKey, setTaskConfigKey] = React.useState("");
   const [tasks, setTasks] = React.useState<Task[]>([]);
   const [selectedTaskId, setSelectedTaskId] = React.useState("");
-  const [taskLogs, setTaskLogs] = React.useState<RunLog[]>([]);
+  const [taskLogs, setTaskLogs] = React.useState<SelectedResource<RunLog[]> | null>(null);
   const [taskConclusion, setTaskConclusion] = React.useState<Conclusion | null>(null);
   const [comparisonRunIds, setComparisonRunIds] = React.useState<string[]>([]);
   const [comparison, setComparison] = React.useState<Comparison | null>(null);
   const [reports, setReports] = React.useState<Report[]>([]);
   const [selectedReportId, setSelectedReportId] = React.useState("");
-  const [reportHtml, setReportHtml] = React.useState("");
+  const [reportHtml, setReportHtml] = React.useState<SelectedResource<string> | null>(null);
   const [datasets, setDatasets] = React.useState<Dataset[]>([]);
   const [factors, setFactors] = React.useState<Factor[]>([]);
   const [selectedFactorKey, setSelectedFactorKey] = React.useState("momentum_20d");
@@ -146,6 +147,9 @@ function App() {
   const selectedFactor = factors.find(item => item.id === selectedFactorKey) ?? factors[0];
   const selectedTask = tasks.find(item => item.id === selectedTaskId) ?? tasks[0];
   const selectedReport = reports.find(item => item.run_id === selectedReportId) ?? reports[0];
+  const visibleTaskLogs = forSelectedId(taskLogs, selectedTask?.id);
+  const visibleTaskConclusion = taskConclusion?.run_id === selectedTask?.id ? taskConclusion : null;
+  const visibleReportHtml = forSelectedId(reportHtml, selectedReport?.run_id);
   const researchInput = {
     mode: researchMode,
     datasetId: selected?.id ?? null,
@@ -234,25 +238,34 @@ function App() {
   React.useEffect(() => { if (user && view === "reports") loadReports().catch(error => setNotice(String(error))); }, [user, view, loadReports]);
   React.useEffect(() => { if (user?.role === "admin" && view === "users") loadUsers().catch(error => setNotice(String(error))); }, [user, view, loadUsers]);
   React.useEffect(() => {
-    if (!user || view !== "reports" || !selectedReport) { setReportHtml(""); return; }
+    if (!user || view !== "reports" || !selectedReport) { setReportHtml(null); return; }
+    let active = true;
     apiFetch(`/reports/${selectedReport.run_id}/html`).then(async response => {
       if (!response.ok) throw new Error("报告预览加载失败");
-      setReportHtml(await response.text());
-    }).catch(error => setNotice(String(error)));
-  }, [user, view, selectedReport]);
+      const html = await response.text();
+      if (active) setReportHtml({ id: selectedReport.run_id, value: html });
+    }).catch(error => { if (active) setNotice(String(error)); });
+    return () => { active = false; };
+  }, [user, view, selectedReport?.run_id]);
   React.useEffect(() => {
-    if (!user || view !== "tasks" || !selectedTask) { setTaskLogs([]); return; }
+    if (!user || view !== "tasks" || !selectedTask) { setTaskLogs(null); return; }
+    let active = true;
     apiFetch(`/research/tasks/${selectedTask.id}/logs`).then(async response => {
       if (!response.ok) throw new Error("任务日志加载失败");
-      setTaskLogs(await response.json() as RunLog[]);
-    }).catch(error => setNotice(String(error)));
+      const logs = await response.json() as RunLog[];
+      if (active) setTaskLogs({ id: selectedTask.id, value: logs });
+    }).catch(error => { if (active) setNotice(String(error)); });
+    return () => { active = false; };
   }, [user, view, selectedTask?.id, selectedTask?.status]);
   React.useEffect(() => {
     if (!user || view !== "tasks" || selectedTask?.status !== "success") { setTaskConclusion(null); return; }
+    let active = true;
     apiFetch(`/research/tasks/${selectedTask.id}/conclusion`).then(async response => {
       if (!response.ok) throw new Error("研究结论加载失败");
-      setTaskConclusion(await response.json() as Conclusion);
-    }).catch(error => setNotice(String(error)));
+      const conclusion = await response.json() as Conclusion;
+      if (active) setTaskConclusion(conclusion);
+    }).catch(error => { if (active) setNotice(String(error)); });
+    return () => { active = false; };
   }, [user, view, selectedTask?.id, selectedTask?.status]);
 
   async function runResearch() {
@@ -374,13 +387,13 @@ function App() {
     setTaskConfigKey("");
     setTasks([]);
     setSelectedTaskId("");
-    setTaskLogs([]);
+    setTaskLogs(null);
     setTaskConclusion(null);
     setComparisonRunIds([]);
     setComparison(null);
     setReports([]);
     setSelectedReportId("");
-    setReportHtml("");
+    setReportHtml(null);
     setDatasetPreview(null);
     setAdapterPreview(null);
     setNotice("");
@@ -537,8 +550,8 @@ function App() {
           <div className="repro-grid"><span><label>数据版本</label><b>{selectedTask.dataset_version}</b><small>{selectedTask.dataset_version_id}</small></span><span><label>因子版本</label><b>{selectedTask.factor_version}</b><small>{selectedTask.factor_version_id}</small></span><span><label>代码版本</label><b>{selectedTask.code_version}</b><small>实验创建时固定</small></span><span><label>执行时间</label><b>{formatTime(selectedTask.started_at)}</b><small>结束：{formatTime(selectedTask.finished_at)}</small></span></div>
           <h3>研究参数</h3><pre>{JSON.stringify(selectedTask.parameters, null, 2)}</pre>
           {selectedTask.result && <><div className="compact-metrics"><span><label>有效观测</label><b>{selectedTask.result.coverage}</b></span><span><label>IC均值</label><b>{number(selectedTask.result.ic_mean)}</b></span><span><label>Rank IC</label><b>{number(selectedTask.result.rank_ic_mean)}</b></span><span><label>ICIR</label><b>{number(selectedTask.result.icir)}</b></span><span><label>毛多空收益</label><b>{number(selectedTask.result.long_short_total_return, true)}</b></span><span><label>成本后多空收益</label><b>{number(selectedTask.result.long_short_net_total_return, true)}</b></span></div><h3>分组平均收益</h3><div className="bars">{selectedTask.result.group_returns.map(item => <div className="bar-row" key={item.group}><span>Q{item.group}</span><div><i style={{width: `${Math.min(100, Math.abs(item.mean_return) * 4000 + 8)}%`}} /></div><strong>{number(item.mean_return, true)}</strong></div>)}</div></>}
-          {taskConclusion && <section className={`conclusion ${taskConclusion.grade}`}><div className="section-title"><div><p className="eyebrow">RULE-BASED DRAFT · v{taskConclusion.method.version}</p><h3>结构化研究结论</h3></div><span>{taskConclusion.grade}</span></div><strong>{taskConclusion.headline}</strong><div className="conclusion-columns"><div><h3>支持证据</h3><ul>{taskConclusion.evidence.map(item => <li key={item}>{item}</li>)}</ul></div><div><h3>限制条件</h3><ul>{taskConclusion.limitations.map(item => <li key={item}>{item}</li>)}</ul></div><div><h3>建议下一步</h3><ol>{taskConclusion.next_steps.map(item => <li key={item}>{item}</li>)}</ol></div></div><small>{taskConclusion.disclaimer}</small></section>}
-          <h3>执行日志</h3><div className="run-logs">{taskLogs.map(item => <div className={item.level} key={item.id}><time>{formatTime(item.created_at)}</time><b>{item.event}</b><span>{item.message}</span></div>)}{!taskLogs.length && <div className="empty">暂无日志。</div>}</div>
+          {visibleTaskConclusion && <section className={`conclusion ${visibleTaskConclusion.grade}`}><div className="section-title"><div><p className="eyebrow">RULE-BASED DRAFT · v{visibleTaskConclusion.method.version}</p><h3>结构化研究结论</h3></div><span>{visibleTaskConclusion.grade}</span></div><strong>{visibleTaskConclusion.headline}</strong><div className="conclusion-columns"><div><h3>支持证据</h3><ul>{visibleTaskConclusion.evidence.map(item => <li key={item}>{item}</li>)}</ul></div><div><h3>限制条件</h3><ul>{visibleTaskConclusion.limitations.map(item => <li key={item}>{item}</li>)}</ul></div><div><h3>建议下一步</h3><ol>{visibleTaskConclusion.next_steps.map(item => <li key={item}>{item}</li>)}</ol></div></div><small>{visibleTaskConclusion.disclaimer}</small></section>}
+          <h3>执行日志</h3><div className="run-logs">{visibleTaskLogs?.map(item => <div className={item.level} key={item.id}><time>{formatTime(item.created_at)}</time><b>{item.event}</b><span>{item.message}</span></div>)}{visibleTaskLogs === null ? <div className="empty">正在加载日志…</div> : visibleTaskLogs.length === 0 && <div className="empty">暂无日志。</div>}</div>
         </> : <div className="empty">从左侧选择一项任务查看详情。</div>}</div>
       </section>
     </> : view === "comparisons" ? <>
@@ -553,7 +566,7 @@ function App() {
       <section className="card user-table"><div className="user-row heading"><span>用户</span><span>角色</span><span>状态</span><span>创建时间</span><span>操作</span></div>{users.map(item => <div className="user-row" key={item.id}><span><b>{item.display_name}</b><small>{item.username}</small></span><span><select value={item.role} disabled={loading || item.id === user.id} onChange={event => updatePlatformUser(item.id, { role: event.target.value })}><option value="admin">管理员</option><option value="researcher">研究员</option><option value="viewer">只读用户</option></select></span><span><i className={item.is_active ? "active" : "disabled"}>{item.is_active ? "已启用" : "已停用"}</i></span><span><small>{formatTime(item.created_at)}</small></span><span><button disabled={loading || item.id === user.id} onClick={() => updatePlatformUser(item.id, { is_active: !item.is_active })}>{item.is_active ? "停用" : "启用"}</button></span></div>)}</section>
     </> : <>
       <header><div><p className="eyebrow">REPORT ARCHIVE</p><h1>把结构化结果变成可交付报告</h1><p>每份报告都绑定唯一Run，可在线预览、下载并打印为PDF。</p></div>{selectedReport && <button className="download" onClick={downloadReport}>下载HTML</button>}</header>
-      <section className="report-layout"><div className="card report-list">{reports.map(item => <button key={item.run_id} className={selectedReport?.run_id === item.run_id ? "selected" : ""} onClick={() => setSelectedReportId(item.run_id)}><strong>{item.experiment_name}</strong><span>数据 {item.dataset_version} · 因子 {item.factor_version}</span><small>{formatTime(item.created_at)}</small></button>)}{!reports.length && <div className="empty">成功完成研究后，报告会自动出现在这里。</div>}</div><div className="card report-preview">{selectedReport && reportHtml ? <iframe title={selectedReport.experiment_name} srcDoc={reportHtml} sandbox="allow-same-origin" /> : <div className="empty">暂无可预览报告。</div>}</div></section>
+      <section className="report-layout"><div className="card report-list">{reports.map(item => <button key={item.run_id} className={selectedReport?.run_id === item.run_id ? "selected" : ""} onClick={() => setSelectedReportId(item.run_id)}><strong>{item.experiment_name}</strong><span>数据 {item.dataset_version} · 因子 {item.factor_version}</span><small>{formatTime(item.created_at)}</small></button>)}{!reports.length && <div className="empty">成功完成研究后，报告会自动出现在这里。</div>}</div><div className="card report-preview">{selectedReport && visibleReportHtml ? <iframe title={selectedReport.experiment_name} srcDoc={visibleReportHtml} sandbox="allow-same-origin" /> : <div className="empty">{selectedReport ? "正在加载报告预览…" : "暂无可预览报告。"}</div>}</div></section>
     </>}<footer>研究结果仅用于课程研究，不构成投资建议。</footer></main></div>;
 }
 

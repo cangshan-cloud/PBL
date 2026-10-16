@@ -102,6 +102,7 @@
 | CHG-20261016-021 | 2026-10-16 | frontend regression + CI / verified on Mac | 研究配置与结果归属自动回归 | [记录](changes/2026-10-16-021-frontend-config-regression.md) | `frontend/src/research-config.ts`、`frontend/tests/research-config.test.ts`、`frontend/src/main.tsx`、`frontend/package.json`、`.github/workflows/ci.yml`、A/B/C/D 四责任包 |
 | CHG-20261016-022 | 2026-10-16 | frontend input preflight / verified on Mac | 研究参数提交前校验与提示 | [记录](changes/2026-10-16-022-research-input-preflight.md) | `frontend/src/research-config.ts`、`frontend/src/main.tsx`、`frontend/tests/research-config.test.ts`、验收矩阵、A/B/C/D 四责任包 |
 | CHG-20261016-023 | 2026-10-16 | research polling session guard / verified on Mac | 退出登录后旧研究轮询不再写回结果 | [记录](changes/2026-10-16-023-research-poll-session.md) | `frontend/src/research-task.ts`、`frontend/src/main.tsx`、`frontend/tests/research-task.test.ts`、`frontend/package.json`、A/B/C/D 四责任包 |
+| CHG-20261016-024 | 2026-10-16 | selected detail identity / verified on Mac | 任务日志、结论与报告预览绑定当前 Run | [记录](changes/2026-10-16-024-selected-detail-identity.md) | `frontend/src/selected-resource.ts`、`frontend/src/main.tsx`、`frontend/tests/selected-resource.test.ts`、`frontend/package.json`、A/B/C/D 四责任包 |
 
 ## 历史基线
 

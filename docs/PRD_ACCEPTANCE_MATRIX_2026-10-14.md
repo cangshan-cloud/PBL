@@ -34,6 +34,7 @@
 - **前端配置回归本机工作树（2026-10-16）**：把同一请求参数构造和结果可见性抽为纯函数，Node 22 的 7 项前端测试、前端构建、后端 191 项及黄金验算通过；CI 已新增前端测试步骤，但其 Ubuntu/Windows 结果须按本提交另查。见 [`FRONTEND_CONFIGURATION_REGRESSION_2026-10-16.md`](FRONTEND_CONFIGURATION_REGRESSION_2026-10-16.md)。
 - **研究参数提交前校验（2026-10-16）**：数字输入、样本日期和多因子成分在前端提交前给出明确错误；前端 9 项测试、生产构建、后端 191 项及黄金验算通过。未重新运行浏览器和队列；见 [CHG-20261016-022](changes/2026-10-16-022-research-input-preflight.md)。
 - **研究轮询会话隔离（2026-10-16）**：退出登录后旧研究请求的迟到响应不再写回工作台或触发收尾刷新；前端 12 项、生产构建、后端 191 项与黄金验算通过。未进行新浏览器多账号点测，不代表取消服务端任务；见 [CHG-20261016-023](changes/2026-10-16-023-research-poll-session.md)。
+- **任务／报告详情归属（2026-10-16）**：日志、规则结论和 HTML 预览仅在对应当前 Run 时显示，旧请求晚到会被忽略；前端 13 项、构建、后端 191 项及黄金验算通过。未重新做浏览器快速切换；见 [CHG-20261016-024](changes/2026-10-16-024-selected-detail-identity.md)。
 
 - **本机基线（2026-10-15，提交 `fffad78`）**：`.venv/bin/python -m unittest discover -s backend/tests -q` 152 项通过；`.venv/bin/python tools/verify_golden_research.py` 通过；`npm run build --prefix frontend` 通过。此后权重校验变更再次运行后端 152 项与黄金样例，结果均通过，见 [CHG-20261015-014](changes/2026-10-15-014-composite-weight-validation.md)；未重新运行前端构建，因本次未改前端。
 - **CSV 快照修正本机工作树（2026-10-15）**：后端 155 项和黄金样例通过，详见 [CHG-20261015-016](changes/2026-10-15-016-verified-csv-snapshot.md)；本次未改前端，未重复构建。提交后 CI 仍须另查。
