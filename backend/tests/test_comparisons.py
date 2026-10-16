@@ -1,4 +1,6 @@
 import sys
+import csv
+import io
 import json
 import math
 import unittest
@@ -22,6 +24,21 @@ class ComparisonTests(unittest.TestCase):
 
     def tearDown(self):
         self.engine.dispose()
+
+    def test_csv_neutralizes_formula_like_saved_metadata(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            runs = [execute_research_run(session, create_research_run(session, {
+                "factor": factor, "groups": 5,
+            }).id) for factor in ("momentum_20d", "reversal_5d")]
+            result = compare_runs(runs)
+            result["items"][0]["experiment_name"] = "  =HYPERLINK(\"https://example.invalid\")"
+            result["items"][1]["factor"] = "\t@SUM(1)"
+            result["warnings"].append("+SUM(1)")
+            rows = list(csv.DictReader(io.StringIO(comparison_csv(result).decode("utf-8-sig"))))
+            self.assertEqual(rows[0]["experiment_name"], "'  =HYPERLINK(\"https://example.invalid\")")
+            self.assertEqual(rows[1]["factor"], "'\t@SUM(1)")
+            self.assertTrue(any(row["experiment_name"] == "'+SUM(1)" for row in rows))
+            self.assertEqual(result["items"][0]["experiment_name"], "  =HYPERLINK(\"https://example.invalid\")")
 
     def test_compares_successful_runs_with_baseline_deltas_and_rankings(self):
         with Session(self.engine, expire_on_commit=False) as session:

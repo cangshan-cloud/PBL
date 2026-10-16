@@ -151,6 +151,14 @@ def _rank_value(value: object) -> float | None:
     return float(value) if _finite_metric(value) is not None else None
 
 
+def _spreadsheet_safe(value: object) -> object:
+    if isinstance(value, str) and value and (
+        value[0] in "\t\r\n" or value.lstrip().startswith(("=", "+", "-", "@"))
+    ):
+        return "'" + value
+    return value
+
+
 def comparison_csv(result: dict) -> bytes:
     stream = io.StringIO(newline="")
     metadata_fields = ["run_id", "experiment_name", "factor", "dataset_version", "price_basis", "groups", "ic_date_count", "group_date_count", "transaction_cost_bps", "ic_start_date", "ic_end_date", "sample_symbols", "preprocessing", "code_version"]
@@ -164,12 +172,12 @@ def comparison_csv(result: dict) -> bytes:
         for key in METRICS:
             row[key] = item["metrics"].get(key)
             row[f"{key}_delta_from_baseline"] = item["delta_from_baseline"].get(key)
-        writer.writerow(row)
+        writer.writerow({key: _spreadsheet_safe(value) for key, value in row.items()})
     stream.write("\n可比性," + ("通过" if result["comparable"] else "谨慎解释") + "\n")
     stream.write(f"共同有效IC日期数,{result['common_ic_date_count']}\n")
     stream.write(f"共同多空分组日期数,{result['common_group_date_count']}\n")
     for warning in result["warnings"]:
-        writer.writerow({"run_id": "风险提示", "experiment_name": warning})
+        writer.writerow({"run_id": "风险提示", "experiment_name": _spreadsheet_safe(warning)})
     return ("\ufeff" + stream.getvalue()).encode("utf-8")
 
 
