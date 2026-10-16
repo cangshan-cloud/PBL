@@ -1,6 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { buildResearchConfiguration, longShortGroupLabel, resultForConfiguration, validateResearchConfiguration } from "./research-config";
+import { pollResearchTask } from "./research-task";
 import "./styles.css";
 import "./layout.css";
 
@@ -136,6 +137,7 @@ function App() {
   const [datasetPreview, setDatasetPreview] = React.useState<DatasetPreview | null>(null);
   const [adapterPreview, setAdapterPreview] = React.useState<AdapterPreview | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const researchSession = React.useRef(0);
   const [notice, setNotice] = React.useState("");
   const published = datasets.filter(item => item.status === "published");
   const isHistoricalDataset = (item: Dataset) => item.quality_report.dataset_kind === "hs300_bundle_v1";
@@ -256,23 +258,25 @@ function App() {
   async function runResearch() {
     if (!researchParameters) { setNotice(researchMode === "historical" ? "请先注册并发布历史沪深300数据包" : "请先选择可用的数据版本与研究因子"); setView("datasets"); return; }
     if (researchValidationError) { setNotice(researchValidationError); return; }
+    const session = ++researchSession.current;
+    const isCurrent = () => researchSession.current === session;
     setLoading(true); setNotice(""); setTask(null); setTaskConfigKey(researchConfigKey);
     try {
       const endpoint = researchMode === "historical" ? "/research/historical-tasks" : researchMode === "composite" ? "/research/composite-tasks" : "/research/tasks";
       const response = await apiFetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(researchParameters) });
       const payload = await response.json();
-      let value = payload as Task;
+      if (!isCurrent()) return;
+      const value = payload as Task;
       if (!response.ok) throw new Error(errorMessage(payload, "任务提交失败"));
       setTask(value);
-      while (value.status === "pending" || value.status === "running") {
-        await new Promise(resolve => window.setTimeout(resolve, 500));
+      await pollResearchTask(value, async () => {
         const poll = await apiFetch(`/research/tasks/${value.id}`);
         const pollPayload = await poll.json();
         if (!poll.ok) throw new Error(errorMessage(pollPayload, "任务状态查询失败"));
-        value = pollPayload as Task; setTask(value);
-      }
-    } catch (error) { setTask({ id: "local-error", status: "failed", error_summary: String(error) }); }
-    finally { setLoading(false); loadTasks().catch(() => undefined); loadReports().catch(() => undefined); loadDashboard().catch(() => undefined); }
+        return pollPayload as Task;
+      }, setTask, isCurrent, () => new Promise(resolve => window.setTimeout(resolve, 500)));
+    } catch (error) { if (isCurrent()) setTask({ id: "local-error", status: "failed", error_summary: String(error) }); }
+    finally { if (isCurrent()) { setLoading(false); loadTasks().catch(() => undefined); loadReports().catch(() => undefined); loadDashboard().catch(() => undefined); } }
   }
 
   async function uploadDataset(event: React.FormEvent<HTMLFormElement>) {
@@ -357,6 +361,7 @@ function App() {
   }
 
   function logout() {
+    researchSession.current += 1;
     currentToken = "";
     window.localStorage.removeItem("factorlab_token");
     setUser(null);
@@ -379,6 +384,7 @@ function App() {
     setDatasetPreview(null);
     setAdapterPreview(null);
     setNotice("");
+    setLoading(false);
   }
 
   async function downloadReport() {
