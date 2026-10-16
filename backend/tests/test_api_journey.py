@@ -129,6 +129,63 @@ class ApiJourneyTests(unittest.TestCase):
         self.assertEqual(created.json()["status"], "success")
         self.assertEqual(created.json()["result"]["coverage"], 8)
 
+    def test_sparse_factor_dates_are_disclosed_across_task_conclusion_and_report(self):
+        admin = self.auth("admin", "admin12345")
+        researcher = self.auth("researcher", "research12345")
+        lines = ["trade_date,symbol,close,pe"]
+        for index in range(5):
+            for symbol, base, ordinal in (("A", 10, 1), ("B", 20, 2), ("C", 30, 3)):
+                if index == 2 and symbol == "C":
+                    continue
+                pe = 1 if index == 0 else ordinal
+                lines.append(f"2025-01-{index + 1:02d},{symbol},{base + index},{pe}")
+        imported = self.client.post(
+            "/api/v1/datasets/import", headers=admin,
+            data={"dataset_key": "sparse_factor_days", "name": "稀疏截面验收"},
+            files={"file": ("prices.csv", ("\n".join(lines) + "\n").encode(), "text/csv")},
+        )
+        self.assertEqual(imported.status_code, 201, imported.text)
+        dataset_id = imported.json()["id"]
+        self.assertEqual(self.client.post(f"/api/v1/datasets/{dataset_id}/publish", headers=admin).status_code, 200)
+
+        created = self.client.post("/api/v1/research/tasks", headers=researcher,
+                                   json={"dataset_version_id": dataset_id, "factor": "pe", "groups": 3})
+        self.assertEqual(created.status_code, 201, created.text)
+        task = created.json()
+        self.assertEqual(task["status"], "success")
+        result = task["result"]
+        self.assertEqual(result["coverage"], 10)
+        self.assertEqual(result["group_skipped_constant_factor_days"], 1)
+        self.assertEqual(result["group_skipped_insufficient_sample_days"], 2)
+        self.assertEqual([item["date"] for item in result["long_short_series"]], ["2025-01-04"])
+        self.assertIsNone(result["ic_series"][0]["ic"])
+        snapshot = self.client.get(f"/api/v1/research/tasks/{task['id']}/reproducibility.json", headers=researcher)
+        self.assertEqual(snapshot.status_code, 200, snapshot.text)
+        self.assertEqual(snapshot.json()["result"]["group_skipped_constant_factor_days"], 1)
+        self.assertEqual(snapshot.json()["result"]["group_skipped_insufficient_sample_days"], 2)
+
+        conclusion = self.client.get(f"/api/v1/research/tasks/{task['id']}/conclusion", headers=researcher)
+        self.assertEqual(conclusion.status_code, 200, conclusion.text)
+        self.assertTrue(any("全截面因子同值" in item for item in conclusion.json()["limitations"]))
+        self.assertTrue(any("有效证券数少于目标分组数" in item for item in conclusion.json()["limitations"]))
+        report = self.client.get(f"/api/v1/reports/{task['id']}/html", headers=researcher)
+        self.assertEqual(report.status_code, 200, report.text)
+        self.assertIn("全截面因子同值而跳过分组的日期：1 天", report.text)
+        self.assertIn("有效证券数少于目标分组数而跳过的日期：2 天", report.text)
+
+        sparse_only = self.client.post("/api/v1/research/tasks", headers=researcher,
+                                       json={"dataset_version_id": dataset_id, "factor": "pe", "groups": 3,
+                                             "end_date": "2025-01-03"})
+        self.assertEqual(sparse_only.status_code, 201, sparse_only.text)
+        self.assertEqual(sparse_only.json()["status"], "success")
+        sparse_result = sparse_only.json()["result"]
+        self.assertEqual(sparse_result["group_returns"], [])
+        self.assertEqual(sparse_result["long_short_series"], [])
+        self.assertIsNone(sparse_result["long_short_total_return"])
+        sparse_report = self.client.get(f"/api/v1/reports/{sparse_only.json()['id']}/html", headers=researcher)
+        self.assertEqual(sparse_report.status_code, 200, sparse_report.text)
+        self.assertIn("暂无有效时间序列。", sparse_report.text)
+
     def test_comparison_api_and_exports_include_actual_group_dates(self):
         researcher = self.auth("researcher", "research12345")
         run_ids = []
