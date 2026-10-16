@@ -182,9 +182,14 @@ class ApiJourneyTests(unittest.TestCase):
         self.assertEqual(sparse_result["group_returns"], [])
         self.assertEqual(sparse_result["long_short_series"], [])
         self.assertIsNone(sparse_result["long_short_total_return"])
+        sparse_conclusion = self.client.get(f"/api/v1/research/tasks/{sparse_only.json()['id']}/conclusion",
+                                            headers=researcher)
+        self.assertEqual(sparse_conclusion.status_code, 200, sparse_conclusion.text)
+        self.assertIn("不能评价多空表现", sparse_conclusion.json()["evidence"][2])
         sparse_report = self.client.get(f"/api/v1/reports/{sparse_only.json()['id']}/html", headers=researcher)
         self.assertEqual(sparse_report.status_code, 200, sparse_report.text)
         self.assertIn("暂无有效时间序列。", sparse_report.text)
+        self.assertIn("暂无可计算的分组收益", sparse_report.text)
 
     def test_comparison_api_and_exports_include_actual_group_dates(self):
         researcher = self.auth("researcher", "research12345")

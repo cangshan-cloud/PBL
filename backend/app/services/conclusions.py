@@ -42,6 +42,10 @@ def build_run_conclusion(run: Run, result: dict | None = None) -> dict:
         f"按单边{_fmt(transaction_cost_bps)}个基点扣减换手成本后，多空累计收益为{_fmt(long_short_net, percent=True)}。",
         f"头部组平均换手率为{_fmt(turnover, percent=True)}；换手越高，实际可实现收益越容易被成本侵蚀。",
     ]
+    if long_short is None:
+        evidence[2] = "没有可计算的最高组减最低组收益，本次不能评价多空表现。"
+    if long_short_net is None:
+        evidence[3] = "没有可计算的成本后多空收益，不能评价固定换手成本后的表现。"
     limitations = [
         "当前指标是样本内描述性统计，未进行显著性检验，不能证明因果关系或未来有效性。",
         "分组收益为毛收益；成本后多空收益使用固定成本假设，尚未模拟融资融券、涨跌停、停牌和成交容量约束。",
@@ -62,6 +66,8 @@ def build_run_conclusion(run: Run, result: dict | None = None) -> dict:
     insufficient_group_days = result.get("group_skipped_insufficient_sample_days")
     if isinstance(insufficient_group_days, int) and not isinstance(insufficient_group_days, bool) and insufficient_group_days > 0:
         limitations.append(f"有{insufficient_group_days}个交易日有效证券数少于目标分组数，未生成分组和多空收益。")
+    if result.get("long_short_series") == []:
+        limitations.append("本次没有有效可分组日期，多空收益和换手率均不可计算；不得把缺失值解释为零收益。")
 
     next_steps = [
         ("核对历史成员生效时点、数据授权及复权/停牌口径，并复验封存包。" if historical
@@ -82,7 +88,7 @@ def build_run_conclusion(run: Run, result: dict | None = None) -> dict:
         "next_steps": next_steps,
         "method": {
             "type": "deterministic_rule_template",
-            "version": "1.0.1",
+            "version": "1.0.2",
             "thresholds": {"weak_abs_ic_below": 0.02, "strong_abs_ic_from": 0.05, "stable_abs_icir_from": 1.0},
         },
         "disclaimer": "本草稿由固定规则生成，必须由研究人员复核；仅用于课程研究，不构成投资建议。",

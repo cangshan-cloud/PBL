@@ -96,6 +96,8 @@ def build_report_html(run: Run, result: dict) -> str:
         f"<td>{_fmt(next((series['points'][-1]['nav'] for series in result.get('group_nav', []) if series['group'] == item['group'] and series['points']), None))}</td></tr>"
         for item in result.get("group_returns", [])
     )
+    if not groups:
+        groups = '<tr><td colspan="3">暂无可计算的分组收益；不以零收益填补。</td></tr>'
     preprocessing = result.get("preprocessing", {})
     preprocessing_text = (
         f"MAD {preprocessing.get('mad_scale', 3)}倍去极值"

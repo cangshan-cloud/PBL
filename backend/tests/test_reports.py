@@ -69,6 +69,7 @@ class ReportTests(unittest.TestCase):
                                                "group_skipped_insufficient_sample_days": 2})
             self.assertIn("全截面因子同值而跳过分组的日期：1 天", rendered)
             self.assertIn("有效证券数少于目标分组数而跳过的日期：2 天", rendered)
+            self.assertIn("暂无可计算的分组收益；不以零收益填补。", rendered)
 
     def test_correlation_matrix_labels_are_html_escaped(self):
         with Session(self.engine, expire_on_commit=False) as session:

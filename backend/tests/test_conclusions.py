@@ -56,7 +56,7 @@ class ConclusionTests(unittest.TestCase):
             }
             conclusion = build_run_conclusion(run, result)
             self.assertEqual(conclusion["grade"], "insufficient")
-            self.assertEqual(conclusion["method"]["version"], "1.0.1")
+            self.assertEqual(conclusion["method"]["version"], "1.0.2")
             self.assertIn("覆盖1个有效截面", conclusion["evidence"][0])
             self.assertTrue(any("99个交易日无法计算" in item for item in conclusion["limitations"]))
             self.assertTrue(any("有效截面少于60" in item for item in conclusion["limitations"]))
@@ -78,6 +78,16 @@ class ConclusionTests(unittest.TestCase):
                                                      "group_skipped_insufficient_sample_days": 2})
             self.assertTrue(any("2个交易日有效证券数少于目标分组数" in item
                                 for item in conclusion["limitations"]))
+
+    def test_no_group_result_is_not_described_as_zero_or_performance(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(session, {"factor": "momentum_20d", "groups": 5})
+            conclusion = build_run_conclusion(run, {"ic_series": [], "long_short_series": [],
+                                                     "long_short_total_return": None,
+                                                     "long_short_net_total_return": None})
+            self.assertIn("不能评价多空表现", conclusion["evidence"][2])
+            self.assertIn("没有可计算的成本后多空收益", conclusion["evidence"][3])
+            self.assertTrue(any("不得把缺失值解释为零收益" in item for item in conclusion["limitations"]))
 
 
 if __name__ == "__main__":
