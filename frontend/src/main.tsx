@@ -1,6 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { buildResearchConfiguration, longShortGroupLabel, resultForConfiguration } from "./research-config";
+import { buildResearchConfiguration, longShortGroupLabel, resultForConfiguration, validateResearchConfiguration } from "./research-config";
 import "./styles.css";
 import "./layout.css";
 
@@ -144,7 +144,7 @@ function App() {
   const selectedFactor = factors.find(item => item.id === selectedFactorKey) ?? factors[0];
   const selectedTask = tasks.find(item => item.id === selectedTaskId) ?? tasks[0];
   const selectedReport = reports.find(item => item.run_id === selectedReportId) ?? reports[0];
-  const { parameters: researchParameters, key: researchConfigKey } = buildResearchConfiguration({
+  const researchInput = {
     mode: researchMode,
     datasetId: selected?.id ?? null,
     factorId: selectedFactor?.id ?? null,
@@ -159,7 +159,9 @@ function App() {
     sampleStart,
     sampleEnd,
     sampleSymbols,
-  });
+  };
+  const { parameters: researchParameters, key: researchConfigKey } = buildResearchConfiguration(researchInput);
+  const researchValidationError = validateResearchConfiguration(researchInput, selected?.start_date, selected?.end_date);
   const task = resultForConfiguration(rawTask, taskConfigKey, researchConfigKey);
 
   const loadDatasets = React.useCallback(async () => {
@@ -253,6 +255,7 @@ function App() {
 
   async function runResearch() {
     if (!researchParameters) { setNotice(researchMode === "historical" ? "请先注册并发布历史沪深300数据包" : "请先选择可用的数据版本与研究因子"); setView("datasets"); return; }
+    if (researchValidationError) { setNotice(researchValidationError); return; }
     setLoading(true); setNotice(""); setTask(null); setTaskConfigKey(researchConfigKey);
     try {
       const endpoint = researchMode === "historical" ? "/research/historical-tasks" : researchMode === "composite" ? "/research/composite-tasks" : "/research/tasks";
@@ -492,6 +495,7 @@ function App() {
       <section className="card platform-scope"><div><p className="eyebrow">CURRENT SCOPE</p><h2>沪深 A 股 · 日频 · 私有部署</h2></div><span>最新数据：{dashboard?.datasets.latest_name ?? "暂无"}</span><span>研究结果仅用于课程研究，不构成投资建议</span></section>
     </> : view === "research" ? <>
       <header><div><p className="eyebrow">RESEARCH WORKSPACE</p><h1>把因子想法变成可复现的证据</h1><p>固定数据版本、因子口径与检验参数，一次运行保留完整研究轨迹。</p></div><button onClick={runResearch} disabled={loading || !canResearch || !selected || (researchMode === "single" ? !selectedFactor : researchMode === "composite" ? compositeFactors.length < 2 : false)}>{!canResearch ? "只读模式" : loading ? "正在运行…" : "运行研究"}</button></header>
+      {researchValidationError && <div className="notice" role="alert">当前配置不能提交：{researchValidationError}</div>}
       <div className="workspace-step"><span>01</span><div><h2>配置研究</h2><p>先选研究模式与数据版本，再确认样本、分组和成本。</p></div></div>
       <div className="mode-switch" role="group" aria-label="研究模式"><button type="button" aria-pressed={researchMode === "single"} className={researchMode === "single" ? "active" : ""} onClick={() => setResearchMode("single")}>单因子检验</button><button type="button" aria-pressed={researchMode === "composite"} className={researchMode === "composite" ? "active" : ""} onClick={() => setResearchMode("composite")}>等权多因子</button><button type="button" aria-pressed={researchMode === "historical"} className={researchMode === "historical" ? "active" : ""} onClick={() => setResearchMode("historical")}>2024 沪深300历史研究</button></div>
       {researchMode === "historical" ? <><section className="config card"><div><label htmlFor="historical-dataset">历史数据包</label><select id="historical-dataset" value={selected?.id ?? ""} onChange={event => setSelectedDataset(event.target.value)}>{eligibleDatasets.map(item => <option key={item.id} value={item.id}>{item.name} · {item.version}</option>)}</select></div><div><label>因子组合</label><strong>动量20日 · 反转5日 · 波动率20日 · 换手率20日</strong></div><div><label>研究期间</label><strong>2024 年；按日历史成分</strong></div><div><label htmlFor="groups">分组数量</label><input id="groups" type="number" min="2" max="10" value={groups} onChange={event => setGroups(Number(event.target.value))} /></div></section><div className="notice">固定等权、原始数据包价格、MAD 去极值、Z-score 与单边 10 bps 成本假设。结果只是条件研究检验，不代表实际可成交回测。{!selected && " 尚无已发布历史包，请先到数据集页面注册并发布。"}</div></> : <>

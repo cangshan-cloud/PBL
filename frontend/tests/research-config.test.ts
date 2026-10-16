@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildResearchConfiguration, longShortGroupLabel, resultForConfiguration } from "../src/research-config.ts";
+import { buildResearchConfiguration, longShortGroupLabel, resultForConfiguration, validateResearchConfiguration } from "../src/research-config.ts";
 import type { ResearchConfigurationInput } from "../src/research-config.ts";
 
 const base: ResearchConfigurationInput = {
@@ -95,4 +95,22 @@ test("single-factor without a lookback and missing prerequisites", () => {
 test("group label follows the selected group count", () => {
   assert.equal(longShortGroupLabel(3), "Q3 − Q1");
   assert.equal(longShortGroupLabel(5), "Q5 − Q1");
+});
+
+test("invalid numeric research inputs are rejected before submission", () => {
+  for (const groups of [NaN, 1, 11, 2.5]) assert.match(validateResearchConfiguration({ ...base, groups })!, /分组数量/);
+  for (const lookback of [NaN, 1, 121, 2.5]) assert.match(validateResearchConfiguration({ ...base, lookback })!, /回看窗口/);
+  for (const transactionCostBps of [NaN, Infinity, -1, 101]) assert.match(validateResearchConfiguration({ ...base, transactionCostBps })!, /单边成本/);
+  assert.equal(validateResearchConfiguration({ ...base, factorDefaultLookback: null, lookback: NaN }), null);
+  assert.equal(validateResearchConfiguration({ ...base, mode: "historical", lookback: NaN, transactionCostBps: NaN }), null);
+});
+
+test("invalid samples and component counts are rejected before submission", () => {
+  assert.match(validateResearchConfiguration({ ...base, sampleStart: "2025-07-01" })!, /起始日不能晚于结束日/);
+  assert.match(validateResearchConfiguration({ ...base, sampleStart: "2024-12-31" }, "2025-01-01", "2025-06-30")!, /早于数据起点/);
+  assert.match(validateResearchConfiguration({ ...base, sampleStart: "2025-07-01", sampleEnd: "" }, "2025-01-01", "2025-06-30")!, /起始日不能晚于数据终点/);
+  assert.match(validateResearchConfiguration({ ...base, sampleStart: "", sampleEnd: "2024-12-31" }, "2025-01-01", "2025-06-30")!, /结束日不能早于数据起点/);
+  assert.match(validateResearchConfiguration({ ...base, sampleEnd: "2025-07-01" }, "2025-01-01", "2025-06-30")!, /晚于数据终点/);
+  assert.match(validateResearchConfiguration({ ...base, mode: "composite", compositeFactors: ["momentum_20d"] })!, /2～6 个因子/);
+  assert.equal(validateResearchConfiguration(base, "2025-01-01", "2025-06-30"), null);
 });

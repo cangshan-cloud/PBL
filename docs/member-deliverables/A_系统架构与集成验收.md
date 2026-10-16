@@ -66,3 +66,7 @@
 
 CI 已加入 Node 22 前端测试步骤；Mac 本机七项前端测试、生产构建、后端 191 项及黄金验算通过。远端 Ubuntu／Windows CI 尚待核对；本轮未重做 Celery、Compose 或 Windows 部署验收。见 [`../FRONTEND_CONFIGURATION_REGRESSION_2026-10-16.md`](../FRONTEND_CONFIGURATION_REGRESSION_2026-10-16.md)。实际执行者：Codex。
 
+## 2026-10-16 研究参数提交前校验（开发者代执行）
+
+前端在 POST 前拒绝非法配置，后端校验保持最终边界；前端九项测试、构建、后端 191 项和黄金验算通过。本轮未重跑浏览器、Celery／Compose 或 Windows 部署，远端 CI 待逐提交核对。见 [CHG-20261016-022](../changes/2026-10-16-022-research-input-preflight.md)。实际执行者：Codex。
+

@@ -32,6 +32,7 @@
 
 - **工作台结果归属本机工作树（2026-10-16）**：前端构建、后端 191 项、固定六观测黄金验算通过；隔离浏览器确认配置变更隐藏旧指标、三分组新任务显示 `Q3 − Q1` 和新 Run ID，见 [`RESULT_PROVENANCE_BROWSER_QA_2026-10-16.md`](RESULT_PROVENANCE_BROWSER_QA_2026-10-16.md)。这是 SQLite 内联模式的页面行为，不是本次提交的 Celery、Windows 或正式十分钟演示验收。
 - **前端配置回归本机工作树（2026-10-16）**：把同一请求参数构造和结果可见性抽为纯函数，Node 22 的 7 项前端测试、前端构建、后端 191 项及黄金验算通过；CI 已新增前端测试步骤，但其 Ubuntu/Windows 结果须按本提交另查。见 [`FRONTEND_CONFIGURATION_REGRESSION_2026-10-16.md`](FRONTEND_CONFIGURATION_REGRESSION_2026-10-16.md)。
+- **研究参数提交前校验（2026-10-16）**：数字输入、样本日期和多因子成分在前端提交前给出明确错误；前端 9 项测试、生产构建、后端 191 项及黄金验算通过。未重新运行浏览器和队列；见 [CHG-20261016-022](changes/2026-10-16-022-research-input-preflight.md)。
 
 - **本机基线（2026-10-15，提交 `fffad78`）**：`.venv/bin/python -m unittest discover -s backend/tests -q` 152 项通过；`.venv/bin/python tools/verify_golden_research.py` 通过；`npm run build --prefix frontend` 通过。此后权重校验变更再次运行后端 152 项与黄金样例，结果均通过，见 [CHG-20261015-014](changes/2026-10-15-014-composite-weight-validation.md)；未重新运行前端构建，因本次未改前端。
 - **CSV 快照修正本机工作树（2026-10-15）**：后端 155 项和黄金样例通过，详见 [CHG-20261015-016](changes/2026-10-15-016-verified-csv-snapshot.md)；本次未改前端，未重复构建。提交后 CI 仍须另查。

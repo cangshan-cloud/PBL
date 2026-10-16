@@ -65,3 +65,7 @@ HTTP 负例覆盖查看者、其他研究员不可取消/重试，本人重复�
 
 旧结果随配置变化隐藏的规则已纳入七项自动回归；前端生产构建通过。上一轮隔离浏览器证据仍见 [`../RESULT_PROVENANCE_BROWSER_QA_2026-10-16.md`](../RESULT_PROVENANCE_BROWSER_QA_2026-10-16.md)，本轮没有重新做浏览器操作或正式十分钟连续演示；队长本人产品测试数据仍待补。见 [`../FRONTEND_CONFIGURATION_REGRESSION_2026-10-16.md`](../FRONTEND_CONFIGURATION_REGRESSION_2026-10-16.md)。实际执行者：Codex。
 
+## 2026-10-16 研究参数提交前校验（开发者代执行）
+
+配置区显示错误，点击运行时在发出请求前拦截；九项前端测试和构建通过。尚未在浏览器手工点测非法输入，也未进行正式十分钟连续演示；队长本人产品实测待补。见 [CHG-20261016-022](../changes/2026-10-16-022-research-input-preflight.md)。实际执行者：Codex。
+
