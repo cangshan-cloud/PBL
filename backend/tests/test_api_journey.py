@@ -344,6 +344,54 @@ class ApiJourneyTests(unittest.TestCase):
         self.assertEqual(unavailable.status_code, 400, unavailable.text)
         enqueue.assert_not_called()
 
+    def test_pending_task_cancel_permissions_and_retry_http_journey(self):
+        researcher = self.auth("researcher", "research12345")
+        viewer = self.auth("viewer", "viewer12345")
+        admin = self.auth("admin", "admin12345")
+        created_user = self.client.post(
+            "/api/v1/users", headers=admin,
+            json={"username": "other_researcher", "display_name": "其他研究员",
+                  "password": "other-pass123", "role": "researcher"},
+        )
+        self.assertEqual(created_user.status_code, 201, created_user.text)
+        other = self.auth("other_researcher", "other-pass123")
+
+        with patch.dict(os.environ, {"TASK_EXECUTION_MODE": "celery"}), \
+             patch("app.main.execute_research_run_task.apply_async") as enqueue:
+            created = self.client.post("/api/v1/research/tasks", headers=researcher,
+                                       json={"factor": "momentum_20d", "groups": 5})
+        self.assertEqual(created.status_code, 201, created.text)
+        source = created.json()
+        self.assertEqual(source["status"], "pending")
+        enqueue.assert_called_once_with(args=[source["id"]], task_id=source["id"])
+        path = f"/api/v1/research/tasks/{source['id']}"
+
+        with patch.dict(os.environ, {"TASK_EXECUTION_MODE": "celery"}), \
+             patch("app.main.celery_app.control.revoke") as revoke:
+            self.assertEqual(self.client.post(f"{path}/cancel", headers=viewer).status_code, 403)
+            self.assertEqual(self.client.post(f"{path}/cancel", headers=other).status_code, 403)
+            cancelled = self.client.post(f"{path}/cancel", headers=researcher)
+        self.assertEqual(cancelled.status_code, 200, cancelled.text)
+        self.assertEqual(cancelled.json()["status"], "cancelled")
+        revoke.assert_called_once_with(source["id"], terminate=False)
+        self.assertEqual([item["event"] for item in self.client.get(f"{path}/logs", headers=researcher).json()],
+                         ["queued", "cancelled"])
+        self.assertEqual(self.client.post(f"{path}/cancel", headers=researcher).status_code, 409)
+        self.assertEqual(self.client.post(f"{path}/retry", headers=viewer).status_code, 403)
+        self.assertEqual(self.client.post(f"{path}/retry", headers=other).status_code, 403)
+
+        with patch.dict(os.environ, {"TASK_EXECUTION_MODE": "celery"}), \
+             patch("app.main.execute_research_run_task.apply_async") as enqueue:
+            retried = self.client.post(f"{path}/retry", headers=researcher)
+        self.assertEqual(retried.status_code, 201, retried.text)
+        self.assertNotEqual(retried.json()["id"], source["id"])
+        self.assertEqual(retried.json()["status"], "pending")
+        self.assertEqual(retried.json()["parameters"], source["parameters"])
+        enqueue.assert_called_once_with(args=[retried.json()["id"]], task_id=retried.json()["id"])
+        self.assertEqual(self.client.get(path, headers=researcher).json()["status"], "cancelled")
+        self.assertEqual(self.client.post(f"/api/v1/research/tasks/{retried.json()['id']}/retry",
+                                          headers=researcher).status_code, 409)
+
     def test_broker_connection_failure_records_failed_run_and_allows_retry(self):
         researcher = self.auth("researcher", "research12345")
         with patch.dict(os.environ, {"TASK_EXECUTION_MODE": "celery"}), \

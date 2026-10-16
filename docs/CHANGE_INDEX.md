@@ -94,6 +94,7 @@
 | CHG-20261016-013 | 2026-10-16 | full-stack browser QA + four-role evidence / verified on Mac | 当前五服务浏览器异步闭环 | [记录](changes/2026-10-16-013-current-compose-browser-journey.md) | `docs/FULL_STACK_BROWSER_ACCEPTANCE_2026-10-16.md`、`docs/FINAL_REHEARSAL_CHECKLIST.md`、`docs/PRD_ACCEPTANCE_MATRIX_2026-10-14.md`、A/B/C/D 四责任包材料 |
 | CHG-20261016-014 | 2026-10-16 | acceptance-tool write safety / verified on Mac | Compose 写入式验收入口显式确认 | [记录](changes/2026-10-16-014-compose-smoke-write-guard.md) | `tools/verify_compose_stack.py::require_explicit_write_target`、`tools/verify_compose_real_sample.py::main`、测试、操作文档与 A/B/C/D 四责任包 |
 | CHG-20261016-015 | 2026-10-16 | demo snapshot integrity / verified on Mac | 会前预检固定课程演示数据快照 | [记录](changes/2026-10-16-015-pinned-demo-readiness-snapshot.md) | `tools/check_demo_readiness.py::check_readiness`、`backend/tests/test_demo_readiness.py`、`docs/DEMO_REHEARSAL.md` 与 A/B/C/D 四责任包 |
+| CHG-20261016-016 | 2026-10-16 | task lifecycle HTTP QA / verified on Mac | 排队任务取消与重试 HTTP 验收 | [记录](changes/2026-10-16-016-pending-cancel-retry-http-qa.md) | `backend/tests/test_api_journey.py::test_pending_task_cancel_permissions_and_retry_http_journey`、`docs/TASK_EXECUTION.md` 与 A/B/C/D 四责任包 |
 
 ## 历史基线
 

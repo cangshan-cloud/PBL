@@ -53,6 +53,8 @@ Worker 收到延迟或重复消息时，通过数据库条件更新 `pending →
 
 重试按原任务模式重新创建：普通单因子、多因子等权组合、2024 沪深 300 历史四因子任务分别走各自的数据与参数校验。新任务会生成新的实验、Run ID、排队时间和日志，原任务状态与结果保持不变。若原数据版本已不再满足发布条件，接口返回可解释的 400/404，而不是创建错误模式的任务；历史私有包文件完整性仍在实际执行时验证。
 
+2026-10-16 增加隔离 HTTP 验收：在 Celery 入队函数被 mock、不会接触真实队列的 SQLite 测试中，研究员创建 `pending` 任务后，查看者及其他研究员的取消／重试均被拒绝；本人取消得到 `cancelled`、`queued → cancelled` 日志和一次非强制撤销调用。重复取消返回 409；重试产生新 ID 的 `pending` 任务且参数保持一致，原任务仍为 `cancelled`；对新 `pending` 任务重试返回 409。该证据覆盖接口状态和权限，不证明真实 Worker 撤销及时性或浏览器按钮交互。
+
 ## 5. PostgreSQL 隔离并发复测
 
 `backend/tests/test_persistence.py` 默认使用临时 SQLite 文件；设置 `FACTORLAB_TEST_DATABASE_URL` 后，可以把同一组持久化与并发测试运行在独立 PostgreSQL 上。安全校验只接受 loopback 主机、`postgresql+psycopg`、用户 `factorlab_test`、数据库名 `factorlab_test_concurrency`，避免误对项目主库建表。测试会在该专用库建表和写入任务，因此不能把主栈 `factorlab` 数据库 URL 传入。
