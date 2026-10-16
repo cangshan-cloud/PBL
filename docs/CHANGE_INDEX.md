@@ -86,6 +86,7 @@
 | CHG-20261016-005 | 2026-10-16 | legacy comparison resilience + regression / verified on Mac | 实验对比将旧结果非法数值视为缺失并修正成本说明 | [记录](changes/2026-10-16-005-legacy-comparison-finite-metrics.md) | `backend/app/services/comparisons.py::compare_runs`、`_finite_metric`、`_difference`、`comparison_html`、`backend/tests/test_comparisons.py`、`docs/EXPERIMENT_COMPARISON.md` |
 | CHG-20261016-006 | 2026-10-16 | HTTP integration regression / verified on Mac | 稀疏因子日期的任务、结论、报告和复现包闭环验收 | [记录](changes/2026-10-16-006-sparse-factor-http-journey.md) | `backend/tests/test_api_journey.py::ApiJourneyTests.test_sparse_factor_dates_are_disclosed_across_task_conclusion_and_report`、`docs/SINGLE_FACTOR_ANALYSIS.md` |
 | CHG-20261016-007 | 2026-10-16 | research empty-state disclosure / verified on Mac | 无可分组结果时明确提示不可评价多空表现 | [记录](changes/2026-10-16-007-no-group-result-empty-state.md) | `backend/app/services/conclusions.py::build_run_conclusion`、`backend/app/services/reports.py::build_report_html`、`frontend/src/main.tsx` 研究结果区、相关测试与口径文档 |
+| CHG-20261016-008 | 2026-10-16 | comparison evidence correctness + regression / verified on Mac | 共同 IC 日期仅计有限 IC 截面 | [记录](changes/2026-10-16-008-valid-ic-comparison-dates.md) | `backend/app/services/comparisons.py::compare_runs`、`comparison_csv`、`comparison_html`、`backend/tests/test_comparisons.py`、`frontend/src/main.tsx` 实验对比区、`docs/EXPERIMENT_COMPARISON.md` |
 
 ## 历史基线
 

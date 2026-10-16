@@ -84,6 +84,24 @@ class ComparisonTests(unittest.TestCase):
             self.assertIn("共同多空分组日期数", comparison_csv(result).decode("utf-8-sig"))
             self.assertIn("共同多空分组日期", comparison_html(result))
 
+    def test_null_ic_date_is_not_counted_as_common_effective_ic(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            runs = [execute_research_run(session, create_research_run(session, {
+                "factor": factor, "groups": 5, "start_date": "2025-02-03",
+            }).id) for factor in ("momentum_20d", "reversal_5d")]
+            baseline = compare_runs(runs)
+            artifact = next(item for item in runs[1].artifacts if item.artifact_type == "metrics")
+            series = [dict(item) for item in artifact.content["ic_series"]]
+            series[0]["ic"] = None
+            artifact.content = {**artifact.content, "ic_series": series}
+            result = compare_runs(runs)
+            self.assertEqual(result["common_ic_date_count"], baseline["common_ic_date_count"] - 1)
+            self.assertEqual(result["items"][1]["ic_date_count"], baseline["items"][1]["ic_date_count"] - 1)
+            self.assertFalse(result["comparable"])
+            self.assertTrue(any("实际有效 IC 日期集合不同" in item for item in result["warnings"]))
+            self.assertIn("共同有效IC日期数", comparison_csv(result).decode("utf-8-sig"))
+            self.assertIn("共同有效 IC 交易日", comparison_html(result))
+
     def test_missing_metric_is_not_ranked_as_last_place(self):
         with Session(self.engine, expire_on_commit=False) as session:
             runs = [execute_research_run(session, create_research_run(session, {
