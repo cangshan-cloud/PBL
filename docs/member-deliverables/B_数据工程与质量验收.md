@@ -81,3 +81,7 @@ Parquet 未实现；不能因模板写有“CSV 或 Parquet”就声称两者都
 
 隔离浏览器使用固定内置合成 `demo_daily` 0.2.0；两条 Run 成功。因 Windows CI 原始字节摘要断言可能受换行转换影响，为 `data/sample/*.csv` 固定 LF；本机 Git 属性与后端 191 项通过，Windows 结论待远端 CI。未重新采集或复核真实 A 股样本许可。见 [`../CURRENT_BROWSER_AND_CI_QA_2026-10-16.md`](../CURRENT_BROWSER_AND_CI_QA_2026-10-16.md)。实际执行者：Codex。
 
+## 2026-10-17 跨平台 CI 后验（开发者代执行）
+
+固定 LF 后的 `3c926d5` 在 Ubuntu／Windows CI 均成功，Windows 的演示 CSV 原始字节断言所在后端测试已通过；见 [运行 #39011360370](https://github.com/cangshan-cloud/PBL/actions/runs/39011360370)。未重新采集真实样本或核验数据许可，也不是 Windows 部署验收。见 [CHG-20261017-001](../changes/2026-10-17-001-ci-postcheck.md)。实际执行者：Codex。
+

@@ -2,7 +2,7 @@
 
 - 日期：2026-10-16
 - 类型：产品验收、输入展示修复、跨平台 CI 排查
-- 状态：Mac 浏览器和本机回归通过；Windows CI 修复待新提交核对
+- 状态：Mac 浏览器和本机回归通过；`3c926d5` Ubuntu／Windows CI 于 2026-10-17 后验成功
 - 关联提交：与本记录同次提交
 
 ## 背景与决策过程
@@ -22,3 +22,5 @@
 ## 验证与风险
 
 Mac 浏览器两条合成 Run 成功；任务和报告的常规切换正确，控制台错误／警告均 0。前端 13 项、构建、后端 191 项和黄金验算通过；`git check-attr` 显示演示 CSV 为 `text eol=lf`。浏览器没有人为制造慢响应；这不是 Celery/Compose、Windows 浏览器或正式演示。Windows CI 故障原因仍为基于时间线与代码的推断，推送后必须核对同一提交的 Ubuntu/Windows 作业。若仍失败，不可沿用推断，应获取登录后的作业日志或构造 Windows 复现。实际执行者：Codex。
+
+2026-10-17 后验结果：`3c926d5` 的 [CI 运行 #39011360370](https://github.com/cangshan-cloud/PBL/actions/runs/39011360370) 的 Ubuntu/Windows Verify 均成功，原失败点“Run backend tests”在 Windows 已通过。由此将“待 CI 核对”关闭；先前具体异常文本仍未直接取得，不将推断改写成已读日志事实。Windows 实机部署与浏览器仍未验。

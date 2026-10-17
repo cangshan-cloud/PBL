@@ -22,6 +22,8 @@
 
 基于代码差异和 Windows Git 常见检出换行行为，最可能原因是 CSV 被转换为 CRLF，导致原始字节摘要不同。本轮新增 `.gitattributes`，将 `data/sample/*.csv` 固定为 `text eol=lf`；本机 `git check-attr` 与 `git ls-files --eol` 均显示 LF。这个诊断在新提交的 Windows CI 成功前仍属于**待验证推断**，若仍失败须取得实际日志或继续缩小测试范围，不应宣称已修复。
 
+2026-10-17 复核：修正提交 `3c926d5` 的 [CI 运行 #39011360370](https://github.com/cangshan-cloud/PBL/actions/runs/39011360370) 中 Ubuntu 与 Windows 两个 Verify 作业均为 `completed/success`，Windows 已通过原先失败的后端测试并完成后续前端测试和构建。这个结果支持换行诊断，但匿名作业日志仍不可读，不能声称直接看到了先前失败断言；也不能把 CI 当作 Windows Docker/WSL2 部署验收。复核执行者：Codex。
+
 ## 本机回归
 
 - `npm test --prefix frontend`：13 项通过。

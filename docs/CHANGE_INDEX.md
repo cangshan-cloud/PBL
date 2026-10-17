@@ -104,6 +104,7 @@
 | CHG-20261016-023 | 2026-10-16 | research polling session guard / verified on Mac | 退出登录后旧研究轮询不再写回结果 | [记录](changes/2026-10-16-023-research-poll-session.md) | `frontend/src/research-task.ts`、`frontend/src/main.tsx`、`frontend/tests/research-task.test.ts`、`frontend/package.json`、A/B/C/D 四责任包 |
 | CHG-20261016-024 | 2026-10-16 | selected detail identity / verified on Mac | 任务日志、结论与报告预览绑定当前 Run | [记录](changes/2026-10-16-024-selected-detail-identity.md) | `frontend/src/selected-resource.ts`、`frontend/src/main.tsx`、`frontend/tests/selected-resource.test.ts`、`frontend/package.json`、A/B/C/D 四责任包 |
 | CHG-20261016-025 | 2026-10-16 | browser QA + Windows CI diagnosis / Mac verified | 当前浏览器验收、无效分组标签与演示 CSV LF 检出 | [记录](changes/2026-10-16-025-browser-qa-and-lf-checkout.md) | `frontend/src/research-config.ts`、`frontend/tests/research-config.test.ts`、`.gitattributes`、`docs/CURRENT_BROWSER_AND_CI_QA_2026-10-16.md`、A/B/C/D 四责任包 |
+| CHG-20261017-001 | 2026-10-17 | remote CI postcheck / Ubuntu + Windows success | LF 修正提交的跨平台 CI 后验 | [记录](changes/2026-10-17-001-ci-postcheck.md) | `docs/CURRENT_BROWSER_AND_CI_QA_2026-10-16.md`、`docs/changes/2026-10-16-025-browser-qa-and-lf-checkout.md`、验收矩阵、A/B/C/D 四责任包 |
 
 ## 历史基线
 

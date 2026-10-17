@@ -82,3 +82,7 @@ CI 已加入 Node 22 前端测试步骤；Mac 本机七项前端测试、生产�
 
 隔离 Mac SQLite／内联 API／Vite 浏览器完成两条 Run 与任务、报告切换，应用控制台错误／警告 0；不是 Celery／Compose 重验。GitHub `4067db9` Ubuntu 成功，Windows 在后端测试失败；新增 `.gitattributes` 固定演示 CSV LF，原因推断须以新提交 CI 核对。前端 13 项、构建、后端 191 项与黄金验算通过。见 [`../CURRENT_BROWSER_AND_CI_QA_2026-10-16.md`](../CURRENT_BROWSER_AND_CI_QA_2026-10-16.md)。实际执行者：Codex。
 
+## 2026-10-17 跨平台 CI 后验（开发者代执行）
+
+`3c926d5` 的 [GitHub Actions 运行 #39011360370](https://github.com/cangshan-cloud/PBL/actions/runs/39011360370) 中 Ubuntu 与 Windows 两个 Verify 作业均成功；Windows 已越过原失败的后端测试并完成前端测试、构建。不能由此宣称 Windows Docker/WSL2 部署通过；本次仅补远端证据，未重做服务联调。见 [CHG-20261017-001](../changes/2026-10-17-001-ci-postcheck.md)。实际执行者：Codex。
+

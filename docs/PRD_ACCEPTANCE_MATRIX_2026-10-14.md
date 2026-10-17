@@ -36,6 +36,7 @@
 - **研究轮询会话隔离（2026-10-16）**：退出登录后旧研究请求的迟到响应不再写回工作台或触发收尾刷新；前端 12 项、生产构建、后端 191 项与黄金验算通过。未进行新浏览器多账号点测，不代表取消服务端任务；见 [CHG-20261016-023](changes/2026-10-16-023-research-poll-session.md)。
 - **任务／报告详情归属（2026-10-16）**：日志、规则结论和 HTML 预览仅在对应当前 Run 时显示，旧请求晚到会被忽略；前端 13 项、构建、后端 191 项及黄金验算通过。未重新做浏览器快速切换；见 [CHG-20261016-024](changes/2026-10-16-024-selected-detail-identity.md)。
 - **当前浏览器及 CI 回归（2026-10-16）**：隔离 Mac 浏览器实测无效分组拦截与标签修正，两条合成 Run 的任务和报告切换正确，控制台错误／警告 0；Windows CI 从 `38382a4` 起失败，新增 LF 属性待新提交验证。见 [`CURRENT_BROWSER_AND_CI_QA_2026-10-16.md`](CURRENT_BROWSER_AND_CI_QA_2026-10-16.md)。
+- **跨平台 CI 后验（2026-10-17）**：LF 修正提交 `3c926d5` 的 [运行 #39011360370](https://github.com/cangshan-cloud/PBL/actions/runs/39011360370) 在 Ubuntu／Windows 两个 Verify 作业均成功；只验证工作流内的单测、黄金验算和前端构建，不代表 Windows Docker 部署。见 [CHG-20261017-001](changes/2026-10-17-001-ci-postcheck.md)。
 
 - **本机基线（2026-10-15，提交 `fffad78`）**：`.venv/bin/python -m unittest discover -s backend/tests -q` 152 项通过；`.venv/bin/python tools/verify_golden_research.py` 通过；`npm run build --prefix frontend` 通过。此后权重校验变更再次运行后端 152 项与黄金样例，结果均通过，见 [CHG-20261015-014](changes/2026-10-15-014-composite-weight-validation.md)；未重新运行前端构建，因本次未改前端。
 - **CSV 快照修正本机工作树（2026-10-15）**：后端 155 项和黄金样例通过，详见 [CHG-20261015-016](changes/2026-10-15-016-verified-csv-snapshot.md)；本次未改前端，未重复构建。提交后 CI 仍须另查。

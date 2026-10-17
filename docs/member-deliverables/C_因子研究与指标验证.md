@@ -83,3 +83,7 @@
 
 内置合成数据运行 20 日动量 Run `7f2ba0a6`（1,980 观测）与 5 日反转 Run `e73b4e58`（2,280 观测）；任务结论及 HTML 报告随所选 Run 切换正确。固定黄金验算、后端 191 项和前端 13 项通过；这仅是软件口径验证，不代表真实市场有效性。见 [`../CURRENT_BROWSER_AND_CI_QA_2026-10-16.md`](../CURRENT_BROWSER_AND_CI_QA_2026-10-16.md)。实际执行者：Codex。
 
+## 2026-10-17 跨平台 CI 后验（开发者代执行）
+
+`3c926d5` 的 Ubuntu／Windows 作业均通过包含黄金验算的 CI 工作流，见 [运行 #39011360370](https://github.com/cangshan-cloud/PBL/actions/runs/39011360370)。本次未改因子公式或重算真实市场样本，不把单测成功解释为投资有效性。见 [CHG-20261017-001](../changes/2026-10-17-001-ci-postcheck.md)。实际执行者：Codex。
+
