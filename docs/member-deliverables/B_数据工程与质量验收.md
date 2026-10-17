@@ -77,3 +77,7 @@ Parquet 未实现；不能因模板写有“CSV 或 Parquet”就声称两者都
 
 本轮只处理前端详情展示的 Run ID 归属；数据版本、导入和质量规则未改。后端 191 项通过，真实样本来源与许可未重新核对。见 [CHG-20261016-024](../changes/2026-10-16-024-selected-detail-identity.md)。实际执行者：Codex。
 
+## 2026-10-16 当前浏览器与演示 CSV 检出（开发者代执行）
+
+隔离浏览器使用固定内置合成 `demo_daily` 0.2.0；两条 Run 成功。因 Windows CI 原始字节摘要断言可能受换行转换影响，为 `data/sample/*.csv` 固定 LF；本机 Git 属性与后端 191 项通过，Windows 结论待远端 CI。未重新采集或复核真实 A 股样本许可。见 [`../CURRENT_BROWSER_AND_CI_QA_2026-10-16.md`](../CURRENT_BROWSER_AND_CI_QA_2026-10-16.md)。实际执行者：Codex。
+

@@ -72,5 +72,5 @@ export function resultForConfiguration<T>(task: T | null, submittedKey: string, 
 }
 
 export function longShortGroupLabel(groups: number): string {
-  return `Q${groups} − Q1`;
+  return Number.isInteger(groups) && groups >= 2 && groups <= 10 ? `Q${groups} − Q1` : "—";
 }

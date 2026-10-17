@@ -78,3 +78,7 @@ CI 已加入 Node 22 前端测试步骤；Mac 本机七项前端测试、生产�
 
 日志、结论与 HTML 预览按当前 Run ID 限定展示，旧请求回调在选择变化时失效；前端 13 项、构建、后端 191 项及黄金验算通过。未重做浏览器、队列或 Windows 集成，CI 待核对。见 [CHG-20261016-024](../changes/2026-10-16-024-selected-detail-identity.md)。实际执行者：Codex。
 
+## 2026-10-16 当前浏览器与跨平台 CI 排查（开发者代执行）
+
+隔离 Mac SQLite／内联 API／Vite 浏览器完成两条 Run 与任务、报告切换，应用控制台错误／警告 0；不是 Celery／Compose 重验。GitHub `4067db9` Ubuntu 成功，Windows 在后端测试失败；新增 `.gitattributes` 固定演示 CSV LF，原因推断须以新提交 CI 核对。前端 13 项、构建、后端 191 项与黄金验算通过。见 [`../CURRENT_BROWSER_AND_CI_QA_2026-10-16.md`](../CURRENT_BROWSER_AND_CI_QA_2026-10-16.md)。实际执行者：Codex。
+

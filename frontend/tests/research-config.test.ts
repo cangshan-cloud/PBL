@@ -95,6 +95,8 @@ test("single-factor without a lookback and missing prerequisites", () => {
 test("group label follows the selected group count", () => {
   assert.equal(longShortGroupLabel(3), "Q3 − Q1");
   assert.equal(longShortGroupLabel(5), "Q5 − Q1");
+  assert.equal(longShortGroupLabel(0), "—");
+  assert.equal(longShortGroupLabel(NaN), "—");
 });
 
 test("invalid numeric research inputs are rejected before submission", () => {
