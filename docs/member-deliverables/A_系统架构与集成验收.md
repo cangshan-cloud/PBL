@@ -494,3 +494,7 @@ JSON 文件直接来自当前页面对比对象，无新增服务端接口或持
 
 GitHub Actions #107/#108 均显示 Ubuntu 与 Windows `Verify` 作业成功；这证明自动化，不替代 Windows 实机部署。见 [CHG-20261024-006](../changes/2026-10-24-006-cross-platform-ci-postcheck.md)。实际执行者：Codex。
 
+## 2026-10-24 干净导出基础配置（开发者代执行）
+
+提交独立导出副本中台账与文档链接检查通过，基础 Compose 配置可解析；隔离 QA 覆盖配置因未指定独立运行目录而按设计拒绝。本轮未启动容器。见 [CHG-20261024-007](../changes/2026-10-24-007-clean-export-and-link-tracking.md)。实际执行者：Codex。
+

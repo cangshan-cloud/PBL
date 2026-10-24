@@ -209,6 +209,7 @@
 | CHG-20261024-004 | 2026-10-24 | release candidate scope / prepared on Mac | 逐项确认源代码、文档与 22 张 QA 图的发布候选范围，排除本地日志、真实原始数据及未审查 Excel 修改 | [记录](changes/2026-10-24-004-release-candidate-scope.md) | `docs/RELEASE_READINESS_2026-10-24.md`、A/B/C/D 四责任包；无业务代码改动 |
 | CHG-20261024-005 | 2026-10-24 | release push status / remote CI pending | `1dc0f88` 已推送 `origin/main`；记录远端 CI 暂不可读及 Excel 本机保留 | [记录](changes/2026-10-24-005-release-push-status.md) | `docs/RELEASE_READINESS_2026-10-24.md`、A/B/C/D 四责任包；无业务代码改动 |
 | CHG-20261024-006 | 2026-10-24 | cross-platform CI postcheck / verified | GitHub Actions #107/#108 的 Ubuntu/Windows 作业及检查步骤均成功；不等于 Windows 实机部署 | [记录](changes/2026-10-24-006-cross-platform-ci-postcheck.md) | `docs/RELEASE_READINESS_2026-10-24.md`、A/B/C/D 四责任包；无业务代码改动 |
+| CHG-20261024-007 | 2026-10-24 | clean-export portability + link audit correction / verified on Mac | 区分历史已跟踪截图与真正未入库 HTML，修正可移植性检查；基础 Compose 配置通过 | [记录](changes/2026-10-24-007-clean-export-and-link-tracking.md) | `tools/check_document_links.py`、`backend/tests/test_document_links.py`、`docs/MAC_SYMBOL_ADJ_GAP_BROWSER_RUN_2026-10-23.md`、发布清单与 A/B/C/D 四责任包 |
 
 ## 历史基线
 

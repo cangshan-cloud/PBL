@@ -4,6 +4,7 @@ import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 MODULE_PATH = Path(__file__).resolve().parents[2] / "tools" / "check_document_links.py"
@@ -42,6 +43,28 @@ class DocumentLinkAuditTests(unittest.TestCase):
             errors, _, _ = MODULE.audit(root)
             self.assertEqual(len(errors), 1)
             self.assertIn("escapes repository", errors[0])
+
+    def test_tracked_ignored_file_is_portable_but_untracked_file_is_not(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            docs = root / "docs"
+            ignored = root / "output" / "playwright"
+            qa = root / "outputs" / "qa"
+            docs.mkdir()
+            ignored.mkdir(parents=True)
+            qa.mkdir(parents=True)
+            (ignored / "tracked.png").write_bytes(b"image")
+            (qa / "untracked.png").write_bytes(b"image")
+            (docs / "index.md").write_text(
+                "[tracked](../output/playwright/tracked.png) "
+                "[untracked](../outputs/qa/untracked.png)", encoding="utf-8"
+            )
+            with patch.object(MODULE, "_tracked_files", return_value={"output/playwright/tracked.png"}):
+                errors, local, checked = MODULE.audit(root)
+            self.assertEqual(checked, 2)
+            self.assertEqual(local, [])
+            self.assertEqual(len(errors), 1)
+            self.assertIn("untracked portable", errors[0])
 
 
 if __name__ == "__main__":

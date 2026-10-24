@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import subprocess
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
@@ -12,12 +13,25 @@ LINK = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 LOCAL_ONLY = ("output/playwright/", ".playwright-cli/")
 
 
+def _tracked_files(root: Path) -> set[str] | None:
+    """Return Git-index paths, or None for a source archive without .git."""
+    if not (root / ".git").exists():
+        return None
+    result = subprocess.run(
+        ["git", "-C", str(root), "ls-files", "-z"],
+        check=True,
+        capture_output=True,
+    )
+    return {item.decode("utf-8") for item in result.stdout.split(b"\0") if item}
+
+
 def audit(root: Path) -> tuple[list[str], list[str], int]:
     """Return broken portable links, local-only links, and checked link count."""
     root = root.resolve()
     errors: list[str] = []
     local: list[str] = []
     checked = 0
+    tracked = _tracked_files(root)
     docs = root / "docs"
     for source in sorted(docs.rglob("*.md")):
         content = source.read_text(encoding="utf-8")
@@ -38,10 +52,17 @@ def audit(root: Path) -> tuple[list[str], list[str], int]:
                 except ValueError:
                     errors.append(f"link escapes repository: {location}")
                     continue
-                if relative.startswith(LOCAL_ONLY):
+                exists = destination.is_file() or destination.is_dir()
+                is_local_only = relative.startswith(LOCAL_ONLY) and (
+                    (tracked is None and not exists)
+                    or (tracked is not None and relative not in tracked)
+                )
+                if is_local_only:
                     local.append(location)
-                elif not destination.is_file() and not destination.is_dir():
+                elif not exists:
                     errors.append(f"missing portable target: {location}")
+                elif tracked is not None and destination.is_file() and relative not in tracked:
+                    errors.append(f"untracked portable target: {location}")
     return errors, local, checked
 
 
