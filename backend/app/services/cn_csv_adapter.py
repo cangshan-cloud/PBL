@@ -114,17 +114,34 @@ def adapt_cn_stock_csv(content: bytes, preview_limit: int = 10) -> AdaptedCSV:
     adapted = stream.getvalue().encode("utf-8")
     parsed = validate_csv(adapted)
     dropped = [column for column in source_columns if column not in mapping]
-    warnings = ["请确认成交量单位（股或手）与原始数据源说明一致。"]
+    warnings = []
+    if "volume" in reverse:
+        warnings.append("请确认成交量单位（股或手）与原始数据源说明一致。")
     if "turnover_rate" in reverse:
         warnings.append("换手率保留原始数值，未自动判断百分数或小数口径。")
     if adjustment_flags:
         warnings.append("adjustflag表示价格复权状态，已记录为来源元数据，不转换为adj_factor；任务默认使用导入的close。")
+    if parsed.report["weekend_row_count"]:
+        warnings.append(
+            f"标准化数据含{parsed.report['weekend_date_count']}个周末日期、"
+            f"{parsed.report['weekend_row_count']}行行情；请在导入前核对源文件日期。"
+        )
+    if parsed.report["announced_weekday_closure_row_count"]:
+        warnings.append(
+            f"标准化数据含{parsed.report['announced_weekday_closure_date_count']}个沪深交易所公告休市工作日、"
+            f"{parsed.report['announced_weekday_closure_row_count']}行行情；请在导入前核对源文件日期。"
+        )
+    if parsed.report["calendar_uncovered_years"]:
+        warnings.append(
+            f"离线公告休市表未覆盖{','.join(map(str, parsed.report['calendar_uncovered_years']))}年；"
+            "这些年份未做公告休市核对。"
+        )
     return AdaptedCSV(
         content=adapted,
         preview=preview,
         report={
             "adapter": "cn_stock_csv_auto",
-            "adapter_version": "1.1.0",
+            "adapter_version": "1.3.1",
             "source_adjustment_flags": sorted(adjustment_flags),
             "source_encoding": encoding,
             "source_columns": source_columns,
@@ -134,7 +151,15 @@ def adapt_cn_stock_csv(content: bytes, preview_limit: int = 10) -> AdaptedCSV:
             "converted_rows": converted_rows,
             "normalized_symbol_rows": symbol_changes,
             "normalized_date_rows": date_changes,
-            "validation": {"row_count": parsed.row_count, "symbol_count": parsed.symbol_count, "start_date": parsed.start_date.isoformat(), "end_date": parsed.end_date.isoformat()},
+            "validation": {"row_count": parsed.row_count, "symbol_count": parsed.symbol_count,
+                           "start_date": parsed.start_date.isoformat(), "end_date": parsed.end_date.isoformat(),
+                           "weekend_date_count": parsed.report["weekend_date_count"],
+                           "weekend_row_count": parsed.report["weekend_row_count"],
+                           "announced_closure_calendar_version": parsed.report["announced_closure_calendar_version"],
+                           "announced_weekday_closure_date_count": parsed.report["announced_weekday_closure_date_count"],
+                           "announced_weekday_closure_row_count": parsed.report["announced_weekday_closure_row_count"],
+                           "announced_weekday_closure_dates": parsed.report["announced_weekday_closure_dates"],
+                           "calendar_uncovered_years": parsed.report["calendar_uncovered_years"]},
             "warnings": warnings,
         },
     )

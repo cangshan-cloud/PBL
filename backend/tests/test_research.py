@@ -10,6 +10,18 @@ from app.domain.research import Observation, PriceRow, evaluate, ic_histogram, m
 
 
 class ResearchEngineTests(unittest.TestCase):
+    def test_daily_coverage_discloses_engine_skip_reasons(self):
+        days = [date(2025, 1, day) for day in (2, 3, 4)]
+        observations = [Observation(days[0], "A", 1, .01),
+                        Observation(days[1], "A", 1, .01), Observation(days[1], "B", 1, .02),
+                        Observation(days[2], "A", 1, .01), Observation(days[2], "B", 2, .02)]
+        result = evaluate(observations, groups=3)
+        self.assertEqual([item["eligible_symbols"] for item in result["daily_coverage"]], [1, 2, 2])
+        self.assertEqual(result["daily_coverage"][0]["ic_status"], "insufficient_sample")
+        self.assertEqual(result["daily_coverage"][1]["group_status"], "constant_factor")
+        self.assertEqual(result["daily_coverage"][2]["group_status"], "insufficient_sample")
+        self.assertEqual(sum(item["eligible_symbols"] for item in result["daily_coverage"]), result["coverage"])
+
     def test_factor_at_t_uses_next_day_return(self):
         start = date(2025, 1, 1)
         rows = [PriceRow(start + timedelta(days=i), "A", 100 + i) for i in range(5)]

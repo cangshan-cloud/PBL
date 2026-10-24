@@ -14,6 +14,45 @@ from app.services.runs import create_research_run, execute_research_run
 
 
 class ConclusionTests(unittest.TestCase):
+    def test_time_split_grade_uses_validation_not_full_range(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(session, {"factor": "momentum_20d", "groups": 5})
+            result = {
+                "ic_mean": .15, "rank_ic_mean": .14, "icir": 2,
+                "ic_series": [{"date": f"day-{day}", "ic": .15} for day in range(80)],
+                "time_split": {"validation_start_date": "2025-04-01",
+                               "research": {"ic_mean": .15},
+                               "validation": {"ic_mean": .06, "rank_ic_mean": .05,
+                                              "icir": 1.2, "ic_positive_ratio": .7,
+                                              "valid_ic_dates": 10}},
+            }
+            conclusion = build_run_conclusion(run, result)
+            self.assertEqual(conclusion["grade"], "insufficient")
+            self.assertIn("验证期有效 IC 截面不足", conclusion["headline"])
+            self.assertIn("验证期IC均值为0.0600", conclusion["evidence"][0])
+            self.assertIn("全区间 IC 均值0.1500仅作背景", conclusion["evidence"][-1])
+            self.assertEqual(conclusion["method"]["grade_basis"], "validation_ic")
+            self.assertEqual(conclusion["method"]["version"], "1.0.3")
+
+            result["time_split"]["research"]["ic_mean"] = -.04
+            thin_reversal = build_run_conclusion(run, result)
+            self.assertEqual(thin_reversal["grade"], "insufficient")
+            self.assertIn("方向相反", thin_reversal["headline"])
+            result["time_split"]["research"]["ic_mean"] = .15
+
+            result["time_split"]["validation"]["valid_ic_dates"] = 65
+            sufficient = build_run_conclusion(run, result)
+            self.assertEqual(sufficient["grade"], "promising")
+            result["time_split"]["validation"]["valid_ic_dates"] = 30
+            limited = build_run_conclusion(run, result)
+            self.assertEqual(limited["grade"], "mixed")
+            result["time_split"]["validation"]["valid_ic_dates"] = 65
+            result["time_split"]["research"]["ic_mean"] = -.04
+            reversal = build_run_conclusion(run, result)
+            self.assertEqual(reversal["grade"], "mixed")
+            self.assertIn("方向相反", reversal["headline"])
+            self.assertTrue(any("不能用全区间均值掩盖" in item for item in reversal["limitations"]))
+
     def setUp(self):
         self.engine = create_engine("sqlite:///:memory:")
         Base.metadata.create_all(self.engine)

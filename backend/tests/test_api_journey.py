@@ -1,5 +1,9 @@
 """Full HTTP journey using isolated SQLite and uploaded CSV, without Docker or network."""
 
+import csv
+import hashlib
+import html
+import io
 import os
 import sys
 import tempfile
@@ -25,6 +29,32 @@ SAMPLE_CSV = Path(__file__).resolve().parents[2] / "data" / "sample" / "daily_pr
 
 
 class ApiJourneyTests(unittest.TestCase):
+    def test_predeclared_time_split_survives_task_report_and_conclusion(self):
+        researcher = self.auth("researcher", "research12345")
+        base = {"factor": "momentum_20d", "groups": 5,
+                "start_date": "2025-02-03", "end_date": "2025-05-30"}
+        original = self.client.post("/api/v1/research/tasks", headers=researcher, json=base)
+        split = self.client.post("/api/v1/research/tasks", headers=researcher,
+                                 json={**base, "validation_start_date": "2025-04-01"})
+        self.assertEqual(original.status_code, 201, original.text)
+        self.assertEqual(split.status_code, 201, split.text)
+        baseline = original.json()["result"]
+        result = split.json()["result"]
+        self.assertEqual(result["coverage"], baseline["coverage"])
+        self.assertEqual(result["ic_mean"], baseline["ic_mean"])
+        self.assertEqual(result["time_split"]["validation_start_date"], "2025-04-01")
+        self.assertLess(result["time_split"]["research"]["end_date"],
+                        result["time_split"]["validation"]["start_date"])
+        run_id = split.json()["id"]
+        report = self.client.get(f"/api/v1/reports/{run_id}/html", headers=researcher)
+        self.assertEqual(report.status_code, 200, report.text)
+        self.assertIn("时间切分 IC 诊断", report.text)
+        conclusion = self.client.get(f"/api/v1/research/tasks/{run_id}/conclusion", headers=researcher)
+        self.assertEqual(conclusion.status_code, 200, conclusion.text)
+        self.assertTrue(any("验证期始于" in item for item in conclusion.json()["evidence"]))
+        self.assertEqual(conclusion.json()["method"]["grade_basis"], "validation_ic")
+        self.assertNotEqual(conclusion.json()["grade"], "promising")
+
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.engine = create_engine(
@@ -59,6 +89,301 @@ class ApiJourneyTests(unittest.TestCase):
         response = self.client.post("/api/v1/auth/login", json={"username": username, "password": password})
         self.assertEqual(response.status_code, 200, response.text)
         return {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+    def test_missing_adjustment_column_is_rejected_before_run_creation(self):
+        admin = self.auth("admin", "admin12345")
+        researcher = self.auth("researcher", "research12345")
+        rows = ["trade_date,symbol,close,pe"]
+        for index, day in enumerate(("2025-01-02", "2025-01-03", "2025-01-06", "2025-01-07")):
+            for ordinal, symbol in enumerate(("000001.SZ", "000002.SZ", "000003.SZ"), start=1):
+                rows.append(f"{day},{symbol},{10 + index + ordinal},{ordinal * 3 + index}")
+        imported = self.client.post(
+            "/api/v1/datasets/import", headers=admin,
+            data={"dataset_key": "no_multiplier_journey", "name": "无复权乘数隔离样本"},
+            files={"file": ("no-multiplier.csv", ("\n".join(rows) + "\n").encode(), "text/csv")},
+        )
+        self.assertEqual(imported.status_code, 201, imported.text)
+        dataset = imported.json()
+        self.assertNotIn("adj_factor", dataset["quality_report"]["columns"])
+        self.assertEqual(self.client.post(f"/api/v1/datasets/{dataset['id']}/publish", headers=admin).status_code, 200)
+        before = len(self.client.get("/api/v1/research/tasks", headers=researcher).json())
+        for endpoint, payload in (
+            ("/api/v1/research/tasks", {"factor": "pe"}),
+            ("/api/v1/research/composite-tasks", {"factors": ["pe", "momentum_20d"]}),
+        ):
+            rejected = self.client.post(endpoint, headers=researcher, json={
+                "dataset_version_id": dataset["id"], "price_basis": "factor_adjusted", "groups": 2, **payload,
+            })
+            self.assertEqual(rejected.status_code, 400, rejected.text)
+            self.assertIn("missing adj_factor", rejected.json()["detail"])
+        self.assertEqual(len(self.client.get("/api/v1/research/tasks", headers=researcher).json()), before)
+
+    def test_missing_adjustment_values_reject_full_sample_but_not_valid_symbol_subset(self):
+        admin = self.auth("admin", "admin12345")
+        researcher = self.auth("researcher", "research12345")
+        rows = ["trade_date,symbol,close,pe,adj_factor"]
+        for index, day in enumerate(("2025-01-02", "2025-01-03", "2025-01-06", "2025-01-07")):
+            for ordinal, symbol in enumerate(("000001.SZ", "000002.SZ", "000003.SZ"), start=1):
+                factor = "" if index == 1 and ordinal == 2 else "1"
+                rows.append(f"{day},{symbol},{10 + index + ordinal},{ordinal * 3 + index},{factor}")
+        imported = self.client.post(
+            "/api/v1/datasets/import", headers=admin,
+            data={"dataset_key": "partial_multiplier_journey", "name": "部分缺乘数隔离样本"},
+            files={"file": ("partial-multiplier.csv", ("\n".join(rows) + "\n").encode(), "text/csv")},
+        )
+        self.assertEqual(imported.status_code, 201, imported.text)
+        dataset = imported.json()
+        self.assertEqual(dataset["quality_report"]["missing_counts"]["adj_factor"], 1)
+        self.assertEqual(dataset["quality_report"]["missing_adj_factor_by_symbol"], {"000002.SZ": 1})
+        self.assertEqual(self.client.post(f"/api/v1/datasets/{dataset['id']}/publish", headers=admin).status_code, 200)
+        before = len(self.client.get("/api/v1/research/tasks", headers=researcher).json())
+        for endpoint, payload in (
+            ("/api/v1/research/tasks", {"factor": "pe"}),
+            ("/api/v1/research/composite-tasks", {"factors": ["pe", "momentum_20d"]}),
+        ):
+            rejected = self.client.post(endpoint, headers=researcher, json={
+                "dataset_version_id": dataset["id"], "price_basis": "factor_adjusted", "groups": 2, **payload,
+            })
+            self.assertEqual(rejected.status_code, 400, rejected.text)
+            self.assertIn("missing adj_factor values", rejected.json()["detail"])
+        self.assertEqual(len(self.client.get("/api/v1/research/tasks", headers=researcher).json()), before)
+        affected = self.client.post("/api/v1/research/tasks", headers=researcher, json={
+            "dataset_version_id": dataset["id"], "price_basis": "factor_adjusted", "factor": "pe",
+            "groups": 2, "symbols": ["000001.SZ", "000002.SZ"],
+        })
+        self.assertEqual(affected.status_code, 400, affected.text)
+        self.assertIn("selected symbols have missing", affected.json()["detail"])
+        self.assertEqual(len(self.client.get("/api/v1/research/tasks", headers=researcher).json()), before)
+        selected = self.client.post("/api/v1/research/tasks", headers=researcher, json={
+            "dataset_version_id": dataset["id"], "price_basis": "factor_adjusted", "factor": "pe",
+            "groups": 2, "symbols": ["000001.SZ", "000003.SZ"],
+        })
+        self.assertEqual(selected.status_code, 201, selected.text)
+        self.assertEqual(selected.json()["status"], "success", selected.text)
+        run_id = selected.json()["id"]
+        archived = self.client.get(f"/api/v1/reports/{run_id}/download", headers=researcher)
+        self.assertEqual(archived.status_code, 200, archived.text)
+        self.assertIn("全量质量报告有 1 行缺失 adj_factor", archived.text)
+        self.assertIn("不代表版本内其他证券可用于调整价研究", archived.text)
+        self.assertIn("不认证数据真实性、使用授权或完整交易日历", archived.text)
+        archive_sha = hashlib.sha256(archived.content).hexdigest()
+        delivery = self.client.get(f"/api/v1/reports/{run_id}/delivery", headers=researcher)
+        self.assertEqual(delivery.status_code, 200, delivery.text)
+        self.assertEqual(delivery.text.count("全量质量报告有 1 行缺失 adj_factor"), 2)
+        self.assertEqual(delivery.text.count("不认证数据真实性、使用授权或完整交易日历"), 2)
+        self.assertEqual(delivery.headers["x-archived-report-sha256"], archive_sha)
+        self.assertEqual(self.client.get(f"/api/v1/reports/{run_id}/download", headers=researcher).content,
+                         archived.content)
+        source_close = self.client.post("/api/v1/research/tasks", headers=researcher, json={
+            "dataset_version_id": dataset["id"], "price_basis": "source_close", "factor": "pe",
+            "groups": 2, "symbols": ["000001.SZ", "000003.SZ"],
+        })
+        self.assertEqual(source_close.status_code, 201, source_close.text)
+        self.assertEqual(source_close.json()["status"], "success", source_close.text)
+        close_report = self.client.get(
+            f"/api/v1/reports/{source_close.json()['id']}/download", headers=researcher,
+        )
+        self.assertEqual(close_report.status_code, 200, close_report.text)
+        self.assertNotIn("全量质量报告有 1 行缺失 adj_factor", close_report.text)
+        self.assertIn("不认证数据真实性、使用授权或完整交易日历", close_report.text)
+
+    def test_weekend_diagnostic_matches_adapter_preview_and_import(self):
+        admin = self.auth("admin", "admin12345")
+        source = b"date,code,close\n20250104,000001,10\n20250104,600000,11\n20250106,000001,12\n"
+        upload = {"file": ("weekend.csv", source, "text/csv")}
+        preview = self.client.post("/api/v1/datasets/adapt/preview", headers=admin, files=upload)
+        self.assertEqual(preview.status_code, 200, preview.text)
+        report = preview.json()["report"]
+        source_sha256 = preview.json()["source_sha256"]
+        self.assertEqual(source_sha256, hashlib.sha256(source).hexdigest())
+        self.assertEqual(report["validation"]["weekend_date_count"], 1)
+        self.assertEqual(report["validation"]["weekend_row_count"], 2)
+        self.assertTrue(any("导入前核对" in warning for warning in report["warnings"]))
+
+        imported = self.client.post(
+            "/api/v1/datasets/import", headers=admin,
+            data={"dataset_key": "weekend_check", "name": "周末日期隔离样本", "normalize_cn_csv": "true",
+                  "expected_source_sha256": source_sha256},
+            files=upload,
+        )
+        self.assertEqual(imported.status_code, 201, imported.text)
+        dataset = imported.json()
+        self.assertEqual(dataset["row_count"], 3)
+        self.assertNotEqual(dataset["checksum"], source_sha256)
+        self.assertEqual(dataset["quality_report"]["weekend_date_count"], 1)
+        self.assertEqual(dataset["quality_report"]["weekend_row_count"], 2)
+        self.assertEqual(dataset["quality_report"]["adapter_report"]["validation"], report["validation"])
+
+    def test_announced_closure_preview_and_import_share_diagnostic(self):
+        admin = self.auth("admin", "admin12345")
+        source = b"date,code,close\n20250128,000001,10\n20250128,600000,11\n20250205,000001,12\n"
+        upload = {"file": ("closure.csv", source, "text/csv")}
+        preview = self.client.post("/api/v1/datasets/adapt/preview", headers=admin, files=upload)
+        self.assertEqual(preview.status_code, 200, preview.text)
+        validation = preview.json()["report"]["validation"]
+        self.assertEqual(validation["announced_weekday_closure_date_count"], 1)
+        self.assertEqual(validation["announced_weekday_closure_row_count"], 2)
+        self.assertTrue(any("公告休市工作日" in warning for warning in preview.json()["report"]["warnings"]))
+        imported = self.client.post(
+            "/api/v1/datasets/import", headers=admin,
+            data={"dataset_key": "closure_check", "name": "公告休市隔离样本", "normalize_cn_csv": "true",
+                  "expected_source_sha256": preview.json()["source_sha256"]},
+            files=upload,
+        )
+        self.assertEqual(imported.status_code, 201, imported.text)
+        dataset = imported.json()
+        self.assertEqual(dataset["row_count"], 3)
+        self.assertEqual(dataset["quality_report"]["announced_weekday_closure_dates"], ["2025-01-28"])
+        self.assertEqual(dataset["quality_report"]["announced_weekday_closure_row_count"], 2)
+        self.assertEqual(dataset["quality_report"]["adapter_report"]["validation"], validation)
+
+    def test_calendar_risk_survives_import_run_and_report_delivery(self):
+        admin = self.auth("admin", "admin12345")
+        researcher = self.auth("researcher", "research12345")
+        rows = ["date,code,close,pe"]
+        for index, day in enumerate(("20261007", "20261008", "20261009", "20270104")):
+            for ordinal, symbol in enumerate(("000001", "000002", "000003"), start=1):
+                rows.append(f"{day},{symbol},{10 + index + ordinal},{ordinal * 3 + index}")
+        source = ("\n".join(rows) + "\n").encode()
+        upload = {"file": ("calendar-risk.csv", source, "text/csv")}
+
+        preview = self.client.post("/api/v1/datasets/adapt/preview", headers=admin, files=upload)
+        self.assertEqual(preview.status_code, 200, preview.text)
+        validation = preview.json()["report"]["validation"]
+        self.assertEqual(validation["announced_weekday_closure_dates"], ["2026-10-07"])
+        self.assertEqual(validation["calendar_uncovered_years"], [2027])
+
+        imported = self.client.post(
+            "/api/v1/datasets/import", headers=admin,
+            data={"dataset_key": "calendar_report_journey", "name": "日历风险报告隔离样本",
+                  "normalize_cn_csv": "true", "expected_source_sha256": preview.json()["source_sha256"]},
+            files=upload,
+        )
+        self.assertEqual(imported.status_code, 201, imported.text)
+        dataset = imported.json()
+        self.assertEqual(dataset["quality_report"]["announced_weekday_closure_row_count"], 3)
+        self.assertEqual(dataset["quality_report"]["calendar_uncovered_years"], [2027])
+        published = self.client.post(f"/api/v1/datasets/{dataset['id']}/publish", headers=admin)
+        self.assertEqual(published.status_code, 200, published.text)
+
+        created = self.client.post(
+            "/api/v1/research/tasks", headers=researcher,
+            json={"dataset_version_id": dataset["id"], "factor": "pe", "groups": 2},
+        )
+        self.assertEqual(created.status_code, 201, created.text)
+        self.assertEqual(created.json()["status"], "success")
+        run_id = created.json()["id"]
+        indexed = self.client.get("/api/v1/reports", headers=researcher)
+        self.assertEqual(indexed.status_code, 200, indexed.text)
+        listed = next(item for item in indexed.json() if item["run_id"] == run_id)
+        self.assertEqual(listed["dataset_version_id"], dataset["id"])
+        self.assertEqual(listed["dataset_checksum_sha256"], dataset["checksum"])
+
+        archived = self.client.get(f"/api/v1/reports/{run_id}/download", headers=researcher)
+        self.assertEqual(archived.status_code, 200, archived.text)
+        archive_sha = hashlib.sha256(archived.content).hexdigest()
+        self.assertEqual(archive_sha, listed["checksum"])
+        for expected in ("3 行沪深交易所公告休市工作日行情", "2026-10-07", "未覆盖 2027 年"):
+            self.assertIn(expected, archived.text)
+
+        delivery = self.client.get(f"/api/v1/reports/{run_id}/delivery", headers=researcher)
+        self.assertEqual(delivery.status_code, 200, delivery.text)
+        self.assertIn("交付披露副本 · 非原始归档字节", delivery.text)
+        self.assertIn(dataset["checksum"], delivery.text)
+        self.assertIn(archive_sha, delivery.text)
+        self.assertEqual(delivery.headers["x-archived-report-sha256"], archive_sha)
+        for expected in ("3 行沪深交易所公告休市工作日行情", "2026-10-07", "未覆盖 2027 年"):
+            self.assertIn(expected, delivery.text)
+        again = self.client.get(f"/api/v1/reports/{run_id}/download", headers=researcher)
+        self.assertEqual(again.content, archived.content)
+
+    def test_adapter_price_status_survives_import_run_and_report_delivery(self):
+        admin = self.auth("admin", "admin12345")
+        researcher = self.auth("researcher", "research12345")
+        rows = ["date,code,close,pe,adjustflag"]
+        for index, day in enumerate(("20250102", "20250103", "20250106", "20250107")):
+            for ordinal, symbol in enumerate(("000001", "000002", "000003"), start=1):
+                rows.append(f"{day},{symbol},{10 + index + ordinal},{ordinal * 3 + index},2")
+        source = ("\n".join(rows) + "\n").encode()
+        upload = {"file": ("adjusted.csv", source, "text/csv")}
+        preview = self.client.post("/api/v1/datasets/adapt/preview", headers=admin, files=upload)
+        self.assertEqual(preview.status_code, 200, preview.text)
+        self.assertEqual(preview.json()["report"]["source_adjustment_flags"], ["2"])
+        imported = self.client.post(
+            "/api/v1/datasets/import", headers=admin,
+            data={"dataset_key": "adjusted_status_journey", "name": "复权状态隔离样本",
+                  "normalize_cn_csv": "true", "expected_source_sha256": preview.json()["source_sha256"]},
+            files=upload,
+        )
+        self.assertEqual(imported.status_code, 201, imported.text)
+        dataset = imported.json()
+        self.assertEqual(dataset["quality_report"]["adapter_report"]["source_adjustment_flags"], ["2"])
+        self.assertEqual(self.client.post(f"/api/v1/datasets/{dataset['id']}/publish", headers=admin).status_code, 200)
+
+        before = len(self.client.get("/api/v1/research/tasks", headers=researcher).json())
+        for endpoint, payload in (
+            ("/api/v1/research/tasks", {"factor": "pe"}),
+            ("/api/v1/research/composite-tasks", {"factors": ["pe", "momentum_20d"]}),
+        ):
+            rejected = self.client.post(endpoint, headers=researcher, json={
+                "dataset_version_id": dataset["id"], "price_basis": "factor_adjusted", "groups": 2, **payload,
+            })
+            self.assertEqual(rejected.status_code, 400, rejected.text)
+            self.assertIn("double adjustment", rejected.json()["detail"])
+        self.assertEqual(len(self.client.get("/api/v1/research/tasks", headers=researcher).json()), before)
+
+        created = self.client.post(
+            "/api/v1/research/tasks", headers=researcher,
+            json={"dataset_version_id": dataset["id"], "factor": "pe", "groups": 2},
+        )
+        self.assertEqual(created.status_code, 201, created.text)
+        self.assertEqual(created.json()["status"], "success")
+        run_id = created.json()["id"]
+        indexed = self.client.get("/api/v1/reports", headers=researcher)
+        self.assertEqual(indexed.status_code, 200, indexed.text)
+        summary = next(item for item in indexed.json() if item["run_id"] == run_id)
+        self.assertEqual(summary["dataset_version_id"], dataset["id"])
+        self.assertEqual(summary["dataset_checksum_sha256"], dataset["checksum"])
+
+        archived = self.client.get(f"/api/v1/reports/{run_id}/download", headers=researcher)
+        self.assertEqual(archived.status_code, 200, archived.text)
+        archive_sha = hashlib.sha256(archived.content).hexdigest()
+        self.assertEqual(archive_sha, summary["checksum"])
+        self.assertIn("adjustflag=2（来源声明的前复权状态）", archived.text)
+        self.assertIn("价格口径：导入的 close", archived.text)
+        delivery = self.client.get(f"/api/v1/reports/{run_id}/delivery", headers=researcher)
+        self.assertEqual(delivery.status_code, 200, delivery.text)
+        self.assertEqual(delivery.text.count("adjustflag=2"), 2)
+        self.assertEqual(delivery.headers["x-archived-report-sha256"], archive_sha)
+        self.assertIn(dataset["checksum"], delivery.text)
+        self.assertEqual(self.client.get(f"/api/v1/reports/{run_id}/download", headers=researcher).content,
+                         archived.content)
+
+    def test_adapter_import_rejects_changed_file_after_preview_without_creating_draft(self):
+        admin = self.auth("admin", "admin12345")
+        original = b"date,code,close\n20250104,000001,10\n"
+        altered = b"date,code,close\n20250104,000001,11\n"
+        preview = self.client.post(
+            "/api/v1/datasets/adapt/preview", headers=admin,
+            files={"file": ("data.csv", original, "text/csv")},
+        )
+        self.assertEqual(preview.status_code, 200, preview.text)
+        fields = {"dataset_key": "preview_changed", "name": "预览后变化",
+                  "normalize_cn_csv": "true", "expected_source_sha256": preview.json()["source_sha256"]}
+        rejected = self.client.post(
+            "/api/v1/datasets/import", headers=admin, data=fields,
+            files={"file": ("data.csv", altered, "text/csv")},
+        )
+        self.assertEqual(rejected.status_code, 409, rejected.text)
+        self.assertIn("重新预览", rejected.json()["detail"])
+        self.assertFalse(any(item["dataset_key"] == "preview_changed" for item in
+                             self.client.get("/api/v1/datasets", headers=admin).json()))
+        malformed = self.client.post(
+            "/api/v1/datasets/import", headers=admin,
+            data={**fields, "expected_source_sha256": "bad"},
+            files={"file": ("data.csv", original, "text/csv")},
+        )
+        self.assertEqual(malformed.status_code, 400, malformed.text)
 
     def test_default_loopback_frontends_can_preflight_login(self):
         for origin in ("http://localhost:5173", "http://127.0.0.1:5173"):
@@ -128,6 +453,13 @@ class ApiJourneyTests(unittest.TestCase):
         self.assertEqual(created.status_code, 201, created.text)
         self.assertEqual(created.json()["status"], "success")
         self.assertEqual(created.json()["result"]["coverage"], 8)
+        daily = {item["date"]: item for item in created.json()["result"]["daily_coverage"]}
+        self.assertEqual(daily["2025-01-02"]["candidate_symbols"], 2)
+        self.assertEqual(daily["2025-01-02"]["eligible_symbols"], 0)
+        self.assertEqual(daily["2025-01-02"]["coverage_ratio"], 0)
+        self.assertEqual(daily["2025-01-03"]["candidate_symbols"], 0)
+        self.assertEqual(daily["2025-01-03"]["ic_status"], "no_observation")
+        self.assertIsNone(daily["2025-01-03"]["coverage_ratio"])
 
     def test_sparse_factor_dates_are_disclosed_across_task_conclusion_and_report(self):
         admin = self.auth("admin", "admin12345")
@@ -157,6 +489,8 @@ class ApiJourneyTests(unittest.TestCase):
         self.assertEqual(result["coverage"], 10)
         self.assertEqual(result["group_skipped_constant_factor_days"], 1)
         self.assertEqual(result["group_skipped_insufficient_sample_days"], 2)
+        self.assertEqual(result["zero_observation_days"], 1)
+        self.assertEqual(result["daily_coverage"][-1]["eligible_symbols"], 0)
         self.assertEqual([item["date"] for item in result["long_short_series"]], ["2025-01-04"])
         self.assertIsNone(result["ic_series"][0]["ic"])
         snapshot = self.client.get(f"/api/v1/research/tasks/{task['id']}/reproducibility.json", headers=researcher)
@@ -168,6 +502,7 @@ class ApiJourneyTests(unittest.TestCase):
         self.assertEqual(conclusion.status_code, 200, conclusion.text)
         self.assertTrue(any("全截面因子同值" in item for item in conclusion.json()["limitations"]))
         self.assertTrue(any("有效证券数少于目标分组数" in item for item in conclusion.json()["limitations"]))
+        self.assertTrue(any("未形成任何有效因子" in item for item in conclusion.json()["limitations"]))
         report = self.client.get(f"/api/v1/reports/{task['id']}/html", headers=researcher)
         self.assertEqual(report.status_code, 200, report.text)
         self.assertIn("全截面因子同值而跳过分组的日期：1 天", report.text)
@@ -206,14 +541,103 @@ class ApiJourneyTests(unittest.TestCase):
         self.assertEqual(compared.status_code, 200, compared.text)
         result = compared.json()
         self.assertEqual(result["common_group_date_count"], result["common_ic_date_count"])
+        self.assertTrue(result["matched_sample"]["available"])
+        self.assertGreater(result["matched_sample"]["observation_count"], 0)
+        self.assertEqual(result["matched_sample"]["label_mismatch_count"], 0)
         self.assertTrue(all(item["group_date_count"] > 0 for item in result["items"]))
 
         csv_export = self.client.post("/api/v1/research/comparisons/export.csv", headers=researcher, json=payload)
         self.assertEqual(csv_export.status_code, 200, csv_export.text)
-        self.assertIn("共同多空分组日期数", csv_export.content.decode("utf-8-sig"))
+        csv_text = csv_export.content.decode("utf-8-sig")
+        self.assertIn("共同多空分组日期数", csv_text)
+        self.assertIn("严格样本IC摘要", csv_text)
         html_export = self.client.post("/api/v1/research/comparisons/export.html", headers=researcher, json=payload)
         self.assertEqual(html_export.status_code, 200, html_export.text)
         self.assertIn("共同多空分组日期", html_export.text)
+        self.assertIn("严格样本 IC 摘要", html_export.text)
+
+        # The API JSON is the source of the client-side snapshot; check the
+        # human-readable exports against its ordered identities and metrics.
+        rows = list(csv.DictReader(io.StringIO(csv_text)))[:len(result["items"])]
+        self.assertEqual(len(rows), len(result["items"]))
+        for item, row in zip(result["items"], rows):
+            with self.subTest(run_id=item["run_id"]):
+                self.assertEqual(row["run_id"], item["run_id"])
+                self.assertEqual(row["dataset_version_id"], item["dataset_version_id"])
+                self.assertEqual(row["dataset_checksum_sha256"], item["dataset_checksum_sha256"])
+                self.assertAlmostEqual(float(row["ic_mean"]), item["metrics"]["ic_mean"])
+                self.assertAlmostEqual(float(row["common_date_ic_mean"]), item["common_date_ic"]["ic_mean"])
+                self.assertIn(item["run_id"], html_export.text)
+                self.assertIn(item["dataset_version_id"], html_export.text)
+                self.assertIn(item["dataset_checksum_sha256"], html_export.text)
+                self.assertIn(f"{item['metrics']['ic_mean']:.4f}", html_export.text)
+        for warning in result["warnings"]:
+            self.assertIn(html.escape(warning), html_export.text)
+            self.assertIn(warning, csv_text)
+
+        origin = "http://127.0.0.1:5173"
+        for endpoint in (
+            "/api/v1/research/comparisons/export.csv",
+            "/api/v1/research/comparisons/export.html",
+        ):
+            with self.subTest(cors_endpoint=endpoint):
+                preflight = self.client.options(endpoint, headers={
+                    "Origin": origin,
+                    "Access-Control-Request-Method": "POST",
+                    "Access-Control-Request-Headers": "authorization,content-type",
+                })
+                self.assertEqual(preflight.status_code, 200, preflight.text)
+                self.assertEqual(preflight.headers["access-control-allow-origin"], origin)
+                self.assertIn("authorization", preflight.headers["access-control-allow-headers"].lower())
+                self.assertIn("content-type", preflight.headers["access-control-allow-headers"].lower())
+                exported = self.client.post(endpoint, headers={**researcher, "Origin": origin}, json=payload)
+                self.assertEqual(exported.status_code, 200, exported.text)
+                self.assertEqual(exported.headers["access-control-allow-origin"], origin)
+                self.assertTrue(exported.content)
+                rejected_origin = self.client.options(endpoint, headers={
+                    "Origin": "https://untrusted.example",
+                    "Access-Control-Request-Method": "POST",
+                    "Access-Control-Request-Headers": "authorization,content-type",
+                })
+                self.assertEqual(rejected_origin.status_code, 400)
+                self.assertNotIn("access-control-allow-origin", rejected_origin.headers)
+
+        for endpoint in (
+            "/api/v1/research/comparisons",
+            "/api/v1/research/comparisons/export.csv",
+            "/api/v1/research/comparisons/export.html",
+        ):
+            with self.subTest(endpoint=endpoint):
+                rejected = self.client.post(endpoint, headers=researcher,
+                                            json={"run_ids": [run_ids[0], run_ids[0]]})
+                self.assertEqual(rejected.status_code, 400, rejected.text)
+                self.assertIn("distinct", rejected.json()["detail"])
+
+    def test_validation_matched_comparison_is_available_through_http_and_exports(self):
+        researcher = self.auth("researcher", "research12345")
+        run_ids = []
+        for factor in ("momentum_20d", "reversal_5d"):
+            created = self.client.post("/api/v1/research/tasks", headers=researcher, json={
+                "factor": factor, "groups": 5, "start_date": "2025-02-03",
+                "validation_start_date": "2025-04-01",
+            })
+            self.assertEqual(created.status_code, 201, created.text)
+            self.assertEqual(created.json()["status"], "success")
+            run_ids.append(created.json()["id"])
+        payload = {"run_ids": run_ids}
+        compared = self.client.post("/api/v1/research/comparisons", headers=researcher, json=payload)
+        self.assertEqual(compared.status_code, 200, compared.text)
+        matched = compared.json()["matched_validation_sample"]
+        self.assertTrue(matched["available"])
+        self.assertEqual(matched["validation_start_date"], "2025-04-01")
+        self.assertGreater(matched["observation_count"], 0)
+        self.assertEqual(len(matched["items"]), 2)
+        csv_export = self.client.post("/api/v1/research/comparisons/export.csv", headers=researcher, json=payload)
+        self.assertEqual(csv_export.status_code, 200, csv_export.text)
+        self.assertIn("验证期严格样本IC摘要", csv_export.content.decode("utf-8-sig"))
+        html_export = self.client.post("/api/v1/research/comparisons/export.html", headers=researcher, json=payload)
+        self.assertEqual(html_export.status_code, 200, html_export.text)
+        self.assertIn("验证期严格样本 IC 摘要", html_export.text)
 
     def test_upload_publish_research_report_and_role_boundaries(self):
         admin = self.auth("admin", "admin12345")
@@ -291,11 +715,14 @@ class ApiJourneyTests(unittest.TestCase):
         self.assertEqual(second.status_code, 201, second.text)
         other_researcher = self.auth("second_researcher", "second-pass123")
         self.assertFalse(any(item["id"] == task_id for item in self.client.get("/api/v1/research/tasks", headers=other_researcher).json()))
+        self.assertFalse(any(item["run_id"] == task_id for item in self.client.get("/api/v1/reports", headers=other_researcher).json()))
         for path in (
             f"/api/v1/research/tasks/{task_id}",
             f"/api/v1/research/tasks/{task_id}/logs",
             f"/api/v1/research/tasks/{task_id}/reproducibility.json",
+            f"/api/v1/reports/{task_id}/html",
             f"/api/v1/reports/{task_id}/download",
+            f"/api/v1/reports/{task_id}/delivery",
         ):
             with self.subTest(path=path):
                 self.assertEqual(self.client.get(path, headers=other_researcher).status_code, 403)

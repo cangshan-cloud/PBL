@@ -2,11 +2,13 @@ import sys
 import unittest
 from datetime import date
 from pathlib import Path
+from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.domain.prices import apply_price_basis
 from app.domain.research import PriceRow, momentum_observations
+from app.services.runs import _validate_dataset_price_basis
 
 
 class PriceBasisTests(unittest.TestCase):
@@ -35,6 +37,45 @@ class PriceBasisTests(unittest.TestCase):
     def test_unknown_basis_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "price_basis"):
             apply_price_basis([], "unknown")
+
+    def test_adapter_adjustment_provenance_blocks_double_adjustment(self):
+        dataset = SimpleNamespace(quality_report={"columns": ["close", "adj_factor"], "adapter_report": {"source_adjustment_flags": ["2"]}})
+        with self.assertRaisesRegex(ValueError, "double adjustment"):
+            _validate_dataset_price_basis(dataset, "factor_adjusted")
+        _validate_dataset_price_basis(dataset, "source_close")
+        dataset.quality_report["adapter_report"]["source_adjustment_flags"] = ["3"]
+        _validate_dataset_price_basis(dataset, "factor_adjusted")
+        dataset.quality_report["adapter_report"]["source_adjustment_flags"] = "3"
+        with self.assertRaisesRegex(ValueError, "ambiguous"):
+            _validate_dataset_price_basis(dataset, "factor_adjusted")
+
+    def test_adjustment_requires_a_numeric_multiplier_column_before_queueing(self):
+        dataset = SimpleNamespace(quality_report={"columns": ["trade_date", "symbol", "close"]})
+        with self.assertRaisesRegex(ValueError, "missing adj_factor"):
+            _validate_dataset_price_basis(dataset, "factor_adjusted")
+        _validate_dataset_price_basis(dataset, "source_close")
+        dataset.quality_report["adapter_report"] = {"source_adjustment_flags": ["3"]}
+        with self.assertRaisesRegex(ValueError, "missing adj_factor"):
+            _validate_dataset_price_basis(dataset, "factor_adjusted")
+        dataset.quality_report["columns"].append("adj_factor")
+        _validate_dataset_price_basis(dataset, "factor_adjusted")
+
+    def test_missing_multiplier_values_block_only_the_full_unfiltered_sample(self):
+        dataset = SimpleNamespace(quality_report={
+            "columns": ["trade_date", "symbol", "close", "adj_factor"],
+            "missing_counts": {"adj_factor": 1},
+            "missing_adj_factor_by_symbol": {"B": 1},
+        })
+        with self.assertRaisesRegex(ValueError, "missing adj_factor values"):
+            _validate_dataset_price_basis(dataset, "factor_adjusted")
+        _validate_dataset_price_basis(dataset, "factor_adjusted", ["A", "C"])
+        with self.assertRaisesRegex(ValueError, "selected symbols have missing"):
+            _validate_dataset_price_basis(dataset, "factor_adjusted", ["A", "B"])
+        _validate_dataset_price_basis(dataset, "source_close")
+        dataset.quality_report["missing_counts"]["adj_factor"] = 0
+        _validate_dataset_price_basis(dataset, "factor_adjusted")
+        del dataset.quality_report["missing_adj_factor_by_symbol"]
+        _validate_dataset_price_basis(dataset, "factor_adjusted", ["A", "B"])
 
 
 if __name__ == "__main__":

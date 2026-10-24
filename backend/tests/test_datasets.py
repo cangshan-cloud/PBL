@@ -68,6 +68,8 @@ class DatasetValidationTests(unittest.TestCase):
         self.assertEqual(parsed.report["completeness"]["close"], 1.0)
         self.assertEqual(parsed.report["numeric_summary"]["close"]["min"], 8.2)
         self.assertEqual(parsed.report["internal_calendar_gap_count"], 0)
+        self.assertEqual(parsed.report["weekend_date_count"], 0)
+        self.assertEqual(parsed.report["weekend_row_count"], 0)
 
     def test_reports_internal_symbol_gaps_without_rejecting_csv(self):
         content = b"""trade_date,symbol,close
@@ -83,6 +85,56 @@ class DatasetValidationTests(unittest.TestCase):
         self.assertEqual(parsed.report["inferred_market_date_count"], 3)
         self.assertEqual(parsed.report["internal_calendar_gap_count"], 1)
         self.assertEqual(parsed.report["symbols_with_internal_calendar_gaps"], 1)
+        self.assertEqual(parsed.report["weekend_date_count"], 1)
+        self.assertEqual(parsed.report["weekend_row_count"], 3)
+
+    def test_weekend_rows_are_diagnostic_not_silently_dropped(self):
+        content = b"trade_date,symbol,close\n2025-01-04,A,10\n2025-01-04,B,11\n2025-01-06,A,12\n"
+        parsed = validate_csv(content)
+        self.assertEqual(parsed.row_count, 3)
+        self.assertEqual(parsed.report["weekend_date_count"], 1)
+        self.assertEqual(parsed.report["weekend_row_count"], 2)
+
+    def test_weekend_diagnostic_distinguishes_dates_from_rows(self):
+        content = b"trade_date,symbol,close\n2025-01-04,A,10\n2025-01-05,A,11\n2025-01-05,B,12\n"
+        parsed = validate_csv(content)
+        self.assertEqual(parsed.report["weekend_date_count"], 2)
+        self.assertEqual(parsed.report["weekend_row_count"], 3)
+
+    def test_announced_weekday_closure_is_distinct_from_weekends(self):
+        content = b"trade_date,symbol,close\n2025-01-27,A,10\n2025-01-28,A,11\n2025-01-28,B,12\n2025-02-01,A,13\n2025-02-05,A,14\n"
+        parsed = validate_csv(content)
+        self.assertEqual(parsed.row_count, 5)
+        self.assertEqual(parsed.report["announced_weekday_closure_date_count"], 1)
+        self.assertEqual(parsed.report["announced_weekday_closure_row_count"], 2)
+        self.assertEqual(parsed.report["announced_weekday_closure_dates"], ["2025-01-28"])
+        self.assertEqual(parsed.report["weekend_row_count"], 1)
+        self.assertEqual(parsed.report["calendar_uncovered_years"], [])
+
+    def test_2024_announced_closure_and_reopening_boundary(self):
+        parsed = validate_csv(b"trade_date,symbol,close\n2024-06-10,A,10\n2024-06-11,A,11\n")
+        self.assertEqual(parsed.report["announced_weekday_closure_dates"], ["2024-06-10"])
+        self.assertEqual(parsed.report["announced_weekday_closure_row_count"], 1)
+
+    def test_2026_announced_closures_and_reopening_boundaries(self):
+        parsed = validate_csv(b"trade_date,symbol,close\n2026-01-01,A,10\n2026-01-05,A,11\n2026-02-23,A,12\n2026-02-24,A,13\n2026-09-25,A,14\n2026-09-28,A,15\n2026-10-07,A,16\n2026-10-08,A,17\n")
+        self.assertEqual(parsed.report["announced_weekday_closure_dates"],
+                         ["2026-01-01", "2026-02-23", "2026-09-25", "2026-10-07"])
+        self.assertEqual(parsed.report["announced_weekday_closure_row_count"], 4)
+        self.assertEqual(parsed.report["calendar_uncovered_years"], [])
+        self.assertEqual(parsed.report["announced_closure_calendar_version"], "sse-szse-announced-closures-2024-2026-v2")
+
+    def test_2026_spring_and_summer_holiday_boundaries(self):
+        parsed = validate_csv(b"trade_date,symbol,close\n2026-04-06,A,10\n2026-04-07,A,11\n2026-05-01,A,12\n2026-05-05,A,13\n2026-05-06,A,14\n2026-06-19,A,15\n2026-06-22,A,16\n")
+        self.assertEqual(parsed.report["announced_weekday_closure_dates"],
+                         ["2026-04-06", "2026-05-01", "2026-05-05", "2026-06-19"])
+        self.assertEqual(parsed.report["weekend_row_count"], 0)
+
+    def test_closure_calendar_reports_unsupported_year_without_guessing(self):
+        parsed = validate_csv(b"trade_date,symbol,close\n2027-01-01,A,10\n2027-01-02,A,11\n")
+        self.assertEqual(parsed.report["announced_weekday_closure_row_count"], 0)
+        self.assertEqual(parsed.report["calendar_uncovered_years"], [2027])
+        self.assertEqual(parsed.report["calendar_uncovered_row_count"], 2)
 
     def test_optional_missing_values_are_reported(self):
         content = b"trade_date,symbol,close,pe\n2025-01-02,A,10,12\n2025-01-03,A,11,\n"
@@ -90,6 +142,12 @@ class DatasetValidationTests(unittest.TestCase):
         self.assertEqual(parsed.report["missing_counts"]["pe"], 1)
         self.assertEqual(parsed.report["completeness"]["pe"], 0.5)
         self.assertEqual(parsed.report["numeric_summary"]["pe"]["count"], 1)
+
+    def test_adjustment_missing_rows_are_attributed_to_their_symbols(self):
+        content = b"trade_date,symbol,close,adj_factor\n2025-01-02,A,10,1\n2025-01-02,B,20,\n2025-01-03,B,21,\n2025-01-03,C,30,2\n"
+        parsed = validate_csv(content)
+        self.assertEqual(parsed.report["missing_counts"]["adj_factor"], 2)
+        self.assertEqual(parsed.report["missing_adj_factor_by_symbol"], {"B": 2})
 
     def test_duplicate_symbol_date_is_rejected(self):
         content = b"trade_date,symbol,close\n2025-01-02,A,10\n2025-01-02,A,11\n"
@@ -102,6 +160,16 @@ class DatasetValidationTests(unittest.TestCase):
         with self.assertRaises(DatasetValidationError) as caught:
             validate_csv(content)
         self.assertIn("high", caught.exception.report["errors"][0])
+
+    def test_nonpositive_optional_ohlc_is_rejected_without_banning_negative_pe(self):
+        for column, value in (("open", "0"), ("high", "-1"), ("low", "0")):
+            with self.subTest(column=column):
+                content = f"trade_date,symbol,close,{column}\n2025-01-02,A,10,{value}\n".encode()
+                with self.assertRaises(DatasetValidationError) as caught:
+                    validate_csv(content)
+                self.assertIn(f"{column}必须大于0", caught.exception.report["errors"][0])
+        parsed = validate_csv(b"trade_date,symbol,close,pe\n2025-01-02,A,10,-3\n")
+        self.assertTrue(parsed.report["valid"])
 
 
 class DatasetPersistenceTests(unittest.TestCase):
@@ -128,6 +196,7 @@ class DatasetPersistenceTests(unittest.TestCase):
             self.assertEqual(dataset.source_filename, "unsafe.csv")
             self.assertEqual(dataset.row_count, 3)
             self.assertEqual(dataset.symbol_count, 2)
+            self.assertEqual(dataset.quality_report["weekend_row_count"], 0)
             self.assertTrue(Path(dataset.storage_uri).is_file())
             preview = preview_dataset(dataset, limit=2)
             self.assertEqual(preview["preview_count"], 2)

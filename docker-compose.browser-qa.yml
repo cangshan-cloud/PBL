@@ -1,0 +1,20 @@
+# Use only with an explicit, unique -p project name and a fresh runtime directory.
+# Example: FACTORLAB_QA_RUNTIME_DIR=/private/tmp/factorlab-browser-qa-1021-runtime
+#   docker compose -p factorlab-browser-qa-1021 -f docker-compose.yml -f docker-compose.browser-qa.yml config
+# Run tools/verify_browser_qa_compose.py before up; config alone does not enforce isolation.
+services:
+  web:
+    environment:
+      VITE_API_BASE_URL: http://127.0.0.1:18021/api/v1
+    ports: !override ["127.0.0.1:15121:5173"]
+  api:
+    environment:
+      CORS_ORIGINS: http://127.0.0.1:15121,http://localhost:15121
+    ports: !override ["127.0.0.1:18021:8000"]
+    volumes: !override
+      - ./data/sample:/data/sample:ro
+      - ${FACTORLAB_QA_RUNTIME_DIR:?set a fresh isolated runtime directory}:/data/runtime
+  worker:
+    volumes: !override
+      - ./data/sample:/data/sample:ro
+      - ${FACTORLAB_QA_RUNTIME_DIR:?set a fresh isolated runtime directory}:/data/runtime

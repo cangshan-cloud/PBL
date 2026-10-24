@@ -245,20 +245,30 @@ def evaluate(
     long_short_turnover_values: list[float] = []
     group_skipped_constant_factor_days = 0
     group_skipped_insufficient_sample_days = 0
+    daily_coverage: list[dict] = []
     for trade_date, daily in sorted(by_date.items()):
+        diagnostic = {"date": trade_date.isoformat(), "eligible_symbols": len(daily),
+                      "ic_status": "valid", "group_status": "valid"}
+        daily_coverage.append(diagnostic)
         if len(daily) < 2:
+            diagnostic["ic_status"] = "insufficient_sample"
+            diagnostic["group_status"] = "insufficient_sample"
             group_skipped_insufficient_sample_days += 1
             continue
         factors = [item.factor for item in daily]
         returns = [item.forward_return for item in daily]
         ic = pearson(factors, returns)
         rank_ic = pearson(_rank(factors), _rank(returns))
+        if ic is None:
+            diagnostic["ic_status"] = "constant_factor_or_return"
         ic_series.append({"date": trade_date.isoformat(), "ic": ic, "rank_ic": rank_ic})
 
         if max(factors) == min(factors):
+            diagnostic["group_status"] = "constant_factor"
             group_skipped_constant_factor_days += 1
             continue
         if len(daily) < groups:
+            diagnostic["group_status"] = "insufficient_sample"
             group_skipped_insufficient_sample_days += 1
             continue
 
@@ -314,6 +324,7 @@ def evaluate(
     long_short_net_returns = [item["net_return"] for item in long_short_series]
     result = {
         "coverage": len(processed),
+        "daily_coverage": daily_coverage,
         "ic_mean": ic_mean,
         "ic_std": ic_std,
         "rank_ic_mean": fmean(valid_rank_ic) if valid_rank_ic else None,

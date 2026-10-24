@@ -18,7 +18,9 @@ docker compose up --build -d
 docker compose ps
 ```
 
-`docker compose ps` 中数据库、Redis、API 和 Worker 应显示 `healthy`；Worker 健康检查会向当前容器对应的 Celery 节点发送定向 `ping`，不是只检查进程存在。前端应显示 `Up`。
+`docker compose ps` 中 Web、数据库、Redis、API 和 Worker 均应显示 `healthy`；Web 只检查容器内首页 HTTP 响应，Worker 则向当前容器对应的 Celery 节点发送定向 `ping`，不是只检查进程存在。Web 健康不替代宿主机 `curl` 或浏览器业务验收。
+
+2026-10-19 本机 OrbStack 重启后，针对现有 `fbl` 项目从当时未提交工作区重新构建 API、Worker、Web 镜像，仅强制重建这三个应用容器；数据库和 Redis 未重建。更新前后数据库版本数均为 2，宿主机网页及 `/health` 均返回 200，管理员登录后只读数据列表也返回 2 个版本。镜像与限制见 [CHG-20261019-018](changes/2026-10-19-018-orbstack-current-worktree-refresh.md)。此记录不代表随后修改的代码已自动进入容器。
 
 容器健康只证明容器内部检查通过，仍须从宿主机实际访问前端和 API。2026-10-14 一次排查中，已有 `fbl` 容器保持健康、API 容器内 `/health` 返回 200 且 8000 端口映射存在，但 Mac 宿主机的 8000 和 5173 端口均连接拒绝，`lsof` 没有对应 OrbStack 监听。`orbctl doctor` 检查通过，根因仍未定位。只对 `api`、`web` 执行 `docker compose restart api` 与 `docker compose restart web` 后，两个宿主机监听和 HTTP 页面均恢复；db、redis、worker 未重启，原有数据卷未删除。**这只是本次恢复事实，不保证能修复其他原因的端口故障。**正式演示前应把宿主机端口访问列为独立门槛；若失败，先收集 `docker compose ps`、宿主机 `curl`、容器内 `/health` 和 OrbStack 状态，再决定是否定向重启，不要直接删卷或全局重启。
 
@@ -95,3 +97,59 @@ python3 tools/verify_historical_api_journey.py \
 ```
 
 不要对主 `fbl` 栈使用这条写入式命令。确认测试项目名后，仅对它执行 `docker compose -p factorlab-hs300-qa -f docker-compose.yml -f <override文件> down -v` 清理其测试数据库卷；导出证据目录不会被此命令删除。Compose 普通端口列表会与基础文件叠加，因此要用 `!override` 替换端口列表，否则仍会尝试占用主栈的 8000 端口。
+
+### 2026-10-19 当前主栈浏览器闭环
+
+在 CHG-20261019-018 更新应用镜像后，当前 `fbl` 主栈已完成一次管理员浏览器验收：三行合成 CSV 的旧预览在换文件后失效，重新预览、导入、顶部周末提醒与发布均成功；新版本为 `compose_accept_20261019 / 20261019.133241.102062`。再用原有 `demo_daily / 0.2.0` 执行 20 日动量单因子研究，Run `56b06bd9-7d61-4b2b-aa17-19e1b7e101e6` 成功，报告在线预览与 HTML 下载完成。主栈原有数据保留，新增测试版本和任务不清理。详细记录、SHA-256 与截图见 [CHG-20261019-019](changes/2026-10-19-019-compose-browser-end-to-end-qa.md)。这是 Mac/OrbStack 软件链路验收，不代表真实投资绩效或 Windows 验收。
+
+### 2026-10-19 研究页所选版本提醒上线
+
+只重建并替换 Web 容器，镜像 SHA-256 为 `d2c4d98f613d935b6d7ad6e1afb126506a2eaf2093337c5cd84a349d92dc181f`；其余四服务未重建且状态正常。管理员浏览器中，选中含周末行情的 `compose_accept_20261019` 时提醒可见，改选正常的 `demo_daily` 后提醒消失。总览仍有 3 个数据版本、27 个成功任务和 27 份报告。截图和限制见 [CHG-20261019-021](changes/2026-10-19-021-research-warning-orbstack-browser-qa.md)。
+
+### 2026-10-20 公告休市诊断与合成数据告知上线
+
+确认 27 个任务均已成功且无运行/排队任务后，只替换 API、Worker、Web；DB、Redis 和数据卷保留。五服务正常，版本数仍为 3，任务和报告仍各为 27。浏览器数据页可见旧验收样本周末风险及演示版本 11 日/220 行公告休市合成行情告知；研究页切换选中版本时提示同步变化。详细镜像 SHA、截图及未覆盖边界见 [CHG-20261020-003](changes/2026-10-20-003-calendar-orbstack-deployment-browser-qa.md)。旧质量报告未回填，2024–2025 公告休市诊断不等于完整交易日历。
+
+### 2026-10-20 报告风险披露上线
+
+再次确认无在途任务后定向更新 API、Worker、Web；浏览器中的旧演示报告外层出现合成数据限制，切到 BaoStock 报告后消失。数据库仍为 3 个版本、27 个任务、27 个报告产物；旧报告文件不改写。镜像、截图和范围见 [CHG-20261020-004](changes/2026-10-20-004-report-dataset-risk-disclosure.md)。
+
+### 2026-10-20 报告披露版交付上线
+
+报告中心默认下载带数据身份、原报告 SHA 与风险说明的派生 HTML；原始归档下载 API 与存储文件不变。仅重建 API、Worker、Web，主栈仍为 3 个版本、27 个任务、27 个报告产物。浏览器点击与本机 HTTP 双接口摘要核对见 [CHG-20261020-005](changes/2026-10-20-005-report-disclosed-delivery-copy.md)。
+
+### 2026-10-20 离线休市规则扩展至 2026 年
+
+依据沪深两所正式公告将共同休市区间扩展到 2026 年，规则版本升至 `sse-szse-announced-closures-2024-2026-v2`。只更新 API/Worker，五服务正常；运行容器验证 2026-10-07 命中、10-08 不命中。既有 3 个数据版本、27 个任务与 27 个报告产物未变；旧质量报告未回填。来源、镜像与边界见 [CHG-20261020-006](changes/2026-10-20-006-2026-announced-closure-coverage.md)。
+
+### 2026-10-20 适配预览日期明细上线
+
+预览接口现返回完整公告休市命中日期和规则版本，页面在导入前展示。仅替换 API、Worker、Web；用临时 2026 CSV 对主栈只做预览，返回 2026-10-07 与 v2 规则，不创建版本。主栈仍为 3 个版本、27 个任务、27 个报告。测试、镜像身份和浏览器未覆盖边界见 [CHG-20261020-007](changes/2026-10-20-007-adapter-calendar-preview-provenance.md)。
+
+### 2026-10-20 预览浏览器实点与无关警告修复
+
+浏览器选择两行本机合成 CSV、点击适配预览，页面显示 2026-10-07 与 v2 规则。发现无成交量列仍提示单位核对后，适配器升至 1.3.1，仅更新 API/Worker 并浏览器复点，误报消失；未执行导入，主栈 3 版/27 任务/27 报告不变。见 [CHG-20261020-008](changes/2026-10-20-008-calendar-preview-browser-qa-and-volume-warning.md)。
+
+### 2026-10-20：报告公告休市风险传递
+
+更新前只读确认无在途任务，主栈为 3 个数据版本、27 个成功任务、27 份报告。后端 237 项、前端 42 项通过且 Web 构建成功后，仅重建并替换 API、Worker、Web；DB/Redis/数据卷保留。更新后数量仍为 3/27/27。报告中心外围可对绑定数据版本提示公告休市与未覆盖年份；新报告和派生披露版 HTML 带相同数据风险，历史归档 HTML 不回填也不改写。此次新质量字段分支由单元测试覆盖，未进行浏览器实点。详见 [CHG-20261020-009](changes/2026-10-20-009-report-calendar-risk-propagation.md)。实际执行者：Codex。
+
+### 2026-10-20：报告风险隔离 HTTP 回归与 Web 更新
+
+隔离 SQLite/TestClient 跑通预览、按原文件摘要导入、发布、研究任务、新报告、派生披露版及原归档字节复核。报告页面文案改为独立纯函数并核对 ID+SHA 双重匹配。后端 238 项、前端 43 项通过，生产构建成功。只替换 Web 容器，主栈仍为 3 版/27 成功任务/27 报告；五服务运行，Web 容器内部页面请求成功。宿主沙箱 `curl 127.0.0.1:5173` 未连通，本轮不声称浏览器实点。见 [CHG-20261020-010](changes/2026-10-20-010-calendar-report-http-journey.md)。实际执行者：Codex。
+
+### 2026-10-21：Mac 浏览器只读验收与下载反馈 Web 更新
+
+宿主机本地页面可访问；浏览器复点概览、数据集、研究页、报告中心与比较页。仅对已有报告发起派生披露版下载，不创建任务或导入数据。报告下载按钮新增发起提示及失败反馈；提示只确认浏览器下载请求已发起，不证明文件落盘。前端 45 项、后端 242 项通过且 Web 构建成功。仅重建并替换 Web，API/Worker/DB/Redis 保留；只读核对主栈仍为 3 个数据版本、27 个成功任务、27 份报告。见 [浏览器验收记录](MAC_BROWSER_ACCEPTANCE_2026-10-21.md)与 [CHG-20261021-004](changes/2026-10-21-004-mac-browser-readonly-qa-and-download-feedback.md)。实际执行者：Codex。
+
+### 2026-10-21：报告下载内容守卫 Web 更新
+
+前端 46 项测试和生产构建通过后，仅重建并替换 Web 镜像（SHA-256 `f65fcd673b4973117cf14b876610ef8a83accbac34e5f12f84bbb04b4b4fe355`）。API/Worker/DB/Redis 未替换，五服务运行；宿主机 `HEAD http://127.0.0.1:5173/` 返回 200。未重复数据库计数或浏览器下载落盘核对。见 [CHG-20261021-005](changes/2026-10-21-005-report-download-payload-guard.md)。实际执行者：Codex。
+
+### 2026-10-21：专用 Compose 连续浏览器验收
+
+新增 `docker-compose.browser-qa.yml`，只可配合显式唯一 `-p` 项目名与新建的 `FACTORLAB_QA_RUNTIME_DIR` 使用。覆盖配置将 Web/API 绑定本机 15121/18021、API/Worker 共享隔离目录，样本目录只读；数据库卷随项目名独立。实际使用 `factorlab-browser-qa-1021`，合并配置已核对不指向主栈数据；新合成 CSV 在同一浏览器完成导入发布、Worker 研究、报告预览与下载落盘字节核对。隔离栈结束前 2 版/1 任务/1 报告，主栈仍 3/27/27。验收后仅对精确隔离项目执行 `down`，不加 `-v`，专用测试卷与临时运行目录保留；主栈未动。详见 [连续验收记录](MAC_ISOLATED_BROWSER_JOURNEY_2026-10-21.md)与 [CHG-20261021-008](changes/2026-10-21-008-isolated-new-data-browser-journey.md)。实际执行者：Codex。
+
+### 2026-10-21：隔离栈启动前预检
+
+先用 `mktemp -d /private/tmp/factorlab-browser-qa-XXXXXX` 创建新的专用目录，设置唯一项目名，再运行 `tools/verify_browser_qa_compose.py --project-name <项目名> --runtime-dir <绝对目录>`。工具只解析 `docker compose config --format json`，核对项目、端口、网络、卷、CORS、数据库与队列地址及挂载；PASS 后**仍须用完全相同**的 `-p` 和目录执行 `up`。不要对主 `fbl` 项目使用本覆盖文件。正反例及上轮隔离配置实测通过，后端 249 项通过；未重新启动隔离服务。见 [CHG-20261021-009](changes/2026-10-21-009-browser-qa-compose-preflight.md)。实际执行者：Codex。

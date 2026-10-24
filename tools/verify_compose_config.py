@@ -43,7 +43,7 @@ def main() -> int:
     for name in ("db", "redis", "worker"):
         if services[name].get("ports"):
             raise ValueError(f"{name} must not publish a host port")
-    for name in ("api", "worker", "db", "redis"):
+    for name in ("web", "api", "worker", "db", "redis"):
         if not services[name].get("healthcheck"):
             raise ValueError(f"{name} is missing a healthcheck")
 

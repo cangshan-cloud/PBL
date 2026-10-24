@@ -70,7 +70,8 @@ class PersistenceTests(unittest.TestCase):
             completed = execute_research_run(session, run_id)
             self.assertEqual(completed.status, RunStatus.SUCCESS)
             self.assertEqual(completed.progress, 100)
-            self.assertEqual(len(completed.artifacts), 2)
+            self.assertEqual({item.artifact_type for item in completed.artifacts},
+                             {"metrics", "report_html", "observations"})
             self.assertTrue(completed.experiment.code_version.startswith("src-sha256:"))
 
         with Session(self.engine) as another_session:

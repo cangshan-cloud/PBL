@@ -13,9 +13,9 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
 from app.db import Base
-from app.main import download_report, preview_report
+from app.main import download_report, download_report_delivery_copy, preview_report
 from app.models import Artifact, UserRole
-from app.services.reports import _svg_chart, build_report_html, get_report, list_reports, read_verified_report
+from app.services.reports import _svg_chart, build_report_html, get_report, list_reports, read_verified_report, report_delivery_copy
 from app.services.runs import create_research_run, execute_research_run
 
 
@@ -44,6 +44,8 @@ class ReportTests(unittest.TestCase):
             self.assertIn("截面Z-score标准化", content)
             self.assertIn("每日 IC 与 Rank IC", content)
             self.assertIn("IC 分布（固定 0.2 宽度分箱）", content)
+            self.assertIn("逐日样本诊断", content)
+            self.assertIn("<th>候选</th><th>有效</th><th>覆盖率</th>", content)
             self.assertIn("各组净值（初值 1）", content)
             self.assertIn("多空组合净值（初值 1）", content)
             self.assertEqual(content.count("<svg "), 3)
@@ -52,6 +54,88 @@ class ReportTests(unittest.TestCase):
             self.assertIn(completed.id, content)
             self.assertEqual(len(artifact.checksum), 64)
             self.assertEqual(list_reports(session)[0]["run_id"], completed.id)
+            self.assertEqual(list_reports(session)[0]["dataset_version_id"], completed.experiment.dataset_version.id)
+            self.assertEqual(list_reports(session)[0]["dataset_checksum_sha256"], completed.experiment.dataset_version.checksum)
+
+    def test_new_demo_report_discloses_synthetic_calendar(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(session, {"factor": "momentum_20d", "lookback": 20, "groups": 5})
+            dataset = run.experiment.dataset_version
+            dataset.dataset_key = "demo_daily"
+            dataset.quality_report = {"source": "bundled_demo"}
+            rendered = build_report_html(run, {"coverage": 0, "group_returns": []})
+            self.assertIn("数据质量与来源限制", rendered)
+            self.assertIn("不能作为真实市场证据", rendered)
+            dataset.quality_report = {"source": "imported_csv"}
+            dataset.checksum = "other"
+            self.assertNotIn("数据质量与来源限制", build_report_html(run, {"coverage": 0, "group_returns": []}))
+
+    def test_new_report_discloses_calendar_quality_findings(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(session, {"factor": "momentum_20d", "lookback": 20, "groups": 5})
+            dataset = run.experiment.dataset_version
+            dataset.dataset_key = "imported_2026"
+            dataset.quality_report = {
+                "weekend_row_count": 2,
+                "announced_weekday_closure_row_count": 1,
+                "announced_weekday_closure_dates": ["2026-10-07"],
+                "announced_closure_calendar_version": "sse-szse-announced-closures-2024-2026-v2",
+                "calendar_uncovered_years": [2027],
+            }
+            rendered = build_report_html(run, {"coverage": 0, "group_returns": []})
+            self.assertIn("2 行周末日期行情", rendered)
+            self.assertIn("2026-10-07", rendered)
+            self.assertIn("2027 年", rendered)
+            self.assertIn("sse-szse-announced-closures-2024-2026-v2", rendered)
+
+    def test_imported_csv_report_discloses_unverified_provenance_even_without_known_calendar_issue(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(session, {"factor": "pe", "groups": 2})
+            dataset = run.experiment.dataset_version
+            dataset.dataset_key = "private_daily"
+            dataset.quality_report = {"valid": True, "columns": ["trade_date", "symbol", "close", "pe"]}
+            rendered = build_report_html(run, {"coverage": 0, "group_returns": []})
+            self.assertIn("CSV 导入数据", rendered)
+            self.assertIn("不认证数据真实性、使用授权或完整交易日历", rendered)
+            delivered = report_delivery_copy(rendered.encode("utf-8"), run, "archived-sha").decode("utf-8")
+            self.assertEqual(delivered.count("不认证数据真实性、使用授权或完整交易日历"), 2)
+            dataset.quality_report = {"dataset_kind": "hs300_bundle_v1", "columns": ["close"]}
+            self.assertNotIn("CSV 导入数据", build_report_html(run, {"coverage": 0, "group_returns": []}))
+
+    def test_adjusted_report_discloses_dataset_wide_missing_multiplier(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(session, {"factor": "pe", "groups": 2})
+            run.experiment.dataset_version.quality_report = {"missing_counts": {"adj_factor": 1}}
+            run.experiment.parameters = {"price_basis": "factor_adjusted", "symbols": ["000001.SZ", "000003.SZ"]}
+            rendered = build_report_html(run, {"coverage": 0, "group_returns": []})
+            self.assertIn("全量质量报告有 1 行缺失 adj_factor", rendered)
+            self.assertIn("不代表版本内其他证券可用于调整价研究", rendered)
+            delivered = report_delivery_copy(rendered.encode("utf-8"), run, "archived-sha").decode("utf-8")
+            self.assertEqual(delivered.count("全量质量报告有 1 行缺失 adj_factor"), 2)
+            run.experiment.parameters = {"price_basis": "source_close"}
+            self.assertNotIn("全量质量报告有 1 行缺失 adj_factor",
+                             build_report_html(run, {"coverage": 0, "group_returns": []}))
+
+    def test_adapter_adjustment_status_is_disclosed_without_reapplying_factor(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(session, {"factor": "momentum_20d", "lookback": 20, "groups": 5})
+            dataset = run.experiment.dataset_version
+            dataset.dataset_key = "imported_baostock"
+            dataset.quality_report = {"adapter_report": {"source_adjustment_flags": ["2"]}}
+            rendered = build_report_html(run, {"coverage": 0, "group_returns": []})
+            self.assertIn("adjustflag=2（来源声明的前复权状态）", rendered)
+            self.assertIn("不是数值复权因子", rendered)
+            self.assertIn("价格口径：导入的 close", rendered)
+            delivered = report_delivery_copy(rendered.encode("utf-8"), run, "archived-sha").decode("utf-8")
+            self.assertEqual(delivered.count("adjustflag=2"), 2)
+            for flag, label in (("1", "后复权"), ("3", "不复权")):
+                dataset.quality_report = {"adapter_report": {"source_adjustment_flags": [flag]}}
+                self.assertIn(f"adjustflag={flag}（来源声明的{label}状态）",
+                              build_report_html(run, {"coverage": 0, "group_returns": []}))
+            dataset.quality_report = {"adapter_report": {"source_adjustment_flags": []}}
+            self.assertNotIn("adjustflag=", build_report_html(run, {"coverage": 0, "group_returns": []}))
+            dataset.quality_report = {"adapter_report": {"source_adjustment_flags": [["2"]]}}
+            self.assertNotIn("adjustflag=", build_report_html(run, {"coverage": 0, "group_returns": []}))
 
     def test_dynamic_text_is_html_escaped(self):
         with Session(self.engine, expire_on_commit=False) as session:
@@ -122,6 +206,83 @@ class ReportTests(unittest.TestCase):
         artifact = Artifact(artifact_type="report_html", name="report.html", storage_uri=str(path), checksum=None)
         with self.assertRaisesRegex(ValueError, "校验和不匹配"):
             read_verified_report(artifact)
+
+    def test_delivery_copy_discloses_demo_and_preserves_archive(self):
+        original = b"<html><body><main><h1>Original</h1></main></body></html>"
+        dataset = SimpleNamespace(id="dataset-v1", dataset_key="demo_daily", version="0.2.0",
+            checksum="c65db778f6a08c69e4b8d246e146bc67f158fd4d313350d8340009337614a10e",
+            quality_report={"source": "bundled_demo"})
+        run = SimpleNamespace(experiment=SimpleNamespace(dataset_version=dataset, created_by_id="other"))
+        path = Path(self.temp_dir.name) / "report.html"
+        path.write_bytes(original)
+        digest = hashlib.sha256(original).hexdigest()
+        artifact = Artifact(artifact_type="report_html", name="report.html", storage_uri=str(path), checksum=digest)
+        user = SimpleNamespace(role=UserRole.VIEWER)
+        with patch("app.main.get_report", return_value=(run, artifact)):
+            delivered = download_report_delivery_copy("run-12345678", user, None)
+            self.assertIn("合成演示数据", delivered.body.decode())
+            self.assertIn(digest, delivered.body.decode())
+            self.assertEqual(delivered.headers["x-archived-report-sha256"], digest)
+            self.assertEqual(download_report("run-12345678", user, None).body, original)
+            self.assertEqual(path.read_bytes(), original)
+
+    def test_delivery_endpoint_rejects_missing_tampered_and_invalid_archive(self):
+        original = b"<html><main>verified report</main></html>"
+        path = Path(self.temp_dir.name) / "report.html"
+        path.write_bytes(original)
+        digest = hashlib.sha256(original).hexdigest()
+        artifact = Artifact(artifact_type="report_html", name="report.html", storage_uri=str(path), checksum=digest)
+        dataset = SimpleNamespace(id="dataset-v1", dataset_key="imported", version="v1", checksum="data-sha", quality_report={})
+        run = SimpleNamespace(experiment=SimpleNamespace(dataset_version=dataset, created_by_id="other"))
+        user = SimpleNamespace(role=UserRole.VIEWER)
+        with patch("app.main.get_report", return_value=(run, artifact)):
+            path.write_bytes(b"<html><main>tampered</main></html>")
+            with self.assertRaises(HTTPException) as tampered:
+                download_report_delivery_copy("run-12345678", user, None)
+            self.assertEqual(tampered.exception.status_code, 409)
+
+            path.unlink()
+            with self.assertRaises(HTTPException) as missing:
+                download_report_delivery_copy("run-12345678", user, None)
+            self.assertEqual(missing.exception.status_code, 410)
+
+            malformed = b"<html>verified but missing main</html>"
+            path.write_bytes(malformed)
+            artifact.checksum = hashlib.sha256(malformed).hexdigest()
+            with self.assertRaises(HTTPException) as invalid_structure:
+                download_report_delivery_copy("run-12345678", user, None)
+            self.assertEqual(invalid_structure.exception.status_code, 409)
+
+            invalid_encoding = b"<html><main>\xff</main></html>"
+            path.write_bytes(invalid_encoding)
+            artifact.checksum = hashlib.sha256(invalid_encoding).hexdigest()
+            with self.assertRaises(HTTPException) as invalid_text:
+                download_report_delivery_copy("run-12345678", user, None)
+            self.assertEqual(invalid_text.exception.status_code, 409)
+
+    def test_delivery_copy_escapes_provenance_and_handles_invalid_html(self):
+        dataset = SimpleNamespace(id="<script>", dataset_key="imported", version="v1", checksum="sha<&", quality_report={"weekend_row_count": 2})
+        run = SimpleNamespace(experiment=SimpleNamespace(dataset_version=dataset))
+        delivered = report_delivery_copy(b"<html><main>report</main></html>", run, "original")
+        self.assertIn(b"&lt;script&gt;", delivered)
+        self.assertIn(b"sha&lt;&amp;", delivered)
+        self.assertIn("周末日期行情", delivered.decode())
+        self.assertNotIn(b"<script>", delivered)
+        with self.assertRaisesRegex(ValueError, "页面结构"):
+            report_delivery_copy(b"<html>missing main</html>", run, "original")
+
+    def test_delivery_copy_carries_calendar_findings_and_escapes_dates(self):
+        dataset = SimpleNamespace(id="dataset-v1", dataset_key="imported", version="v1", checksum="sha",
+            quality_report={"announced_weekday_closure_row_count": 1,
+                            "announced_weekday_closure_dates": ["2026-10-07<script>"],
+                            "announced_closure_calendar_version": "calendar-v2",
+                            "calendar_uncovered_years": [2027]})
+        run = SimpleNamespace(experiment=SimpleNamespace(dataset_version=dataset))
+        delivered = report_delivery_copy(b"<html><main>report</main></html>", run, "original").decode()
+        self.assertIn("2026-10-07&lt;script&gt;", delivered)
+        self.assertIn("规则版本：calendar-v2", delivered)
+        self.assertIn("未覆盖 2027 年", delivered)
+        self.assertNotIn("<script>", delivered)
 
     def test_chart_gaps_do_not_become_zero_and_labels_are_escaped(self):
         chart = _svg_chart(

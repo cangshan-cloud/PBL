@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
 
 from fetch_real_a_share_sample import normalize_row
-from verify_real_a_share_sample import group_date_audit
+from verify_real_a_share_sample import group_date_audit, independent_momentum_ic_audit, observed_coverage_audit
 
 
 VALID = {
@@ -16,6 +16,26 @@ VALID = {
 
 
 class RealSampleAcquisitionTests(unittest.TestCase):
+    def test_independent_raw_momentum_ic_audit_detects_wrong_saved_value(self):
+        lines = ["trade_date,symbol,close"]
+        days = ("2024-01-01", "2024-01-02", "2024-01-03", "2024-01-04")
+        for index, day in enumerate(days):
+            for symbol, growth in (("A", 1.1), ("B", 1.2), ("C", 1.3)):
+                lines.append(f"{day},{symbol},{10 * growth ** index}")
+        content = ("\n".join(lines) + "\n").encode()
+        saved = [{"date": day, "ic": 1.0} for day in days[1:3]]
+        checked = independent_momentum_ic_audit(content, saved, lookback=1, validation_start=days[2])
+        self.assertEqual(observed_coverage_audit(content), {
+            "observed_dates": 4, "min_rows_per_observed_date": 3, "max_rows_per_observed_date": 3,
+            "min_rows_per_symbol": 4, "max_rows_per_symbol": 4,
+        })
+        self.assertEqual(checked["audited_ic_dates"], 2)
+        self.assertEqual(checked["research_spot"]["stock_count"], 3)
+        self.assertEqual(checked["validation_spot"]["date"], days[2])
+        with self.assertRaisesRegex(ValueError, "independent raw momentum IC differs"):
+            independent_momentum_ic_audit(content, [{"date": days[1], "ic": 0.0}], lookback=1,
+                                          validation_start=days[1])
+
     def test_group_date_audit_rejects_misaligned_nav(self):
         result = {"coverage": 2, "ic_series": [{"date": "2024-01-02"}],
                   "long_short_series": [{"date": "2024-01-02"}],

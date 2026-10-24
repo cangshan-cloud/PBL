@@ -24,7 +24,7 @@
 
 - 必填字段不得缺失；
 - 同一证券同一交易日不得重复；
-- 收盘价必须大于0；
+- 收盘价必须大于0；若提供开盘价、最高价或最低价，也必须分别大于0。市盈率可为负数，不按价格字段处理；
 - 成交量、成交额、换手率和总市值不得为负数；
 - 最高价不得低于开盘价、收盘价或最低价；
 - 最低价不得高于开盘价或收盘价；
@@ -35,6 +35,9 @@
 - 提供数值复权因子时必须大于零。任务默认直接使用 `close`；也可明确选择 `close × adj_factor`，这时所选证券的每一行都须提供有效因子。
 
 质量报告同时记录每个字段的缺失数量和完整率，以及数值字段的有效数量、最小值、最大值和均值。另有 `inferred_market_date_count`、`internal_calendar_gap_count` 和 `symbols_with_internal_calendar_gaps`：用 CSV 中全部证券的日期并集作为推断日历，仅统计每只证券首条与末条记录之间缺少的日期，不把上市前或退市后计为断档。数据集卡片展示断档总数，非零时提示涉及证券数和局限；旧版本无此字段则显示“—”，不伪造为零。它是**提示**，不拒绝导入、不证明该日停牌或数据错误；所有证券同日缺行也无法识别。可选字段允许为空，但对应因子只会使用非空且历史长度足够的观测。
+质量报告还记录 `weekend_date_count`（不同周六/周日日期数）和 `weekend_row_count`（落在这些日期的证券行情行数）。非零时数据集页面提示核对源文件；导入不会自动删行或改日期。该诊断只识别周末，不涵盖交易所节假日、临时休市或完整市场日历；旧数据版本可能没有这两个字段。
+
+新导入版本的质量报告新增 `missing_adj_factor_by_symbol`，只列出 `adj_factor` 列有空值的证券及行数；它用于指定证券的调整价研究提交前校验。全版本缺失总数仍见 `missing_counts.adj_factor`。旧版本没有逐证券字段时不推断缺失归属，研究执行阶段仍逐行校验。该明细不认证复权乘数的来源定义。
 
 极端输入即使每一行都能解析为有限浮点数，汇总求和仍可能溢出；此时导入在生成质量报告前失败，不保存包含 `Infinity` 的元数据。需要保留此类异常记录时，先在原始来源中核对并清洗，不能依赖导入器自动截断。
 
@@ -68,3 +71,7 @@ trade_date,symbol,open,high,low,close,volume
 在项目根目录执行 `make audit-data`，或在 Compose 启动后执行 `docker compose exec api python -m app.services.storage_audit`。本机命令需使用与 API 相同的 `DATABASE_URL` 和 `DATA_ROOT`；若默认 SQLite 文件不存在，命令会报错而不会新建数据库。巡检检查所有数据版本的文件是否丢失、SHA-256 是否变化，并找出 `DATA_ROOT/<数据集>/<版本>/*.csv` 下未被数据库引用的文件；仓库自带的演示数据虽然位于 `DATA_ROOT` 外，仍会核对其文件和校验和。
 
 结果以 JSON 输出；无问题时退出码为 0，有问题为 1，本地 SQLite 数据库文件不存在时为 2。命令只报告问题，不自动删除、覆盖或修复文件。若发现未引用文件，先核对数据库备份和采集记录，再决定如何处理。
+
+## 公告休市诊断补充
+
+新导入普通 CSV 的质量报告可包含 `announced_closure_calendar_version`、`announced_weekday_closure_date_count`、`announced_weekday_closure_row_count`、`announced_weekday_closure_dates`、`calendar_uncovered_years`、`calendar_uncovered_row_count`。只统计 [2024–2025 年沪深交易所年度公告](MARKET_CALENDAR_SCOPE.md)的休市工作日，不将周末重复计入；未覆盖年份不能推断为合规。该诊断不删改原行，不追溯改写旧数据版本。

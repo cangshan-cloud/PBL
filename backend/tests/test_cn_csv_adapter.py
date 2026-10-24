@@ -67,6 +67,44 @@ class ChinaStockCsvAdapterTests(unittest.TestCase):
         with self.assertRaisesRegex(DatasetValidationError, "列数"):
             adapt_cn_stock_csv(b"date,code,close\n20250102,000001,10,extra\n")
 
+    def test_adapter_rejects_nonpositive_mapped_price(self):
+        source = "日期,代码,最低,收盘\n20250102,000001,0,10\n".encode("utf-8")
+        with self.assertRaises(DatasetValidationError) as caught:
+            adapt_cn_stock_csv(source)
+        self.assertIn("low必须大于0", caught.exception.report["errors"][0])
+
+    def test_preview_warns_about_weekend_dates_without_dropping_rows(self):
+        source = b"date,code,close\n20250104,000001,10\n20250104,600000,11\n20250106,000001,12\n"
+        adapted = adapt_cn_stock_csv(source)
+        self.assertEqual(adapted.report["adapter_version"], "1.3.1")
+        self.assertEqual(adapted.report["validation"]["weekend_date_count"], 1)
+        self.assertEqual(adapted.report["validation"]["weekend_row_count"], 2)
+        self.assertTrue(any("导入前核对" in warning for warning in adapted.report["warnings"]))
+        self.assertEqual(validate_csv(adapted.content).row_count, 3)
+
+    def test_preview_warns_about_announced_weekday_closure(self):
+        source = b"date,code,close\n20250128,000001,10\n20250128,600000,11\n20250205,000001,12\n"
+        adapted = adapt_cn_stock_csv(source)
+        self.assertEqual(adapted.report["validation"]["announced_weekday_closure_date_count"], 1)
+        self.assertEqual(adapted.report["validation"]["announced_weekday_closure_row_count"], 2)
+        self.assertTrue(any("公告休市工作日" in warning for warning in adapted.report["warnings"]))
+
+    def test_preview_uses_2026_calendar_and_does_not_mark_year_uncovered(self):
+        source = b"date,code,close\n20261007,000001,10\n20261008,000001,11\n"
+        adapted = adapt_cn_stock_csv(source)
+        self.assertEqual(adapted.report["validation"]["announced_weekday_closure_date_count"], 1)
+        self.assertEqual(adapted.report["validation"]["announced_weekday_closure_dates"], ["2026-10-07"])
+        self.assertEqual(adapted.report["validation"]["announced_closure_calendar_version"], "sse-szse-announced-closures-2024-2026-v2")
+        self.assertEqual(adapted.report["validation"]["calendar_uncovered_years"], [])
+        self.assertTrue(any("公告休市工作日" in warning for warning in adapted.report["warnings"]))
+        self.assertFalse(any("成交量单位" in warning for warning in adapted.report["warnings"]))
+
+    def test_volume_unit_warning_only_when_volume_is_mapped(self):
+        no_volume = adapt_cn_stock_csv(b"date,code,close\n20261008,000001,10\n")
+        with_volume = adapt_cn_stock_csv(b"date,code,close,vol\n20261008,000001,10,100\n")
+        self.assertFalse(any("成交量单位" in warning for warning in no_volume.report["warnings"]))
+        self.assertTrue(any("成交量单位" in warning for warning in with_volume.report["warnings"]))
+
 
 if __name__ == "__main__":
     unittest.main()

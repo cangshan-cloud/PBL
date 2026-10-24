@@ -14,4 +14,5 @@ data/runtime/
 data/real/
 artifacts/
 output/playwright/
+.playwright-cli/
 .DS_Store

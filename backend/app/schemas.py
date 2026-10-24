@@ -47,6 +47,7 @@ class ResearchRequest(BaseModel):
     dataset_version_id: str | None = None
     start_date: date | None = None
     end_date: date | None = None
+    validation_start_date: date | None = None
     symbols: list[str] | None = Field(default=None, max_length=1000)
     lookback: int | None = Field(default=None, ge=2, le=120)
     groups: int = Field(default=5, ge=2, le=10)
@@ -61,6 +62,7 @@ class CompositeResearchRequest(BaseModel):
     dataset_version_id: str | None = None
     start_date: date | None = None
     end_date: date | None = None
+    validation_start_date: date | None = None
     symbols: list[str] | None = Field(default=None, max_length=1000)
     factors: list[str] = Field(min_length=2, max_length=6)
     lookbacks: dict[str, int] = Field(default_factory=dict)
@@ -160,6 +162,8 @@ class ReportSummaryResponse(BaseModel):
     run_id: str
     experiment_name: str
     dataset_version: str
+    dataset_version_id: str
+    dataset_checksum_sha256: str
     factor_version: str
     created_at: datetime
     checksum: str

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+import hashlib
 import json
+import re
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.encoders import jsonable_encoder
@@ -32,7 +34,7 @@ from app.services.comparisons import compare_runs, comparison_csv, comparison_ht
 from app.services.conclusions import build_run_conclusion
 from app.services.historical_audit import historical_audit_csv
 from app.services.runs import create_composite_run, create_historical_run, create_research_run, execute_research_run, fail_pending_enqueue, get_run, list_run_logs, list_runs, request_cancellation, serialize_run
-from app.services.reports import get_report, list_reports, read_verified_report
+from app.services.reports import get_report, list_reports, read_verified_report, report_delivery_copy
 from app.services.reproducibility import build_reproducibility_bundle
 from app.tasks import celery_app, execute_research_run_task
 from app.services.users import create_user as create_user_record, ensure_bootstrap_users, list_users, update_user as update_user_record
@@ -129,6 +131,7 @@ async def import_dataset(
     dataset_key: str = Form(...),
     name: str = Form(...),
     normalize_cn_csv: bool = Form(False),
+    expected_source_sha256: str | None = Form(None),
     file: UploadFile = File(...),
     _: User = Depends(require_roles(UserRole.ADMIN)),
     session: Session = Depends(get_db),
@@ -137,6 +140,11 @@ async def import_dataset(
     content = await file.read(settings.max_upload_bytes + 1)
     if len(content) > settings.max_upload_bytes:
         raise HTTPException(413, f"上传文件不能超过{settings.max_upload_bytes // 1024 // 1024}MB")
+    if expected_source_sha256 is not None:
+        if not normalize_cn_csv or not re.fullmatch(r"[0-9a-f]{64}", expected_source_sha256):
+            raise HTTPException(400, "预览文件SHA-256格式无效或未启用适配")
+        if hashlib.sha256(content).hexdigest() != expected_source_sha256:
+            raise HTTPException(409, "导入文件与适配预览文件不一致，请重新预览")
     try:
         adapter_report = None
         if normalize_cn_csv:
@@ -187,7 +195,8 @@ async def preview_adapted_dataset(
         adapted = adapt_cn_stock_csv(content)
     except DatasetValidationError as exc:
         raise HTTPException(422, detail={"message": str(exc), "quality_report": exc.report}) from exc
-    return {"report": adapted.report, "preview": adapted.preview}
+    return {"report": adapted.report, "preview": adapted.preview,
+            "source_sha256": hashlib.sha256(content).hexdigest()}
 
 
 @app.get("/api/v1/datasets", response_model=list[DatasetVersionResponse])
@@ -477,4 +486,23 @@ def download_report(run_id: str, user: User = Depends(get_current_user), session
         content=content,
         media_type="text/html",
         headers={"Content-Disposition": f'attachment; filename="factor-report-{run_id[:8]}.html"'},
+    )
+
+
+@app.get("/api/v1/reports/{run_id}/delivery")
+def download_report_delivery_copy(run_id: str, user: User = Depends(get_current_user), session: Session = Depends(get_db)) -> Response:
+    original = _report_content(run_id, session, user)
+    item = get_report(session, run_id)
+    if item is None:
+        raise HTTPException(404, "研究报告不存在")
+    run, artifact = item
+    try:
+        content = report_delivery_copy(original, run, artifact.checksum or "")
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return Response(
+        content=content,
+        media_type="text/html",
+        headers={"Content-Disposition": f'attachment; filename="factor-report-{run_id[:8]}-disclosed.html"',
+                 "X-Archived-Report-SHA256": artifact.checksum or ""},
     )

@@ -33,6 +33,12 @@ jobs:
       - name: Run backend tests
         run: python -m unittest discover -s backend/tests -v
 
+      - name: Verify change ledger
+        run: python tools/check_change_ledger.py
+
+      - name: Check document links
+        run: python tools/check_document_links.py
+
       - name: Verify golden research results
         run: python tools/verify_golden_research.py
 

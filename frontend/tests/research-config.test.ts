@@ -17,6 +17,7 @@ const base: ResearchConfigurationInput = {
   priceBasis: "source_close",
   sampleStart: "2025-01-01",
   sampleEnd: "2025-06-30",
+  validationStart: "",
   sampleSymbols: "000001.SZ, 600000.SH",
 };
 
@@ -48,6 +49,7 @@ test("result is hidden when factor, dataset, sample, groups, price basis, or pre
     { datasetId: "data-2" },
     { sampleStart: "2025-02-01" },
     { sampleEnd: "2025-05-31" },
+    { validationStart: "2025-04-01" },
     { sampleSymbols: "000001.SZ" },
     { groups: 3 },
     { lookback: 25 },
@@ -107,6 +109,46 @@ test("invalid numeric research inputs are rejected before submission", () => {
   assert.equal(validateResearchConfiguration({ ...base, mode: "historical", lookback: NaN, transactionCostBps: NaN }), null);
 });
 
+test("adjusted adapter prices cannot be adjusted again before submission", () => {
+  for (const mode of ["single", "composite"] as const) {
+    for (const flag of ["1", "2"]) {
+      assert.match(validateResearchConfiguration({ ...base, mode, priceBasis: "factor_adjusted", sourceAdjustmentFlags: [flag] })!, /不能再次选择/);
+    }
+    assert.equal(validateResearchConfiguration({ ...base, mode, priceBasis: "source_close", sourceAdjustmentFlags: ["2"] }), null);
+    assert.equal(validateResearchConfiguration({ ...base, mode, priceBasis: "factor_adjusted", sourceAdjustmentFlags: ["3"] }), null);
+    assert.match(validateResearchConfiguration({ ...base, mode, priceBasis: "factor_adjusted", sourceAdjustmentFlags: "3" })!, /状态不明确/);
+  }
+  assert.equal(validateResearchConfiguration({ ...base, mode: "historical", priceBasis: "factor_adjusted", sourceAdjustmentFlags: ["2"] }), null);
+});
+
+test("factor-adjusted basis requires the multiplier column before submission", () => {
+  for (const mode of ["single", "composite"] as const) {
+    assert.match(validateResearchConfiguration({ ...base, mode, priceBasis: "factor_adjusted", datasetColumns: ["trade_date", "symbol", "close"] })!, /缺少 adj_factor 列/);
+    assert.match(validateResearchConfiguration({ ...base, mode, priceBasis: "factor_adjusted", datasetColumns: ["close"], sourceAdjustmentFlags: ["3"] })!, /缺少 adj_factor 列/);
+    assert.equal(validateResearchConfiguration({ ...base, mode, priceBasis: "factor_adjusted", datasetColumns: ["close", "adj_factor"], sourceAdjustmentFlags: ["3"] }), null);
+    assert.equal(validateResearchConfiguration({ ...base, mode, priceBasis: "source_close", datasetColumns: ["close"] }), null);
+  }
+});
+
+test("missing multiplier values block only an unfiltered adjusted-price study", () => {
+  for (const mode of ["single", "composite"] as const) {
+    const input = { ...base, mode, priceBasis: "factor_adjusted" as const, datasetColumns: ["close", "adj_factor"], missingAdjustmentCount: 1, sampleSymbols: "" };
+    assert.match(validateResearchConfiguration(input)!, /研究全部证券会失败/);
+    assert.equal(validateResearchConfiguration({ ...input, sampleSymbols: "000001.SZ,000002.SZ" }), null);
+    assert.equal(validateResearchConfiguration({ ...input, priceBasis: "source_close" }), null);
+    assert.equal(validateResearchConfiguration({ ...input, missingAdjustmentCount: 0 }), null);
+  }
+});
+
+test("new dataset symbol-level multiplier evidence rejects only affected selections", () => {
+  const input = { ...base, priceBasis: "factor_adjusted" as const, datasetColumns: ["close", "adj_factor"],
+    missingAdjustmentCount: 2, missingAdjustmentBySymbol: { "000002.SZ": 2 }, sampleSymbols: "000001.SZ;000002.SZ" };
+  assert.match(validateResearchConfiguration(input)!, /所选证券存在缺失/);
+  assert.equal(validateResearchConfiguration({ ...input, sampleSymbols: "000001.SZ,000003.SZ" }), null);
+  assert.equal(validateResearchConfiguration({ ...input, missingAdjustmentBySymbol: undefined }), null);
+  assert.equal(validateResearchConfiguration({ ...input, priceBasis: "source_close" }), null);
+});
+
 test("invalid samples and component counts are rejected before submission", () => {
   assert.match(validateResearchConfiguration({ ...base, sampleStart: "2025-07-01" })!, /起始日不能晚于结束日/);
   assert.match(validateResearchConfiguration({ ...base, sampleStart: "2024-12-31" }, "2025-01-01", "2025-06-30")!, /早于数据起点/);
@@ -114,5 +156,8 @@ test("invalid samples and component counts are rejected before submission", () =
   assert.match(validateResearchConfiguration({ ...base, sampleStart: "", sampleEnd: "2024-12-31" }, "2025-01-01", "2025-06-30")!, /结束日不能早于数据起点/);
   assert.match(validateResearchConfiguration({ ...base, sampleEnd: "2025-07-01" }, "2025-01-01", "2025-06-30")!, /晚于数据终点/);
   assert.match(validateResearchConfiguration({ ...base, mode: "composite", compositeFactors: ["momentum_20d"] })!, /2～6 个因子/);
+  assert.match(validateResearchConfiguration({ ...base, validationStart: "2025-01-01" })!, /验证起始日必须晚于/);
+  assert.match(validateResearchConfiguration({ ...base, validationStart: "2025-07-01" })!, /验证起始日不能晚于/);
+  assert.equal(buildResearchConfiguration({ ...base, validationStart: "2025-04-01" }).parameters?.validation_start_date, "2025-04-01");
   assert.equal(validateResearchConfiguration(base, "2025-01-01", "2025-06-30"), null);
 });

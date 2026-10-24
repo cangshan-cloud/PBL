@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
+from collections import Counter
 from pathlib import Path
 
 from sqlalchemy import select, update
@@ -12,9 +13,12 @@ from app.domain.composite import combine_factor_observations
 from app.domain.historical_research import FACTOR_WINDOWS, calculate_historical_observations, load_historical_bundle
 from app.domain.research import calendar_positions, evaluate
 from app.domain.research import Observation, PriceRow
+from app.domain.time_split import evaluate_time_split
 from app.models import Artifact, DatasetVersion, Experiment, FactorVersion, Run, RunLog, RunStatus
 from app.services.catalog import ensure_composite_factor, ensure_demo_catalog, ensure_factor_catalog
 from app.services.sample_data import load_price_file
+from app.services.observation_artifact import create_observation_artifact
+from app.services.coverage import enrich_daily_coverage
 from app.config import get_settings
 from app.versioning import source_fingerprint
 
@@ -44,6 +48,14 @@ def _normalize_sample_parameters(parameters: dict) -> dict:
         end_date = end_date.isoformat()
     if start_date and end_date and date.fromisoformat(start_date) > date.fromisoformat(end_date):
         raise ValueError("start_date must not be later than end_date")
+    validation_start = output.get("validation_start_date")
+    if isinstance(validation_start, date):
+        validation_start = validation_start.isoformat()
+    if validation_start:
+        validation_start = date.fromisoformat(validation_start).isoformat()
+    if validation_start and ((start_date and validation_start <= start_date) or
+                             (end_date and validation_start > end_date)):
+        raise ValueError("validation_start_date must be after start_date and no later than end_date")
     symbols = output.get("symbols")
     if symbols is not None:
         cleaned = list(dict.fromkeys(str(symbol).strip() for symbol in symbols if str(symbol).strip()))
@@ -52,7 +64,29 @@ def _normalize_sample_parameters(parameters: dict) -> dict:
         output["symbols"] = cleaned
     output["start_date"] = start_date
     output["end_date"] = end_date
+    output["validation_start_date"] = validation_start
     return output
+
+
+def _validate_dataset_price_basis(dataset: DatasetVersion, basis: str, symbols: list[str] | None = None) -> None:
+    """Reject unavailable or unsafe adjustment before a run is queued."""
+    if basis != "factor_adjusted":
+        return
+    adapter = (dataset.quality_report or {}).get("adapter_report")
+    if isinstance(adapter, dict):
+        flags = adapter.get("source_adjustment_flags", [])
+        if flags and flags != ["3"]:
+            raise ValueError("source prices are already adjusted or adjustment status is ambiguous; refusing double adjustment")
+    if "adj_factor" not in (dataset.quality_report or {}).get("columns", []):
+        raise ValueError("dataset is missing adj_factor required by factor_adjusted price basis")
+    missing = (dataset.quality_report or {}).get("missing_counts", {}).get("adj_factor")
+    if not symbols and isinstance(missing, int) and missing > 0:
+        raise ValueError("dataset has missing adj_factor values; select symbols with complete factors or use source_close")
+    by_symbol = (dataset.quality_report or {}).get("missing_adj_factor_by_symbol")
+    if symbols and isinstance(by_symbol, dict) and any(
+        isinstance(by_symbol.get(symbol), int) and by_symbol[symbol] > 0 for symbol in symbols
+    ):
+        raise ValueError("selected symbols have missing adj_factor values; use complete symbols or source_close")
 
 
 def _filter_rows(rows: list[PriceRow], symbols: list[str] | None) -> list[PriceRow]:
@@ -102,6 +136,7 @@ def create_research_run(session: Session, parameters: dict, created_by_id: str |
         raise ValueError("dataset version must be published before research")
     if (dataset.quality_report or {}).get("dataset_kind") == "hs300_bundle_v1":
         raise ValueError("historical bundle requires a dedicated research mode")
+    _validate_dataset_price_basis(dataset, parameters["price_basis"], parameters.get("symbols"))
     available_columns = set(dataset.quality_report.get("columns", ("trade_date", "symbol", "close")))
     missing_columns = sorted(set(definition.required_columns) - available_columns)
     if missing_columns:
@@ -147,6 +182,7 @@ def create_composite_run(session: Session, parameters: dict, created_by_id: str 
         raise ValueError("dataset version must be published before research")
     if (dataset.quality_report or {}).get("dataset_kind") == "hs300_bundle_v1":
         raise ValueError("historical bundle requires a dedicated research mode")
+    _validate_dataset_price_basis(dataset, parameters["price_basis"], parameters.get("symbols"))
     available_columns = set(dataset.quality_report.get("columns", ("trade_date", "symbol", "close")))
     missing_columns = sorted(set().union(*(set(item.required_columns) for item in definitions)) - available_columns)
     if missing_columns:
@@ -384,6 +420,7 @@ def execute_research_run(session: Session, run_id: str) -> Run:
                 return run
             result = evaluate(observations, int(parameters["groups"]), winsorize=False,
                               standardize=False, transaction_cost_bps=10.0)
+            enrich_daily_coverage(result, sorted(members), {day: len(codes) for day, codes in members.items()})
             result["composite"] = diagnostics
             result["preprocessing"] = diagnostics["component_preprocessing"]
             result["historical_audit"] = audit
@@ -394,6 +431,7 @@ def execute_research_run(session: Session, run_id: str) -> Run:
                 "interpretation": "conditional_research_not_executable_trading",
             }
             run.artifacts.append(Artifact(artifact_type="metrics", name="historical_hs300_result.json", content=result))
+            run.artifacts.append(create_observation_artifact(run.id, observations, get_settings().data_root))
             from app.services.reports import create_report_artifact
             run.artifacts.append(create_report_artifact(run, result, get_settings().data_root))
             session.commit()
@@ -403,11 +441,9 @@ def execute_research_run(session: Session, run_id: str) -> Run:
         add_run_log(session, run, "dataset_loaded", f"数据校验通过，读取{len(rows)}行记录")
         market_positions = calendar_positions(rows)
         rows = _filter_rows(rows, parameters.get("symbols"))
+        candidate_counts = Counter(row.trade_date for row in rows)
         price_basis = parameters.get("price_basis", "source_close")
-        if price_basis == "factor_adjusted":
-            flags = dataset.quality_report.get("adapter_report", {}).get("source_adjustment_flags", [])
-            if any(flag != "3" for flag in flags):
-                raise ValueError("source prices are already adjusted; refusing double adjustment")
+        _validate_dataset_price_basis(dataset, price_basis, parameters.get("symbols"))
         rows = apply_price_basis(rows, price_basis)
         add_run_log(session, run, "price_basis_applied", f"研究价格口径：{price_basis}")
         resolved_symbols = sorted({row.symbol for row in rows})
@@ -450,6 +486,19 @@ def execute_research_run(session: Session, run_id: str) -> Run:
             mad_scale=float(parameters.get("mad_scale", 3.0)),
             transaction_cost_bps=float(parameters.get("transaction_cost_bps", 0)),
         )
+        sample_start = date.fromisoformat(parameters["start_date"]) if parameters.get("start_date") else None
+        sample_end = date.fromisoformat(parameters["end_date"]) if parameters.get("end_date") else None
+        selected_market_dates = [day for day in market_positions if
+                                 (sample_start is None or day >= sample_start) and
+                                 (sample_end is None or day <= sample_end)]
+        enrich_daily_coverage(result, selected_market_dates, candidate_counts)
+        if parameters.get("validation_start_date"):
+            result["time_split"] = evaluate_time_split(
+                observations, parameters["validation_start_date"], groups=int(parameters["groups"]),
+                winsorize=False if composite_diagnostics else bool(parameters.get("winsorize", True)),
+                standardize=False if composite_diagnostics else bool(parameters.get("standardize", True)),
+                mad_scale=float(parameters.get("mad_scale", 3.0)),
+            )
         if composite_diagnostics:
             result["composite"] = composite_diagnostics
             result["preprocessing"] = composite_diagnostics["component_preprocessing"]
@@ -468,6 +517,7 @@ def execute_research_run(session: Session, run_id: str) -> Run:
         run.artifacts.append(
             Artifact(artifact_type="metrics", name="single_factor_result.json", content=result)
         )
+        run.artifacts.append(create_observation_artifact(run.id, observations, get_settings().data_root))
         from app.services.reports import create_report_artifact
 
         run.artifacts.append(create_report_artifact(run, result, get_settings().data_root))

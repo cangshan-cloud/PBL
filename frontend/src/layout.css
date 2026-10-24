@@ -83,6 +83,8 @@ main > header > button { flex: 0 0 auto; }
 .comparison-picker label { min-width: 0; }
 .comparison-picker span { min-width: 0; overflow-wrap: anywhere; }
 .comparison-table .preview-scroll { max-width: 100%; }
+.comparison-dataset-id { display: block; max-width: 180px; white-space: normal; overflow-wrap: anywhere; }
+.comparison-scroll-hint { margin: 4px 0 12px; color: #6f7d75; font-size: 12px; }
 .comparison-table th:first-child {
   position: sticky;
   left: 0;
@@ -90,6 +92,12 @@ main > header > button { flex: 0 0 auto; }
   background: #fff;
   box-shadow: 1px 0 0 #e4e8e1;
 }
+
+.adapter-preview { min-width: 0; }
+.adapter-preview p { overflow-wrap: anywhere; }
+.dataset-alerts { margin-bottom: 18px; }
+.dataset-alerts h2 { margin: 0 0 10px; font-size: 16px; }
+.dataset-alerts .notice { margin-bottom: 8px; overflow-wrap: anywhere; }
 
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
   outline: 3px solid #5b853d;

@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.models import DatasetVersion
 from app.services.historical_bundle import BUNDLE_ID, verify_historical_bundle
+from app.services.market_calendar import CALENDAR_VERSION, CALENDAR_SOURCES, is_announced_weekday_closure
 
 
 REQUIRED_COLUMNS = {"trade_date", "symbol", "close"}
@@ -78,9 +79,16 @@ def validate_csv(content: bytes) -> ParsedDataset:
     seen: set[tuple[str, date]] = set()
     symbols: set[str] = set()
     dates: list[date] = []
+    weekend_dates: set[date] = set()
+    weekend_rows = 0
+    closure_dates: set[date] = set()
+    closure_rows = 0
+    uncovered_years: set[int] = set()
+    uncovered_rows = 0
     symbol_dates: dict[str, list[date]] = {}
     errors: list[str] = []
     missing_counts = {column: 0 for column in columns}
+    missing_adj_factor_by_symbol: dict[str, int] = {}
     numeric_values: dict[str, list[float]] = {column: [] for column in ({"close"} | OPTIONAL_NUMERIC_COLUMNS) & columns}
     rows = 0
     for line, raw in enumerate(reader, start=2):
@@ -115,6 +123,9 @@ def validate_csv(content: bytes) -> ParsedDataset:
                 if value:
                     numeric[column] = _number(value, column, line)
                     numeric_values[column].append(numeric[column])
+            for column in ("open", "high", "low"):
+                if column in numeric and numeric[column] <= 0:
+                    raise DatasetValidationError(f"第{line}行的{column}必须大于0")
             for column in ("volume", "amount", "turnover_rate", "total_mv"):
                 if column in numeric and numeric[column] < 0:
                     raise DatasetValidationError(f"第{line}行的{column}不能为负数")
@@ -128,7 +139,18 @@ def validate_csv(content: bytes) -> ParsedDataset:
                 raise DatasetValidationError(f"第{line}行的low高于open或close")
             seen.add(key)
             symbols.add(symbol)
+            if "adj_factor" in columns and not (raw.get("adj_factor") or "").strip():
+                missing_adj_factor_by_symbol[symbol] = missing_adj_factor_by_symbol.get(symbol, 0) + 1
             dates.append(trade_date)
+            if trade_date.weekday() >= 5:
+                weekend_dates.add(trade_date)
+                weekend_rows += 1
+            if trade_date.year not in CALENDAR_SOURCES:
+                uncovered_years.add(trade_date.year)
+                uncovered_rows += 1
+            elif is_announced_weekday_closure(trade_date):
+                closure_dates.add(trade_date)
+                closure_rows += 1
             symbol_dates.setdefault(symbol, []).append(trade_date)
         except DatasetValidationError as exc:
             errors.append(str(exc))
@@ -158,11 +180,20 @@ def validate_csv(content: bytes) -> ParsedDataset:
             "duplicate_count": 0,
             "error_count": 0,
             "inferred_market_date_count": len(calendar_positions),
+            "weekend_date_count": len(weekend_dates),
+            "weekend_row_count": weekend_rows,
+            "announced_closure_calendar_version": CALENDAR_VERSION,
+            "announced_weekday_closure_date_count": len(closure_dates),
+            "announced_weekday_closure_row_count": closure_rows,
+            "announced_weekday_closure_dates": [day.isoformat() for day in sorted(closure_dates)],
+            "calendar_uncovered_years": sorted(uncovered_years),
+            "calendar_uncovered_row_count": uncovered_rows,
             "internal_calendar_gap_count": sum(internal_gaps),
             "symbols_with_internal_calendar_gaps": sum(count > 0 for count in internal_gaps),
             "required_columns": sorted(REQUIRED_COLUMNS),
             "columns": sorted(columns),
             "missing_counts": missing_counts,
+            "missing_adj_factor_by_symbol": dict(sorted(missing_adj_factor_by_symbol.items())),
             "completeness": {
                 column: (rows - missing_counts[column]) / rows for column in sorted(columns)
             },
