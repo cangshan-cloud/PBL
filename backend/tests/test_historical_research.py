@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.domain.historical_research import HistoricalBar, _bar, _validate_loaded_counts, _verified_csv_rows, calculate_historical_observations
+from app.domain.historical_research import HistoricalBar, _bar, _trading_days, _validate_loaded_counts, _verified_csv_rows, calculate_historical_observations
 
 
 def bar(close=100.0, turnover=1.0, volume=100.0, status="1", st="0"):
@@ -64,12 +64,33 @@ class HistoricalResearchTests(unittest.TestCase):
                         _verified_csv_rows(root, relative, {relative: hashlib.sha256(content).hexdigest()}, fields)
 
     def test_historical_bar_rejects_nonfinite_numeric_fields(self):
-        valid = {"close": "10", "turn": "0.5", "volume": "100", "tradestatus": "1", "isST": "0"}
+        valid = {"close": "10", "turn": "0.5", "volume": "100", "tradestatus": "1", "isST": "0", "adjustflag": "1"}
         for field, invalid in (("close", "NaN"), ("turn", "Infinity"), ("volume", "1e999")):
             with self.subTest(field=field, invalid=invalid):
                 with self.assertRaisesRegex(ValueError, f"non-finite historical price field: {field}"):
                     _bar({**valid, field: invalid})
         self.assertEqual(_bar({**valid, "turn": ""}).turnover, None)
+
+    def test_historical_bar_rejects_wrong_adjustment_flag(self):
+        valid = {"close": "10", "turn": "0.5", "volume": "100", "tradestatus": "1", "isST": "0", "adjustflag": "1"}
+        self.assertEqual(_bar(valid).close, 10)
+        for flag in ("", "0", "2"):
+            with self.subTest(flag=flag):
+                with self.assertRaisesRegex(ValueError, "historical price adjustment flag mismatch"):
+                    _bar({**valid, "adjustflag": flag})
+
+    def test_historical_calendar_rejects_unknown_or_duplicate_flags(self):
+        valid = [{"calendar_date": "2024-01-01", "is_trading_day": "0"},
+                 {"calendar_date": "2024-01-02", "is_trading_day": "1"}]
+        self.assertEqual(_trading_days(valid), [date(2024, 1, 2)])
+        for rows in (
+            [{**valid[0], "is_trading_day": "unknown"}, valid[1]],
+            [valid[0], valid[0], valid[1]],
+            [valid[1], valid[0]],
+        ):
+            with self.subTest(rows=rows):
+                with self.assertRaisesRegex(ValueError, "invalid historical trading calendar"):
+                    _trading_days(rows)
 
     def test_historical_loaded_counts_must_match_manifest(self):
         members = {self.days[20]: {"A"}, self.days[21]: {"A"}}

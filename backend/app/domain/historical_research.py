@@ -35,6 +35,9 @@ class HistoricalBar:
 
 
 def _bar(raw: dict[str, str]) -> HistoricalBar:
+    if raw["adjustflag"] != "1":
+        raise ValueError("historical price adjustment flag mismatch")
+
     def number(field: str) -> float | None:
         if not raw[field]:
             return None
@@ -44,6 +47,21 @@ def _bar(raw: dict[str, str]) -> HistoricalBar:
         return value
 
     return HistoricalBar(number("close"), number("turn"), number("volume"), raw["tradestatus"], raw["isST"])
+
+
+def _trading_days(rows: list[dict[str, str]]) -> list[date]:
+    days: list[date] = []
+    previous: date | None = None
+    for row in rows:
+        day = date.fromisoformat(row["calendar_date"])
+        if row["is_trading_day"] not in {"0", "1"} or (previous is not None and day <= previous):
+            raise ValueError("invalid historical trading calendar")
+        if row["is_trading_day"] == "1":
+            days.append(day)
+        previous = day
+    if not days:
+        raise ValueError("invalid historical trading calendar")
+    return days
 
 
 def _verified_csv_rows(root: Path, relative: str, hashes: dict[str, str], fields: tuple[str, ...]) -> list[dict[str, str]]:
@@ -77,12 +95,7 @@ def load_historical_bundle(manifest_path: Path, expected_checksum: str | None = 
     verified = verify_historical_bundle(manifest_path, expected_checksum)
     root = manifest_path.parent
     hashes = verified["manifest"]["file_sha256"]
-    calendar: list[date] = []
-    for row in _verified_csv_rows(root, "prices_source/trade_calendar.csv", hashes, CALENDAR_FIELDS):
-        if row["is_trading_day"] == "1":
-            calendar.append(date.fromisoformat(row["calendar_date"]))
-    if not calendar or calendar != sorted(set(calendar)):
-        raise ValueError("invalid historical trading calendar")
+    calendar = _trading_days(_verified_csv_rows(root, "prices_source/trade_calendar.csv", hashes, CALENDAR_FIELDS))
     members: dict[date, set[str]] = {}
     for day in (item for item in calendar if item.year == 2024):
         rows = _verified_csv_rows(root, f"members_source/daily_rosters/{day.isoformat()}.csv", hashes, ROSTER_FIELDS)

@@ -510,3 +510,7 @@ GitHub Actions #107/#108 均显示 Ubuntu 与 Windows `Verify` 作业成功；�
 
 任务读取封存 CSV 时在哈希通过后进一步核对固定表头和每行列数；平台发布仍不冒充完整业务语义审计。见 [CHG-20261024-010](../changes/2026-10-24-010-historical-csv-schema-guard.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-24 历史价格与日历运行时防线（开发者代执行）
+
+封存包研究加载新增逐行情复权标记、逐日历行标记/顺序校验；注册发布仍只承担文件完整性关口。见 [CHG-20261024-011](../changes/2026-10-24-011-historical-price-basis-calendar-guards.md)。实际执行者：Codex；队长本人未签收。
+
