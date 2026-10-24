@@ -514,3 +514,7 @@ GitHub Actions #107/#108 均显示 Ubuntu 与 Windows `Verify` 作业成功；�
 
 封存包研究加载新增逐行情复权标记、逐日历行标记/顺序校验；注册发布仍只承担文件完整性关口。见 [CHG-20261024-011](../changes/2026-10-24-011-historical-price-basis-calendar-guards.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-24 历史成员时点加载防线（开发者代执行）
+
+研究加载将逐日成员名单的日期和代码语义校验集中处理，拒绝更新日期晚于查询日；平台发布仍是完整性关口。见 [CHG-20261024-012](../changes/2026-10-24-012-historical-roster-time-gate.md)。实际执行者：Codex；队长本人未签收。
+

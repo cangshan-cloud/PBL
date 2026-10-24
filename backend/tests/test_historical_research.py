@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.domain.historical_research import HistoricalBar, _bar, _trading_days, _validate_loaded_counts, _verified_csv_rows, calculate_historical_observations
+from app.domain.historical_research import HistoricalBar, _bar, _roster_codes, _trading_days, _validate_loaded_counts, _verified_csv_rows, calculate_historical_observations
 
 
 def bar(close=100.0, turnover=1.0, volume=100.0, status="1", st="0"):
@@ -91,6 +91,19 @@ class HistoricalResearchTests(unittest.TestCase):
             with self.subTest(rows=rows):
                 with self.assertRaisesRegex(ValueError, "invalid historical trading calendar"):
                     _trading_days(rows)
+
+    def test_historical_roster_rejects_future_or_invalid_update_date(self):
+        day = date(2024, 6, 28)
+        rows = [{"query_date": day.isoformat(), "code": f"sh.{index:06d}",
+                 "update_date": "2024-06-27"} for index in range(300)]
+        self.assertEqual(len(_roster_codes(rows, day)), 300)
+        for updated in ("2024-06-29", "", "not-a-date"):
+            with self.subTest(updated=updated):
+                changed = [{**rows[0], "update_date": updated}, *rows[1:]]
+                with self.assertRaisesRegex(ValueError, "invalid historical roster"):
+                    _roster_codes(changed, day)
+        with self.assertRaisesRegex(ValueError, "invalid historical roster"):
+            _roster_codes([{**rows[0], "code": "bad"}, *rows[1:]], day)
 
     def test_historical_loaded_counts_must_match_manifest(self):
         members = {self.days[20]: {"A"}, self.days[21]: {"A"}}

@@ -6,6 +6,7 @@ import csv
 import hashlib
 import io
 import math
+import re
 from collections import Counter
 from dataclasses import dataclass
 from datetime import date
@@ -64,6 +65,25 @@ def _trading_days(rows: list[dict[str, str]]) -> list[date]:
     return days
 
 
+def _roster_codes(rows: list[dict[str, str]], day: date) -> set[str]:
+    if len(rows) != 300:
+        raise ValueError(f"invalid historical roster: {day}")
+    codes: set[str] = set()
+    for row in rows:
+        code = row["code"]
+        try:
+            updated = date.fromisoformat(row["update_date"])
+        except ValueError as exc:
+            raise ValueError(f"invalid historical roster update date: {day} {code}") from exc
+        if (row["query_date"] != day.isoformat() or
+                re.fullmatch(r"(?:sh|sz)\.[0-9]{6}", code) is None or updated > day):
+            raise ValueError(f"invalid historical roster: {day} {code}")
+        if code in codes:
+            raise ValueError(f"duplicate historical members: {day}")
+        codes.add(code)
+    return codes
+
+
 def _verified_csv_rows(root: Path, relative: str, hashes: dict[str, str], fields: tuple[str, ...]) -> list[dict[str, str]]:
     path = root / relative
     content = path.read_bytes()
@@ -99,12 +119,7 @@ def load_historical_bundle(manifest_path: Path, expected_checksum: str | None = 
     members: dict[date, set[str]] = {}
     for day in (item for item in calendar if item.year == 2024):
         rows = _verified_csv_rows(root, f"members_source/daily_rosters/{day.isoformat()}.csv", hashes, ROSTER_FIELDS)
-        if len(rows) != 300 or any(row["query_date"] != day.isoformat() or not row["update_date"] for row in rows):
-            raise ValueError(f"invalid historical roster: {day}")
-        codes = {row["code"] for row in rows}
-        if len(codes) != 300:
-            raise ValueError(f"duplicate historical members: {day}")
-        members[day] = codes
+        members[day] = _roster_codes(rows, day)
     bars: dict[str, dict[date, HistoricalBar]] = {}
     for path in sorted((root / "prices_source" / "symbols").glob("*.csv")):
         symbol_bars: dict[date, HistoricalBar] = {}
