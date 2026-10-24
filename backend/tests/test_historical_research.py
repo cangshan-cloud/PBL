@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.domain.historical_research import HistoricalBar, _verified_csv_rows, calculate_historical_observations
+from app.domain.historical_research import HistoricalBar, _bar, _verified_csv_rows, calculate_historical_observations
 
 
 def bar(close=100.0, turnover=1.0, volume=100.0, status="1", st="0"):
@@ -45,6 +45,14 @@ class HistoricalResearchTests(unittest.TestCase):
             self.assertEqual(rows[0]["close"], "10")
             with self.assertRaisesRegex(ValueError, "historical bundle file checksum mismatch"):
                 _verified_csv_rows(root, relative, hashes)
+
+    def test_historical_bar_rejects_nonfinite_numeric_fields(self):
+        valid = {"close": "10", "turn": "0.5", "volume": "100", "tradestatus": "1", "isST": "0"}
+        for field, invalid in (("close", "NaN"), ("turn", "Infinity"), ("volume", "1e999")):
+            with self.subTest(field=field, invalid=invalid):
+                with self.assertRaisesRegex(ValueError, f"non-finite historical price field: {field}"):
+                    _bar({**valid, field: invalid})
+        self.assertEqual(_bar({**valid, "turn": ""}).turnover, None)
 
     def test_missing_intermediate_day_does_not_compress_window(self):
         del self.bars["A"][self.days[10]]

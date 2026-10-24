@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import io
+import math
 from collections import Counter
 from dataclasses import dataclass
 from datetime import date
@@ -29,7 +30,12 @@ class HistoricalBar:
 
 def _bar(raw: dict[str, str]) -> HistoricalBar:
     def number(field: str) -> float | None:
-        return float(raw[field]) if raw[field] else None
+        if not raw[field]:
+            return None
+        value = float(raw[field])
+        if not math.isfinite(value):
+            raise ValueError(f"non-finite historical price field: {field}")
+        return value
 
     return HistoricalBar(number("close"), number("turn"), number("volume"), raw["tradestatus"], raw["isST"])
 
