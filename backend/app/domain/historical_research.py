@@ -48,6 +48,18 @@ def _verified_csv_rows(root: Path, relative: str, hashes: dict[str, str]) -> lis
     return list(csv.DictReader(io.StringIO(content.decode("utf-8-sig"), newline="")))
 
 
+def _validate_loaded_counts(manifest: dict, members: dict[date, set[str]], bars: dict[str, dict[date, HistoricalBar]]) -> None:
+    actual = {
+        "member_trading_days": len(members),
+        "member_rows": sum(map(len, members.values())),
+        "price_symbols": len(bars),
+        "price_rows": sum(map(len, bars.values())),
+    }
+    for field, count in actual.items():
+        if manifest[field] != count:
+            raise ValueError(f"historical bundle summary mismatch: {field}")
+
+
 def load_historical_bundle(manifest_path: Path, expected_checksum: str | None = None) -> tuple[list[date], dict[date, set[str]], dict[str, dict[date, HistoricalBar]]]:
     """Revalidate all files before loading; reject unknown member-day state."""
     verified = verify_historical_bundle(manifest_path, expected_checksum)
@@ -84,6 +96,7 @@ def load_historical_bundle(manifest_path: Path, expected_checksum: str | None = 
             bar = bars.get(code, {}).get(day)
             if bar is None or bar.tradestatus not in {"0", "1"} or bar.is_st not in {"0", "1"}:
                 raise ValueError(f"unknown historical member state: {day} {code}")
+    _validate_loaded_counts(verified["manifest"], members, bars)
     return calendar, members, bars
 
 

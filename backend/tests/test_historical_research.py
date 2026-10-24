@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.domain.historical_research import HistoricalBar, _bar, _verified_csv_rows, calculate_historical_observations
+from app.domain.historical_research import HistoricalBar, _bar, _validate_loaded_counts, _verified_csv_rows, calculate_historical_observations
 
 
 def bar(close=100.0, turnover=1.0, volume=100.0, status="1", st="0"):
@@ -53,6 +53,16 @@ class HistoricalResearchTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, f"non-finite historical price field: {field}"):
                     _bar({**valid, field: invalid})
         self.assertEqual(_bar({**valid, "turn": ""}).turnover, None)
+
+    def test_historical_loaded_counts_must_match_manifest(self):
+        members = {self.days[20]: {"A"}, self.days[21]: {"A"}}
+        bars = {"A": {self.days[20]: bar(), self.days[21]: bar()}}
+        manifest = {"member_trading_days": 2, "member_rows": 2, "price_symbols": 1, "price_rows": 2}
+        _validate_loaded_counts(manifest, members, bars)
+        for field in manifest:
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(ValueError, f"historical bundle summary mismatch: {field}"):
+                    _validate_loaded_counts({**manifest, field: manifest[field] + 1}, members, bars)
 
     def test_missing_intermediate_day_does_not_compress_window(self):
         del self.bars["A"][self.days[10]]
