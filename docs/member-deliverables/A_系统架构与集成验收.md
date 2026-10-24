@@ -490,3 +490,7 @@ JSON 文件直接来自当前页面对比对象，无新增服务端接口或持
 
 提交 `1dc0f88` 已推送 `origin/main`；本地全量检查通过，远端 CI 尚不可读，不能标为通过。见 [CHG-20261024-005](../changes/2026-10-24-005-release-push-status.md)。实际执行者：Codex。
 
+## 2026-10-24 跨平台 CI 复核（开发者代执行）
+
+GitHub Actions #107/#108 均显示 Ubuntu 与 Windows `Verify` 作业成功；这证明自动化，不替代 Windows 实机部署。见 [CHG-20261024-006](../changes/2026-10-24-006-cross-platform-ci-postcheck.md)。实际执行者：Codex。
+

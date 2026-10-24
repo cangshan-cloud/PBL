@@ -488,3 +488,7 @@ Mac 浏览器登录后复点已有 BaoStock 报告预览与下载，页面显示
 ## 2026-10-24 发布产品状态（开发者代执行）
 
 `1dc0f88` 已推送，前端 51 项与构建通过；远端 CI 和队长本人产品实测均不能据此写为完成。见 [CHG-20261024-005](../changes/2026-10-24-005-release-push-status.md)。实际执行者：Codex。
+
+## 2026-10-24 产品构建 CI 复核（开发者代执行）
+
+GitHub Actions #107/#108 的 Ubuntu 与 Windows 前端测试、构建步骤成功；队长本人产品实测仍待完成。见 [CHG-20261024-006](../changes/2026-10-24-006-cross-platform-ci-postcheck.md)。实际执行者：Codex。
