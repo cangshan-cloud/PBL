@@ -40,11 +40,28 @@ class HistoricalResearchTests(unittest.TestCase):
             path.write_bytes(changed)
             hashes = {relative: hashlib.sha256(verified).hexdigest()}
             with patch.object(Path, "read_bytes", return_value=verified) as read_bytes:
-                rows = _verified_csv_rows(root, relative, hashes)
+                rows = _verified_csv_rows(root, relative, hashes, ("date", "code", "close"))
             read_bytes.assert_called_once_with()
             self.assertEqual(rows[0]["close"], "10")
             with self.assertRaisesRegex(ValueError, "historical bundle file checksum mismatch"):
-                _verified_csv_rows(root, relative, hashes)
+                _verified_csv_rows(root, relative, hashes, ("date", "code", "close"))
+
+    def test_historical_csv_rejects_wrong_schema_and_row_width(self):
+        relative = "prices_source/symbols/sh_600000.csv"
+        fields = ("date", "code", "close")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / relative
+            path.parent.mkdir(parents=True)
+            for content, error in (
+                (b"date,code,close,extra\n2025-01-01,sh.600000,10,x\n", "schema mismatch"),
+                (b"date,code,close\n2025-01-01,sh.600000,10,x\n", "row width mismatch"),
+                (b"date,code,close\n2025-01-01,sh.600000\n", "row width mismatch"),
+            ):
+                with self.subTest(content=content):
+                    path.write_bytes(content)
+                    with self.assertRaisesRegex(ValueError, error):
+                        _verified_csv_rows(root, relative, {relative: hashlib.sha256(content).hexdigest()}, fields)
 
     def test_historical_bar_rejects_nonfinite_numeric_fields(self):
         valid = {"close": "10", "turn": "0.5", "volume": "100", "tradestatus": "1", "isST": "0"}
