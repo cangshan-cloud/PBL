@@ -215,6 +215,7 @@
 | CHG-20261024-010 | 2026-10-24 | historical CSV schema integrity / tested on Mac | 历史研究加载时要求三类 CSV 固定表头与行宽，拒绝自洽哈希下的结构异常 | [记录](changes/2026-10-24-010-historical-csv-schema-guard.md) | `backend/app/domain/historical_research.py::_verified_csv_rows`、`backend/tests/test_historical_research.py`、历史包说明与 A/B/C/D 四责任包 |
 | CHG-20261024-011 | 2026-10-24 | historical price/calendar semantics / tested on Mac | 历史研究逐行核验后复权标记，日历未知标记及重复/乱序日期拒绝 | [记录](changes/2026-10-24-011-historical-price-basis-calendar-guards.md) | `backend/app/domain/historical_research.py::_bar`、`_trading_days`、历史研究测试、历史包说明与 A/B/C/D 四责任包 |
 | CHG-20261024-012 | 2026-10-24 | historical roster timing guard / tested on Mac | 历史研究成员名单拒绝未来或非法更新日期及非法代码，维持 300 个不重复成员 | [记录](changes/2026-10-24-012-historical-roster-time-gate.md) | `backend/app/domain/historical_research.py::_roster_codes`、历史研究测试、历史包说明与 A/B/C/D 四责任包 |
+| CHG-20261024-013 | 2026-10-24 | historical result replay / tested on Mac | 新增私有包+复现 JSON 只读复算；发现 2026-10-14 旧导出与当前覆盖/分组口径不一致 | [记录](changes/2026-10-24-013-historical-result-recomputation.md) | `tools/verify_historical_recomputation.py`、`backend/tests/test_historical_recomputation.py`、历史包说明、PRD 矩阵与 A/B/C/D 四责任包 |
 
 ## 历史基线
 
