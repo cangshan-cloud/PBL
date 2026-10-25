@@ -542,3 +542,7 @@ GitHub Actions #107/#108 均显示 Ubuntu 与 Windows `Verify` 作业成功；�
 
 隔离验收脚本要求下载复现包匹配本次任务、数据集和私有包；本轮仅本机测试，OrbStack 异步联调仍待恢复。见 [CHG-20261025-005](../changes/2026-10-25-005-historical-api-export-binding.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-25 私有包异步链路隔离验收（开发者代执行）
+
+OrbStack 恢复后，以专用项目、独立数据库卷/网络和只读私有包挂载运行两条真实历史任务；正式 Compose 配置及预检已固化。API、Redis、Worker、HTTP 导出链路通过，主栈五服务仍运行且未改动。见 [CHG-20261025-006](../changes/2026-10-25-006-isolated-historical-async-qa.md)。实际执行者：Codex；队长本人未签收。
+
