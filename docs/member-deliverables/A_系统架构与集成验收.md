@@ -546,3 +546,7 @@ GitHub Actions #107/#108 均显示 Ubuntu 与 Windows `Verify` 作业成功；�
 
 OrbStack 恢复后，以专用项目、独立数据库卷/网络和只读私有包挂载运行两条真实历史任务；正式 Compose 配置及预检已固化。API、Redis、Worker、HTTP 导出链路通过，主栈五服务仍运行且未改动。见 [CHG-20261025-006](../changes/2026-10-25-006-isolated-historical-async-qa.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-25 私有历史包五服务页面验收（开发者代执行）
+
+复用专用 Compose 卷启动 Web/API/Worker/DB/Redis，研究员浏览器任务及报告路径通过；仅替换隔离 Web 进行分页复点，主栈未改动。见 [CHG-20261025-007](../changes/2026-10-25-007-daily-coverage-pagination-browser-qa.md)。实际执行者：Codex；队长本人未签收。
+
