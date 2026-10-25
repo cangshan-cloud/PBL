@@ -530,3 +530,7 @@ GitHub Actions #107/#108 均显示 Ubuntu 与 Windows `Verify` 作业成功；�
 
 同源复算改为逐值一致；本机 Docker socket 不可用，本轮没有执行隔离 Celery/HTTP，未触碰主栈与数据卷。见 [CHG-20261025-002](../changes/2026-10-25-002-strict-historical-replay-equality.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-25 审计导出格式门槛（开发者代执行）
+
+离线历史审计校验增加复现包版本检查；Docker socket 仍不可用，没有运行异步容器闭环，也未触碰主栈。见 [CHG-20261025-003](../changes/2026-10-25-003-historical-audit-schema-guard.md)。实际执行者：Codex；队长本人未签收。
+

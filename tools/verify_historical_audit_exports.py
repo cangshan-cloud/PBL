@@ -31,6 +31,8 @@ def _csv_rows(path: Path, columns: list[str]) -> list[dict[str, str]]:
 def verify_exports(bundle_path: Path, daily_path: Path, unlabeled_path: Path,
                    report_path: Path | None = None) -> dict[str, int | bool]:
     bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    if not isinstance(bundle, dict) or type(bundle.get("schema_version")) is not int or bundle["schema_version"] != 1:
+        raise ValueError("unsupported reproducibility bundle schema")
     result = bundle.get("result")
     digest = bundle.get("result_sha256")
     if not isinstance(result, dict) or not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):

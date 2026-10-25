@@ -53,7 +53,7 @@ class HistoricalAuditExportTests(unittest.TestCase):
         digest = hashlib.sha256(json.dumps(result, ensure_ascii=False, sort_keys=True,
                                            separators=(",", ":"), allow_nan=False).encode("utf-8")).hexdigest()
         report_digest = hashlib.sha256(self.report_path.read_bytes()).hexdigest()
-        self.bundle_path.write_text(json.dumps({"result": result, "result_sha256": digest,
+        self.bundle_path.write_text(json.dumps({"schema_version": 1, "result": result, "result_sha256": digest,
                                                "report_sha256": report_digest}), encoding="utf-8")
 
     def test_valid_exports_match_bundle_and_counts(self):
@@ -98,6 +98,19 @@ class HistoricalAuditExportTests(unittest.TestCase):
         self._write_bundle({})
         with self.assertRaisesRegex(ValueError, "no historical audit"):
             verify_exports(self.bundle_path, self.daily_path, self.unlabeled_path)
+
+    def test_unsupported_schema_is_rejected_before_audit_comparison(self):
+        for version in (None, 2, True):
+            with self.subTest(version=version):
+                self._write_exports()
+                bundle = json.loads(self.bundle_path.read_text(encoding="utf-8"))
+                if version is None:
+                    bundle.pop("schema_version")
+                else:
+                    bundle["schema_version"] = version
+                self.bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "unsupported reproducibility bundle schema"):
+                    verify_exports(self.bundle_path, self.daily_path, self.unlabeled_path)
 
 
 if __name__ == "__main__":
