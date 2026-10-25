@@ -69,6 +69,10 @@ main > header > button { flex: 0 0 auto; }
 
 .task-layout { grid-template-columns: minmax(250px, 290px) minmax(0, 1fr); }
 .task-detail { min-width: 0; }
+.task-filters { display: flex; align-items: end; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+.task-filters label { display: grid; gap: 5px; min-width: min(100%, 240px); }
+.task-filters input, .task-filters select { width: 100%; }
+.task-filters span { color: #68776e; font-size: 13px; padding-bottom: 10px; }
 .task-detail > .section-title { align-items: flex-start; flex-wrap: wrap; }
 .task-detail > .section-title > div:first-child { min-width: 0; }
 .task-detail > .section-title h2 { overflow-wrap: anywhere; }
