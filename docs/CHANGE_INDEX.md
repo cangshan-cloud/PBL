@@ -220,6 +220,7 @@
 | CHG-20261025-002 | 2026-10-25 | historical replay integrity / verified on Mac | 离线复算改为严格逐值一致，拒绝自摘要重算后的微小浮点篡改；容器验收待 OrbStack 恢复 | [记录](changes/2026-10-25-002-strict-historical-replay-equality.md) | `tools/verify_historical_recomputation.py::_same_result`、`backend/tests/test_historical_recomputation.py`、复算记录与 A/B/C/D 四责任包 |
 | CHG-20261025-003 | 2026-10-25 | historical audit export schema guard / verified on Mac | 离线历史审计 CSV 核对拒绝缺失、未知及布尔格式版本 | [记录](changes/2026-10-25-003-historical-audit-schema-guard.md) | `tools/verify_historical_audit_exports.py::verify_exports`、`backend/tests/test_historical_audit_exports.py`、历史包说明与 A/B/C/D 四责任包 |
 | CHG-20261025-004 | 2026-10-25 | export JSON ambiguity guard / verified on Mac | 离线复现、历史审计和复算统一拒绝重复 JSON 键，严格要求整型版本 | [记录](changes/2026-10-25-004-unambiguous-reproducibility-json.md) | `tools/verify_reproducibility_export.py::load_verified_export`、历史审计/复算工具、回归测试与 A/B/C/D 四责任包 |
+| CHG-20261025-005 | 2026-10-25 | historical API evidence binding / verified on Mac | 隔离历史 API 验收将下载复现包绑定刚提交的任务、数据集、私有包与分组参数 | [记录](changes/2026-10-25-005-historical-api-export-binding.md) | `tools/verify_historical_api_journey.py::verify_journey_binding`、测试、部署说明与 A/B/C/D 四责任包 |
 
 ## 历史基线
 

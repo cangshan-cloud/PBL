@@ -16,6 +16,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from verify_historical_audit_exports import verify_exports
+from verify_reproducibility_export import load_verified_export
 
 
 class ApiClient:
@@ -43,6 +44,22 @@ class ApiClient:
 
     def json(self, path: str, *, token: str | None = None, payload: dict | None = None):
         return json.loads(self.request(path, token=token, payload=payload)[0])
+
+
+def verify_journey_binding(export: dict, *, run_id: str, dataset_id: str, bundle_id: str) -> None:
+    task = export.get("task")
+    dataset = export.get("dataset")
+    result = export.get("result")
+    sample = result.get("sample") if isinstance(result, dict) else None
+    if not all(isinstance(item, dict) for item in (task, dataset, sample)):
+        raise ValueError("downloaded reproducibility export does not match the requested historical journey")
+    parameters = task.get("parameters")
+    if (task.get("id") != run_id or task.get("status") != "success" or
+            task.get("dataset_version_id") != dataset_id or dataset.get("id") != dataset_id or
+            sample.get("historical_bundle_id") != bundle_id or
+            not isinstance(parameters, dict) or type(parameters.get("groups")) is not int or
+            parameters["groups"] != 5):
+        raise ValueError("downloaded reproducibility export does not match the requested historical journey")
 
 
 def run_journey(client: ApiClient, *, bundle_id: str, admin_password: str, researcher_password: str,
@@ -88,6 +105,8 @@ def run_journey(client: ApiClient, *, bundle_id: str, admin_password: str, resea
         (output_dir / name).write_bytes(content)
     counts = verify_exports(output_dir / "reproducibility.json", output_dir / "daily.csv",
                             output_dir / "unlabeled.csv", output_dir / "report.html")
+    verify_journey_binding(load_verified_export(output_dir / "reproducibility.json"),
+                           run_id=run["id"], dataset_id=dataset["id"], bundle_id=bundle_id)
     return {"dataset_id": dataset["id"], "run_id": run["id"], "status": run["status"], **counts}
 
 

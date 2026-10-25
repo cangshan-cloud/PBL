@@ -538,3 +538,7 @@ GitHub Actions #107/#108 均显示 Ubuntu 与 Windows `Verify` 作业成功；�
 
 普通复现、历史审计及历史复算统一使用严格读取和摘要核验，拒绝重复键；OrbStack 未运行，异步集成待补。见 [CHG-20261025-004](../changes/2026-10-25-004-unambiguous-reproducibility-json.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-25 历史 API 导出身份关联（开发者代执行）
+
+隔离验收脚本要求下载复现包匹配本次任务、数据集和私有包；本轮仅本机测试，OrbStack 异步联调仍待恢复。见 [CHG-20261025-005](../changes/2026-10-25-005-historical-api-export-binding.md)。实际执行者：Codex；队长本人未签收。
+

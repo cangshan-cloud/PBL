@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
 
-from verify_historical_api_journey import main, run_journey
+from verify_historical_api_journey import main, run_journey, verify_journey_binding
 
 
 class FakeClient:
@@ -48,7 +48,12 @@ class HistoricalApiJourneyTests(unittest.TestCase):
                 "verify_historical_api_journey.verify_exports", return_value={
                     "factors": 4, "daily_rows": 968, "unlabeled_rows": 32, "report_verified": True,
                 },
-            ) as verify:
+            ) as verify, patch("verify_historical_api_journey.load_verified_export", return_value={
+                "task": {"id": "run-1", "status": "success", "dataset_version_id": "dataset-1",
+                         "parameters": {"groups": 5}},
+                "dataset": {"id": "dataset-1"},
+                "result": {"sample": {"historical_bundle_id": self.bundle_id}},
+            }):
                 result = run_journey(client, bundle_id=self.bundle_id, admin_password="a", researcher_password="r",
                                      output_dir=output)
             self.assertEqual(result["run_id"], "run-1")
@@ -70,7 +75,12 @@ class HistoricalApiJourneyTests(unittest.TestCase):
             client = FakeClient(existing=True)
             with patch("verify_historical_api_journey.time.sleep"), patch(
                 "verify_historical_api_journey.verify_exports", return_value={},
-            ):
+            ), patch("verify_historical_api_journey.load_verified_export", return_value={
+                "task": {"id": "run-1", "status": "success", "dataset_version_id": "dataset-1",
+                         "parameters": {"groups": 5}},
+                "dataset": {"id": "dataset-1"},
+                "result": {"sample": {"historical_bundle_id": self.bundle_id}},
+            }):
                 run_journey(client, bundle_id=self.bundle_id, admin_password="a", researcher_password="r",
                             output_dir=output)
             self.assertFalse(any(path.startswith("/datasets/register") or path.endswith("/publish")
@@ -99,6 +109,21 @@ class HistoricalApiJourneyTests(unittest.TestCase):
                 main(args)
             self.assertEqual(error.exception.code, 2)
             self.assertFalse(output.exists())
+
+    def test_rejects_exports_from_another_run_dataset_or_bundle(self):
+        export = {"task": {"id": "run-1", "status": "success", "dataset_version_id": "dataset-1",
+                           "parameters": {"groups": 5}}, "dataset": {"id": "dataset-1"},
+                  "result": {"sample": {"historical_bundle_id": self.bundle_id}}}
+        expected = {"run_id": "run-1", "dataset_id": "dataset-1", "bundle_id": self.bundle_id}
+        verify_journey_binding(export, **expected)
+        for changed in ({"task": {**export["task"], "id": "other"}},
+                        {"dataset": {"id": "other"}},
+                        {"result": {"sample": {"historical_bundle_id": "other"}}},
+                        {"task": {**export["task"], "parameters": {"groups": 2}}},
+                        {"task": []}, {"result": {"sample": None}}):
+            with self.subTest(changed=changed):
+                with self.assertRaisesRegex(ValueError, "does not match"):
+                    verify_journey_binding({**export, **changed}, **expected)
 
 
 if __name__ == "__main__":

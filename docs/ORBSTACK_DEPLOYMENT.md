@@ -73,6 +73,8 @@ Windows + WSL2 的最终验收仍需在 Windows 主机重复；本页只记录 m
 
 `tools/verify_historical_api_journey.py` 把注册/发布私有包、提交历史任务、等待 Worker、下载复现 JSON、两份 CSV 和 HTML 报告、核对审计及报告摘要串成一次验收。**它会写入数据集和任务记录**，必须先准备独立 Compose 项目；命令行还要求显式传入 `--acknowledge-isolated-writes`。输出目录必须不存在，工具拒绝覆盖已有证据。没有本机封存包时无法运行。
 
+验收还核对复现包中的任务 ID、成功状态、数据集 ID、封存包 ID 与五分组参数必须对应本次提交；四文件内部一致但属于其他任务时不算通过。
+
 Mac 上可在仓库外创建临时 override（路径按本机实际调整），使 API 只发布隔离的 18000 端口，并让 API/Worker 共享隔离运行目录：
 
 ```yaml
