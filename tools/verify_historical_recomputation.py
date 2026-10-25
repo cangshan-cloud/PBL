@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import sys
 from pathlib import Path
 
@@ -48,8 +47,6 @@ def recompute_result(manifest_path: Path, manifest_checksum: str, groups: int) -
 
 
 def _same_result(left: object, right: object) -> bool:
-    if type(left) is float and type(right) is float:
-        return math.isclose(left, right, rel_tol=1e-10, abs_tol=1e-12)
     if type(left) is dict and type(right) is dict:
         return left.keys() == right.keys() and all(_same_result(left[key], right[key]) for key in left)
     if type(left) is list and type(right) is list:

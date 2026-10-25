@@ -217,6 +217,7 @@
 | CHG-20261024-012 | 2026-10-24 | historical roster timing guard / tested on Mac | 历史研究成员名单拒绝未来或非法更新日期及非法代码，维持 300 个不重复成员 | [记录](changes/2026-10-24-012-historical-roster-time-gate.md) | `backend/app/domain/historical_research.py::_roster_codes`、历史研究测试、历史包说明与 A/B/C/D 四责任包 |
 | CHG-20261024-013 | 2026-10-24 | historical result replay / tested on Mac | 新增私有包+复现 JSON 只读复算；发现 2026-10-14 旧导出与当前覆盖/分组口径不一致 | [记录](changes/2026-10-24-013-historical-result-recomputation.md) | `tools/verify_historical_recomputation.py`、`backend/tests/test_historical_recomputation.py`、历史包说明、PRD 矩阵与 A/B/C/D 四责任包 |
 | CHG-20261025-001 | 2026-10-25 | isolated current historical replay / verified on Mac | 内存库对私有包生成当前新任务；新复现 JSON、报告摘要及只读复算通过 | [记录](changes/2026-10-25-001-current-historical-replay-evidence.md) | `tools/run_isolated_historical_replay.py`、安全测试、当前复算记录、PRD 矩阵与 A/B/C/D 四责任包 |
+| CHG-20261025-002 | 2026-10-25 | historical replay integrity / verified on Mac | 离线复算改为严格逐值一致，拒绝自摘要重算后的微小浮点篡改；容器验收待 OrbStack 恢复 | [记录](changes/2026-10-25-002-strict-historical-replay-equality.md) | `tools/verify_historical_recomputation.py::_same_result`、`backend/tests/test_historical_recomputation.py`、复算记录与 A/B/C/D 四责任包 |
 
 ## 历史基线
 

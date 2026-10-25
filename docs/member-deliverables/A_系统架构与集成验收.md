@@ -526,3 +526,7 @@ GitHub Actions #107/#108 均显示 Ubuntu 与 Windows `Verify` 作业成功；�
 
 新增内存 SQLite + 临时报告目录的隔离入口，真实私有包当前任务生成后与离线复算通过；不连接 OrbStack 主栈或写既有数据库。证据见 [CHG-20261025-001](../changes/2026-10-25-001-current-historical-replay-evidence.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-25 历史复算严格校验（开发者代执行）
+
+同源复算改为逐值一致；本机 Docker socket 不可用，本轮没有执行隔离 Celery/HTTP，未触碰主栈与数据卷。见 [CHG-20261025-002](../changes/2026-10-25-002-strict-historical-replay-equality.md)。实际执行者：Codex；队长本人未签收。
+

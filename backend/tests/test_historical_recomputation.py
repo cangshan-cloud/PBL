@@ -64,7 +64,8 @@ class HistoricalRecomputationTests(unittest.TestCase):
             self.assertEqual(loaded.call_args.args, (self.manifest, self.checksum))
             near_equal = {**result, "ic_mean": result["ic_mean"] + 1e-15}
             self._write_export(near_equal)
-            self.assertEqual(verify_recomputation(self.export, self.manifest)["observations"], 70)
+            with self.assertRaisesRegex(ValueError, "historical recomputation mismatch: ic_mean"):
+                verify_recomputation(self.export, self.manifest)
             altered = {**result, "ic_mean": 0.9}
             self._write_export(altered)  # Recalculate the self-checksum too.
             with self.assertRaisesRegex(ValueError, "historical recomputation mismatch: ic_mean"):
