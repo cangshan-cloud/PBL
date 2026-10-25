@@ -550,3 +550,7 @@ OrbStack 恢复后，以专用项目、独立数据库卷/网络和只读私有�
 
 复用专用 Compose 卷启动 Web/API/Worker/DB/Redis，研究员浏览器任务及报告路径通过；仅替换隔离 Web 进行分页复点，主栈未改动。见 [CHG-20261025-007](../changes/2026-10-25-007-daily-coverage-pagination-browser-qa.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-25 逐日筛选隔离集成验收（开发者代执行）
+
+专用五服务项目中重新构建 Web 并运行真实历史任务；新筛选在研究页生效，主 `fbl` 栈未替换。见 [CHG-20261025-008](../changes/2026-10-25-008-daily-coverage-review-filter.md)。实际执行者：Codex；队长本人未签收。
+
