@@ -520,3 +520,7 @@ GitHub Actions #107/#108 的 Ubuntu 与 Windows 前端测试、构建步骤成�
 ## 2026-10-24 历史复算失败路径（开发者代执行）
 
 CLI 对旧浏览器留存导出返回预期不一致，合成单测覆盖当前口径正例与自摘要重算后的篡改反例；本轮未点击新页面，也未生成当前真实包新任务。见 [CHG-20261024-013](../changes/2026-10-24-013-historical-result-recomputation.md)。实际执行者：Codex；队长本人产品实测仍待完成。
+
+## 2026-10-25 当前任务结果与报告出口（开发者代执行）
+
+隔离任务生成的新复现 JSON、报告 HTML 均在落盘后做摘要核对，结果只读复算通过；这是 CLI/inline 验收，不冒充 Celery、浏览器或队长本人产品实测。见 [CHG-20261025-001](../changes/2026-10-25-001-current-historical-replay-evidence.md)。实际执行者：Codex。

@@ -522,3 +522,7 @@ GitHub Actions #107/#108 均显示 Ubuntu 与 Windows `Verify` 作业成功；�
 
 新增只读 CLI 将私有封存包与下载的复现 JSON 绑定后在当前源码下重跑，不创建任务或改数据库。旧导出被正确识别为当前口径不一致；新任务正例仍待最终验收。见 [CHG-20261024-013](../changes/2026-10-24-013-historical-result-recomputation.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-25 当前历史任务隔离链路（开发者代执行）
+
+新增内存 SQLite + 临时报告目录的隔离入口，真实私有包当前任务生成后与离线复算通过；不连接 OrbStack 主栈或写既有数据库。证据见 [CHG-20261025-001](../changes/2026-10-25-001-current-historical-replay-evidence.md)。实际执行者：Codex；队长本人未签收。
+
