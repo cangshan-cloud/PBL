@@ -219,6 +219,7 @@
 | CHG-20261025-001 | 2026-10-25 | isolated current historical replay / verified on Mac | 内存库对私有包生成当前新任务；新复现 JSON、报告摘要及只读复算通过 | [记录](changes/2026-10-25-001-current-historical-replay-evidence.md) | `tools/run_isolated_historical_replay.py`、安全测试、当前复算记录、PRD 矩阵与 A/B/C/D 四责任包 |
 | CHG-20261025-002 | 2026-10-25 | historical replay integrity / verified on Mac | 离线复算改为严格逐值一致，拒绝自摘要重算后的微小浮点篡改；容器验收待 OrbStack 恢复 | [记录](changes/2026-10-25-002-strict-historical-replay-equality.md) | `tools/verify_historical_recomputation.py::_same_result`、`backend/tests/test_historical_recomputation.py`、复算记录与 A/B/C/D 四责任包 |
 | CHG-20261025-003 | 2026-10-25 | historical audit export schema guard / verified on Mac | 离线历史审计 CSV 核对拒绝缺失、未知及布尔格式版本 | [记录](changes/2026-10-25-003-historical-audit-schema-guard.md) | `tools/verify_historical_audit_exports.py::verify_exports`、`backend/tests/test_historical_audit_exports.py`、历史包说明与 A/B/C/D 四责任包 |
+| CHG-20261025-004 | 2026-10-25 | export JSON ambiguity guard / verified on Mac | 离线复现、历史审计和复算统一拒绝重复 JSON 键，严格要求整型版本 | [记录](changes/2026-10-25-004-unambiguous-reproducibility-json.md) | `tools/verify_reproducibility_export.py::load_verified_export`、历史审计/复算工具、回归测试与 A/B/C/D 四责任包 |
 
 ## 历史基线
 

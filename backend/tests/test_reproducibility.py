@@ -78,6 +78,19 @@ class ReproducibilityTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "report checksum mismatch"):
                 verify_export(bundle_path, report_path)
 
+    def test_offline_verifier_rejects_duplicate_keys_and_boolean_schema(self):
+        with tempfile.TemporaryDirectory() as directory:
+            bundle_path = Path(directory) / "reproducibility.json"
+            bundle_path.write_text('{"schema_version":1,"result":{},"result":{},"result_sha256":"' +
+                                   hashlib.sha256(b"{}").hexdigest() + '"}', encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "duplicate JSON key: result"):
+                verify_export(bundle_path)
+            bundle_path.write_text(json.dumps({"schema_version": True, "result": {},
+                                               "result_sha256": hashlib.sha256(b"{}").hexdigest()}),
+                                   encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "unsupported reproducibility bundle schema"):
+                verify_export(bundle_path)
+
     def test_pending_bundle_has_no_result_and_respects_owner(self):
         with Session(self.engine, expire_on_commit=False) as session:
             run = create_research_run(session, {"factor": "momentum_20d"}, created_by_id="owner")

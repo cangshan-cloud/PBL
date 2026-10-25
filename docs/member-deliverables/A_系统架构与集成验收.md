@@ -534,3 +534,7 @@ GitHub Actions #107/#108 均显示 Ubuntu 与 Windows `Verify` 作业成功；�
 
 离线历史审计校验增加复现包版本检查；Docker socket 仍不可用，没有运行异步容器闭环，也未触碰主栈。见 [CHG-20261025-003](../changes/2026-10-25-003-historical-audit-schema-guard.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-25 导出 JSON 统一入口（开发者代执行）
+
+普通复现、历史审计及历史复算统一使用严格读取和摘要核验，拒绝重复键；OrbStack 未运行，异步集成待补。见 [CHG-20261025-004](../changes/2026-10-25-004-unambiguous-reproducibility-json.md)。实际执行者：Codex；队长本人未签收。
+

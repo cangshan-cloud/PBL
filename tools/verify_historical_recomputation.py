@@ -19,7 +19,7 @@ from app.domain.composite import combine_factor_observations
 from app.domain.historical_research import FACTOR_WINDOWS, calculate_historical_observations, load_historical_bundle
 from app.domain.research import evaluate
 from app.services.coverage import enrich_daily_coverage
-from tools.verify_reproducibility_export import verify_export
+from tools.verify_reproducibility_export import load_verified_export
 
 
 def recompute_result(manifest_path: Path, manifest_checksum: str, groups: int) -> dict:
@@ -55,8 +55,7 @@ def _same_result(left: object, right: object) -> bool:
 
 
 def verify_recomputation(export_path: Path, manifest_path: Path) -> dict[str, int | str]:
-    verify_export(export_path)
-    export = json.loads(export_path.read_text(encoding="utf-8"))
+    export = load_verified_export(export_path)
     task, dataset = export["task"], export["dataset"]
     parameters = task["parameters"]
     groups = parameters["groups"]

@@ -112,6 +112,13 @@ class HistoricalAuditExportTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "unsupported reproducibility bundle schema"):
                     verify_exports(self.bundle_path, self.daily_path, self.unlabeled_path)
 
+    def test_duplicate_json_key_is_rejected(self):
+        body = self.bundle_path.read_text(encoding="utf-8")
+        self.bundle_path.write_text(body.replace('"schema_version": 1,', '"schema_version": 1, "schema_version": 1,'),
+                                    encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "duplicate JSON key: schema_version"):
+            verify_exports(self.bundle_path, self.daily_path, self.unlabeled_path)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -71,7 +71,7 @@ python3 tools/verify_historical_audit_exports.py factor-run-XXXXXXXX.json histor
 python3 tools/verify_historical_audit_exports.py factor-run-XXXXXXXX.json historical-audit-daily-XXXXXXXX.csv historical-audit-unlabeled-XXXXXXXX.csv --report-html factor-report-XXXXXXXX.html
 ```
 
-工具先要求复现包的整型 `schema_version=1`，再按规范 JSON 序列化口径重算并核对 `result_sha256`，检查列头、逐行内容、因子逐日汇总与无标签信号数量；不需要私有行情包。2026-10-14 用本机真实包试验得到 4 个因子、968 行逐日记录、32 条无标签信号，且上述一致性检查通过。结果摘要可以发现 JSON 的意外改动，但它不带密钥，JSON 与摘要可以被同时重写；因此这只证明导出文件内部一致，**不能**证明行情来源、因子公式或收益本身正确，也不是防篡改签名。若需要独立重算，仍须取得同一私有数据包。
+工具先要求复现包的整型 `schema_version=1` 且任意层级无重复 JSON 键，再按规范 JSON 序列化口径重算并核对 `result_sha256`，检查列头、逐行内容、因子逐日汇总与无标签信号数量；不需要私有行情包。2026-10-14 用本机真实包试验得到 4 个因子、968 行逐日记录、32 条无标签信号，且上述一致性检查通过。结果摘要可以发现 JSON 的意外改动，但它不带密钥，JSON 与摘要可以被同时重写；因此这只证明导出文件内部一致，**不能**证明行情来源、因子公式或收益本身正确，也不是防篡改签名。若需要独立重算，仍须取得同一私有数据包。
 
 现可把下载的复现 JSON 与**同一私有封存包**交给只读复算工具；它先核对导出结果摘要和任务冻结参数、封存清单摘要，再用当前源码重跑四因子、组合与覆盖率，并严格逐值比较结果（包含浮点值、字段结构和计数）：
 

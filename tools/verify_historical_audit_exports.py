@@ -8,10 +8,12 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import json
-import re
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from tools.verify_reproducibility_export import load_verified_export
 
 
 UNLABELED_COLUMNS = ["factor", "date", "symbol", "factor_value", "next_market_date", "reason"]
@@ -30,16 +32,8 @@ def _csv_rows(path: Path, columns: list[str]) -> list[dict[str, str]]:
 
 def verify_exports(bundle_path: Path, daily_path: Path, unlabeled_path: Path,
                    report_path: Path | None = None) -> dict[str, int | bool]:
-    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
-    if not isinstance(bundle, dict) or type(bundle.get("schema_version")) is not int or bundle["schema_version"] != 1:
-        raise ValueError("unsupported reproducibility bundle schema")
-    result = bundle.get("result")
-    digest = bundle.get("result_sha256")
-    if not isinstance(result, dict) or not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
-        raise ValueError("reproducibility bundle has no valid result checksum")
-    canonical = json.dumps(result, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
-    if hashlib.sha256(canonical.encode("utf-8")).hexdigest() != digest:
-        raise ValueError("reproducibility result checksum mismatch")
+    bundle = load_verified_export(bundle_path, report_path)
+    result = bundle["result"]
     audit = result.get("historical_audit")
     if not isinstance(audit, dict) or not audit:
         raise ValueError("reproducibility bundle has no historical audit")
@@ -78,11 +72,6 @@ def verify_exports(bundle_path: Path, daily_path: Path, unlabeled_path: Path,
         "factors": len(audit), "daily_rows": len(expected_daily), "unlabeled_rows": len(expected_unlabeled),
     }
     if report_path is not None:
-        report_digest = bundle.get("report_sha256")
-        if not isinstance(report_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", report_digest):
-            raise ValueError("reproducibility bundle has no valid report checksum")
-        if hashlib.sha256(report_path.read_bytes()).hexdigest() != report_digest:
-            raise ValueError("report checksum mismatch")
         summary["report_verified"] = True
     return summary
 
