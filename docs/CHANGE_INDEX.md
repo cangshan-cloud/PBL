@@ -224,6 +224,7 @@
 | CHG-20261025-006 | 2026-10-25 | isolated historical async QA / verified on Mac | 固化历史私有包专用 Compose 与预检，真实包两条 API→Celery→导出→复算任务通过 | [记录](changes/2026-10-25-006-isolated-historical-async-qa.md) | `docker-compose.historical-qa.yml`、`tools/verify_historical_qa_compose.py`、安全测试、异步验收记录与 A/B/C/D 四责任包 |
 | CHG-20261025-007 | 2026-10-25 | daily coverage UX + historical browser QA / verified on Mac | 逐日诊断每页 20 日；浏览器历史任务、分页、报告预览与下载实测通过 | [记录](changes/2026-10-25-007-daily-coverage-pagination-browser-qa.md) | `frontend/src/DailyCoverageTable.tsx`、分页函数/测试、工作台与样式、浏览器验收记录、A/B/C/D 四责任包 |
 | CHG-20261025-008 | 2026-10-25 | daily coverage review filter / verified on Mac | 仅显示未形成观测或 IC/分组不可计算日；真实历史 107/242 日筛选、分页及恢复全量实点通过 | [记录](changes/2026-10-25-008-daily-coverage-review-filter.md) | `frontend/src/daily-coverage.ts`、逐日表/样式/测试、筛选浏览器记录、A/B/C/D 四责任包 |
+| CHG-20261025-009 | 2026-10-25 | full daily coverage CSV / locally tested | 普通及历史研究可从已取回结果下载全量逐日诊断，筛选不改变文件内容 | [记录](changes/2026-10-25-009-daily-coverage-csv-export.md) | `frontend/src/daily-coverage-export.ts`、逐日表/工作台/测试、研究口径与 A/B/C/D 四责任包 |
 
 ## 历史基线
 
