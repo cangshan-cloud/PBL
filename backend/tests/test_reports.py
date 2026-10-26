@@ -15,7 +15,7 @@ from fastapi import HTTPException
 from app.db import Base
 from app.main import download_report, download_report_delivery_copy, preview_report
 from app.models import Artifact, UserRole
-from app.services.reports import _svg_chart, build_report_html, get_report, list_reports, read_verified_report, report_delivery_copy
+from app.services.reports import _align_dated_chart_series, _svg_chart, build_report_html, get_report, list_reports, read_verified_report, report_delivery_copy
 from app.services.runs import create_research_run, execute_research_run
 
 
@@ -294,6 +294,35 @@ class ReportTests(unittest.TestCase):
         self.assertNotIn("<polyline", chart)
         self.assertEqual(chart.count("<circle "), 2)
         self.assertNotIn("nan", chart.lower())
+
+    def test_group_nav_report_aligns_dates_and_breaks_missing_day(self):
+        dates, series = _align_dated_chart_series([
+            ("Q1", [{"date": "2025-01-02", "nav": 1.01},
+                    {"date": "2025-01-06", "nav": 1.03}], "#277a5b"),
+            ("Q2", [{"date": "2025-01-03", "nav": 0.99},
+                    {"date": "2025-01-06", "nav": 1.02}], "#65a563"),
+        ], "nav")
+        self.assertEqual(dates, ["2025-01-02", "2025-01-03", "2025-01-06"])
+        self.assertEqual(series[0][1], [1.01, None, 1.03])
+        self.assertEqual(series[1][1], [None, 0.99, 1.02])
+        chart = _svg_chart("各组净值", dates, series, baseline=1)
+        self.assertEqual(chart.count("<circle "), 2)
+        self.assertEqual(chart.count("<polyline "), 1)
+        self.assertIn("2025-01-02", chart)
+        self.assertIn("2025-01-06", chart)
+        self.assertIn("非自然日间隔", chart)
+
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(session, {"factor": "pe", "groups": 2})
+            rendered = build_report_html(run, {"coverage": 0, "group_returns": [], "group_nav": [
+                {"group": 1, "points": [{"date": "2025-01-02", "nav": 1.01},
+                                         {"date": "2025-01-06", "nav": 1.03}]},
+                {"group": 2, "points": [{"date": "2025-01-03", "nav": 0.99},
+                                         {"date": "2025-01-06", "nav": 1.02}]},
+            ]})
+            group_chart = rendered.split("<figcaption>各组净值（初值 1）</figcaption>", 1)[1].split("</figure>", 1)[0]
+            self.assertEqual(group_chart.count("<circle "), 2)
+            self.assertEqual(group_chart.count("<polyline "), 1)
 
 
 if __name__ == "__main__":

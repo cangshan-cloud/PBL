@@ -130,8 +130,21 @@ def _svg_chart(title: str, dates: list[str], series: list[tuple[str, list[float 
         f'<text x="4" y="30">{high:.3f}</text><text x="4" y="194">{low:.3f}</text>'
         f'{"".join(paths)}<text x="55" y="225">{html.escape(str(dates[0]))}</text>'
         f'<text x="615" y="225" text-anchor="end">{html.escape(str(dates[-1]))}</text></svg>'
-        f'<div class="legend">{"".join(legends)}</div></figure>'
+        f'<div class="legend">{"".join(legends)}</div>'
+        '<small>横向按结果日期等距，非自然日间隔；序列缺日时断线。</small></figure>'
     )
+
+
+def _align_dated_chart_series(
+    series: list[tuple[str, list[dict], str]], value_key: str,
+) -> tuple[list[str], list[tuple[str, list[float | None], str]]]:
+    """Align saved series on their date union before index-based SVG rendering."""
+    dates = sorted({str(point["date"]) for _, points, _ in series for point in points})
+    aligned = []
+    for label, points, color in series:
+        by_date = {str(point["date"]): point.get(value_key) for point in points}
+        aligned.append((label, [by_date.get(date) for date in dates], color))
+    return dates, aligned
 
 
 def build_report_html(run: Run, result: dict) -> str:
@@ -179,14 +192,18 @@ def build_report_html(run: Run, result: dict) -> str:
         baseline=1,
     )
     group_nav = result.get("group_nav", [])
-    longest_group = max(group_nav, key=lambda item: len(item.get("points", [])), default={})
-    group_nav_chart = _svg_chart(
-        "各组净值（初值 1）",
-        [str(point.get("date", "")) for point in longest_group.get("points", [])],
+    group_dates, group_series = _align_dated_chart_series(
         [
-            (f"Q{int(item['group'])}", [point.get("nav") for point in item.get("points", [])], GROUP_COLORS[(int(item["group"]) - 1) % len(GROUP_COLORS)])
+            (f"Q{int(item['group'])}", item.get("points", []),
+             GROUP_COLORS[(int(item["group"]) - 1) % len(GROUP_COLORS)])
             for item in group_nav
         ],
+        "nav",
+    )
+    group_nav_chart = _svg_chart(
+        "各组净值（初值 1）",
+        group_dates,
+        group_series,
         baseline=1,
     )
     histogram = result.get("ic_histogram")
