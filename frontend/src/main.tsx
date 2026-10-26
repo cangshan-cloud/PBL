@@ -10,7 +10,7 @@ import { loadForCurrentSession, loadForLatestRequest } from "./auth-resource";
 import { comparisonDatasetLabel, comparisonDelta, comparisonSourceLabel } from "./comparison-format";
 import { comparisonDownloadFilename, comparisonJsonContent } from "./comparison-download";
 import { comparisonCandidateHint } from "./comparison-candidates";
-import { reportListHint } from "./report-list";
+import { filterReports, reportListHint, selectVisibleReport } from "./report-list";
 import { saveBlobAsFile } from "./blob-download";
 import { DailyCoverageTable } from "./DailyCoverageTable";
 import { filterTasks, type TaskStatusFilter } from "./task-filter";
@@ -135,6 +135,7 @@ function App() {
   const [comparisonCandidatesLoading, setComparisonCandidatesLoading] = React.useState(false);
   const [reports, setReports] = React.useState<Report[]>([]);
   const [reportListLoading, setReportListLoading] = React.useState(false);
+  const [reportQuery, setReportQuery] = React.useState("");
   const [selectedReportId, setSelectedReportId] = React.useState("");
   const [reportHtml, setReportHtml] = React.useState<SelectedResource<string> | null>(null);
   const [datasets, setDatasets] = React.useState<Dataset[]>([]);
@@ -174,7 +175,8 @@ function App() {
   const selectedFactor = factors.find(item => item.id === selectedFactorKey) ?? factors[0];
   const visibleTasks = filterTasks(tasks, taskQuery, taskStatusFilter);
   const selectedTask = visibleTasks.find(item => item.id === selectedTaskId) ?? visibleTasks[0];
-  const selectedReport = reports.find(item => item.run_id === selectedReportId) ?? reports[0];
+  const visibleReports = filterReports(reports, reportQuery);
+  const selectedReport = selectVisibleReport(visibleReports, selectedReportId);
   const selectedReportDataset = reportDatasetByIdentity(datasets, selectedReport);
   const reportCalendarNotice = reportCalendarRiskNotice(selectedReportDataset);
   const calendarPreviewDetails = adapterPreview ? adapterCalendarDetails(adapterPreview.report.validation) : null;
@@ -714,7 +716,8 @@ function App() {
       {importedCsvProvenanceNotice(selectedReportDataset) && <div className="notice" role="note">当前报告对应的{importedCsvProvenanceNotice(selectedReportDataset)}归档 HTML 保持原始字节，下载交付副本会附加当前披露。</div>}
       {selectedReportDataset && !isKnownSyntheticDemo(selectedReportDataset) && (selectedReportDataset.quality_report.weekend_row_count ?? 0) > 0 && <div className="notice" role="alert">当前报告的数据版本含周末日期行情；请先核对源文件。历史归档 HTML 未改写。</div>}
       {reportCalendarNotice && <div className="notice" role="alert">{reportCalendarNotice}</div>}
-      <section className="report-layout"><div className="card report-list">{reports.map(item => <button key={item.run_id} className={selectedReport?.run_id === item.run_id ? "selected" : ""} onClick={() => setSelectedReportId(item.run_id)}><strong>{item.experiment_name}</strong><span>数据 {item.dataset_version} · 因子 {item.factor_version}</span><small>{formatTime(item.created_at)}</small></button>)}{reportListHint(reports.length, reportListLoading) && <div className="empty">{reportListHint(reports.length, reportListLoading)}</div>}</div><div className="card report-preview">{selectedReport && visibleReportHtml ? <iframe title={selectedReport.experiment_name} srcDoc={visibleReportHtml} sandbox="allow-same-origin" /> : <div className="empty">{selectedReport ? "正在加载报告预览…" : "暂无可预览报告。"}</div>}</div></section>
+      <section className="card task-filters"><label>检索报告<input type="search" value={reportQuery} onChange={event => setReportQuery(event.target.value)} placeholder="Run ID 或研究名称" /></label><span aria-live="polite">显示 {visibleReports.length}/{reports.length} 份报告</span></section>
+      <section className="report-layout"><div className="card report-list">{visibleReports.map(item => <button key={item.run_id} className={selectedReport?.run_id === item.run_id ? "selected" : ""} onClick={() => setSelectedReportId(item.run_id)}><strong>{item.experiment_name}</strong><span>数据 {item.dataset_version} · 因子 {item.factor_version}</span><small>{formatTime(item.created_at)}</small></button>)}{reportListHint(reports.length, reportListLoading) && <div className="empty">{reportListHint(reports.length, reportListLoading)}</div>}{reports.length > 0 && visibleReports.length === 0 && <div className="empty">没有符合检索条件的报告。</div>}</div><div className="card report-preview">{selectedReport && visibleReportHtml ? <iframe title={selectedReport.experiment_name} srcDoc={visibleReportHtml} sandbox="allow-same-origin" /> : <div className="empty">{selectedReport ? "正在加载报告预览…" : reports.length > 0 && visibleReports.length === 0 ? "没有符合检索条件的报告可预览。" : "暂无可预览报告。"}</div>}</div></section>
     </>}<footer>研究结果仅用于课程研究，不构成投资建议。</footer></main></div>;
 }
 
