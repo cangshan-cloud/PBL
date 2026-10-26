@@ -94,7 +94,7 @@ function icHistogram(values: (number | null)[]) {
   return counts.map((count, index) => ({ lower: Number((-1 + index * 0.2).toFixed(1)), upper: Number((-0.8 + index * 0.2).toFixed(1)), count }));
 }
 
-function IcSeriesChart({ runId, series }: { runId: string; series: Result["ic_series"] }) {
+function IcSeriesChart({ runId, series, showDownload = true }: { runId: string; series: Result["ic_series"]; showDownload?: boolean }) {
   const values = series.map(item => item.ic);
   const valid = values.filter((value): value is number => value != null && Number.isFinite(value));
   const low = Math.min(0, ...valid); const high = Math.max(0, ...valid);
@@ -109,7 +109,7 @@ function IcSeriesChart({ runId, series }: { runId: string; series: Result["ic_se
     } else current.push({ x: series.length === 1 ? 300 : index * 600 / (series.length - 1), y: y(value) });
   });
   if (current.length) segments.push(current);
-  return <article className="card line-chart"><p className="eyebrow">IC SERIES</p><div className="section-title"><h2>每日 IC</h2><button className="secondary" onClick={() => saveBlobAsFile(new Blob([icSeriesCsv(runId, series)], { type: "text/csv;charset=utf-8" }), icSeriesFilename(runId))}>下载每日 IC CSV</button></div>{valid.length ? <svg viewBox="0 0 600 180" preserveAspectRatio="none" role="img" aria-label="每日 IC，空值处断开"><line x1="0" y1={y(0)} x2="600" y2={y(0)} />{segments.map((segment, index) => segment.length > 1 ? <polyline key={index} points={segment.map(point => `${point.x},${point.y}`).join(" ")} /> : <circle key={index} cx={segment[0].x} cy={segment[0].y} r="3" />)}</svg> : <div className="empty">没有可计算的 IC。</div>}<small>{valid.length} 个有效截面；{values.length - valid.length} 个空值不按零填补。CSV 保留全量日期与原始数值。</small></article>;
+  return <article className="card line-chart"><p className="eyebrow">IC SERIES</p><div className="section-title"><h2>每日 IC</h2>{showDownload && <button className="secondary" onClick={() => saveBlobAsFile(new Blob([icSeriesCsv(runId, series)], { type: "text/csv;charset=utf-8" }), icSeriesFilename(runId))}>下载每日 IC CSV</button>}</div>{valid.length ? <svg viewBox="0 0 600 180" preserveAspectRatio="none" role="img" aria-label="每日 IC，空值处断开"><line x1="0" y1={y(0)} x2="600" y2={y(0)} />{segments.map((segment, index) => segment.length > 1 ? <polyline key={index} points={segment.map(point => `${point.x},${point.y}`).join(" ")} /> : <circle key={index} cx={segment[0].x} cy={segment[0].y} r="3" />)}</svg> : <div className="empty">没有可计算的 IC。</div>}<small>{valid.length} 个有效截面；{values.length - valid.length} 个空值不按零填补。CSV 保留全量日期与原始数值。</small></article>;
 }
 
 function IcDistribution({ result }: { result: Result }) {
@@ -117,6 +117,30 @@ function IcDistribution({ result }: { result: Result }) {
   const maximum = Math.max(1, ...histogram.map(item => item.count));
   const total = histogram.reduce((sum, item) => sum + item.count, 0);
   return <article className="card ic-distribution"><p className="eyebrow">IC DISTRIBUTION</p><h2>IC 分布</h2><div className="bars">{histogram.map(item => <div className="bar-row" key={item.lower}><span>{item.lower.toFixed(1)}～{item.upper.toFixed(1)}</span><div><i style={{ width: `${item.count / maximum * 100}%` }} /></div><strong>{item.count}</strong></div>)}</div><small>固定 0.2 宽度分箱 · {total} 个有效交易日，空值不计入</small></article>;
+}
+
+function SavedSeriesCharts({ runId, result, onDownloadLongShort, onDownloadGroupNav, showActions = true, includeDistribution = true }: {
+  runId: string;
+  result: Result;
+  onDownloadLongShort: (runId: string, result: Result) => void;
+  onDownloadGroupNav: (runId: string, result: Result) => void;
+  showActions?: boolean;
+  includeDistribution?: boolean;
+}) {
+  return <section className="chart-grid" aria-label={`Run ${runId} 的逐日曲线`}>
+    <IcSeriesChart runId={runId} series={result.ic_series} showDownload={showActions} />
+    <NavChart eyebrow="LONG SHORT NAV" title="多空组合净值" lines={[
+      { label: "毛净值", color: "#277a5b", values: result.long_short_series.map(item => item.nav) },
+      { label: "成本后净值", color: "#d69043", values: result.long_short_series.map(item => item.net_nav) },
+    ]} note={`初值 1；成本后净值扣除 ${result.transaction_cost_bps} bps 单边成本`}
+      action={showActions && <button className="secondary" onClick={() => onDownloadLongShort(runId, result)}>下载多空逐日 CSV</button>} />
+    {includeDistribution && <IcDistribution result={result} />}
+    <NavChart eyebrow="QUANTILE NAV" title="各组净值" lines={(result.group_nav ?? []).map(item => ({
+      label: `Q${item.group}`, color: groupColors[(item.group - 1) % groupColors.length],
+      values: item.points.map(point => point.nav),
+    }))} note="各组等权日收益连乘，初值 1；与分组平均收益使用同一结果数据"
+      action={showActions && <button className="secondary" onClick={() => onDownloadGroupNav(runId, result)}>下载各组逐日净值 CSV</button>} wide />
+  </section>;
 }
 
 function App() {
@@ -685,7 +709,7 @@ function App() {
       {(task?.result?.group_skipped_insufficient_sample_days ?? 0) > 0 && <div className="notice">有 {task!.result!.group_skipped_insufficient_sample_days} 个交易日有效证券数少于分组数：未生成分组与多空收益，IC 可计算时仍保留。</div>}
       {task?.result?.time_split && <section className="card comparison-table"><h2>研究期／验证期 IC 诊断</h2><p>验证期从 {task.result.time_split.validation_start_date} 开始；边界前 {task.result.time_split.embargo_signal_date} 的信号已隔离。全区间指标仍单独保留；这里只比较 IC，不是可交易收益或前瞻有效性证明。</p><div className="preview-scroll"><table><thead><tr><th>阶段</th><th>日期</th><th>观测</th><th>有效 IC 日</th><th>IC 均值</th><th>Rank IC</th><th>ICIR</th><th>IC 为正</th></tr></thead><tbody>{([ ["研究期", task.result.time_split.research], ["验证期", task.result.time_split.validation] ] as const).map(([label, item]) => <tr key={label}><td>{label}</td><td>{item.start_date} 至 {item.end_date}</td><td>{item.observation_count}</td><td>{item.valid_ic_dates}</td><td>{number(item.ic_mean)}</td><td>{number(item.rank_ic_mean)}</td><td>{number(item.icir)}</td><td>{number(item.ic_positive_ratio, true)}</td></tr>)}</tbody></table></div></section>}
       {!!task?.result?.daily_coverage?.length && <DailyCoverageTable key={task.id} runId={task.id} rows={task.result.daily_coverage} candidateCoverage={task.result.candidate_coverage} coverage={task.result.coverage} coverageRatio={task.result.coverage_ratio} zeroObservationDays={task.result.zero_observation_days} />}
-      {task?.result && <section className="chart-grid"><IcSeriesChart runId={task.id} series={task.result.ic_series} /><NavChart eyebrow="LONG SHORT NAV" title="多空组合净值" lines={[{ label: "毛净值", color: "#277a5b", values: task.result.long_short_series.map(item => item.nav) }, { label: "成本后净值", color: "#d69043", values: task.result.long_short_series.map(item => item.net_nav) }]} note={`初值 1；成本后净值扣除 ${task.result.transaction_cost_bps} bps 单边成本`} action={<button className="secondary" onClick={() => downloadLongShort(task.id, task.result!)}>下载多空逐日 CSV</button>} /><IcDistribution result={task.result} /><NavChart eyebrow="QUANTILE NAV" title="各组净值" lines={(task.result.group_nav ?? []).map(item => ({ label: `Q${item.group}`, color: groupColors[(item.group - 1) % groupColors.length], values: item.points.map(point => point.nav) }))} note="各组等权日收益连乘，初值 1；与分组平均收益使用同一结果数据" action={<button className="secondary" onClick={() => downloadGroupNav(task.id, task.result!)}>下载各组逐日净值 CSV</button>} wide /></section>}
+      {task?.result && <SavedSeriesCharts runId={task.id} result={task.result} onDownloadLongShort={downloadLongShort} onDownloadGroupNav={downloadGroupNav} />}
       {task?.result?.composite && <section className="card composite-result"><div className="section-title"><div><p className="eyebrow">COMPOSITE DIAGNOSTICS</p><h2>多因子合成诊断</h2></div><strong>共同样本 {task.result.composite.common_coverage}</strong></div><div className="weight-list">{Object.entries(task.result.composite.weights).map(([key, value]) => <span key={key}><b>{factorName(key)}</b>{number(value, true)}<small>原始覆盖 {task.result!.composite!.component_coverage[key]}</small></span>)}</div><h3>因子相关矩阵</h3><div className="correlation-table">{task.result.composite.correlation_matrix.map(item => <span key={`${item.left}-${item.right}`}><b>{factorName(item.left)} × {factorName(item.right)}</b>{number(item.correlation)}</span>)}</div></section>}
       {task?.result?.historical_audit && <section className="card historical-audit"><div className="section-title"><div><p className="eyebrow">HISTORICAL AUDIT</p><h2>历史股票池与标签审计</h2></div><strong>2024 沪深300</strong></div><p>逐日按历史成分及交易状态筛选；下一日收益缺失不填零、不跳至复牌日。以下是研究样本检验，并非真实可成交收益。</p><div className="preview-scroll"><table><thead><tr><th>因子</th><th>候选</th><th>有效信号</th><th>有效收益</th><th>窗口无效</th><th>次日不可用</th></tr></thead><tbody>{Object.entries(task.result.historical_audit).map(([key, item]) => <tr key={key}><td>{factorName(key)}</td><td>{item.totals.candidate_count ?? 0}</td><td>{item.totals.factor_signal ?? 0}</td><td>{item.totals.valid_return ?? 0}</td><td>{item.totals.invalid_contiguous_window ?? 0}</td><td>{item.unlabeled_signals.length}</td></tr>)}</tbody></table></div><div className="task-actions"><button onClick={() => downloadHistoricalAudit("daily")}>下载逐日审计 CSV</button><button onClick={() => downloadHistoricalAudit("unlabeled")}>下载无标签信号 CSV</button></div><small>完整逐日计数及无标签信号的证券、日期、因子值和原因也保存在任务结果与复现包中。</small></section>}
     </> : view === "factors" ? <>
@@ -718,6 +742,7 @@ function App() {
           <div className="repro-grid"><span><label>数据版本</label><b>{selectedTask.dataset_version}</b><small>{selectedTask.dataset_version_id}</small></span><span><label>因子版本</label><b>{selectedTask.factor_version}</b><small>{selectedTask.factor_version_id}</small></span><span><label>代码版本</label><b>{selectedTask.code_version}</b><small>实验创建时固定</small></span><span><label>执行时间</label><b>{formatTime(selectedTask.started_at)}</b><small>结束：{formatTime(selectedTask.finished_at)}</small></span></div>
           <h3>研究参数</h3><pre>{JSON.stringify(selectedTask.parameters, null, 2)}</pre>
           {selectedTask.result && <div className="task-actions task-series-export"><button className="secondary" onClick={() => saveBlobAsFile(new Blob([icSeriesCsv(selectedTask.id, selectedTask.result!.ic_series)], { type: "text/csv;charset=utf-8" }), icSeriesFilename(selectedTask.id))}>下载每日 IC CSV</button><button className="secondary" onClick={() => downloadLongShort(selectedTask.id, selectedTask.result!)}>下载多空逐日 CSV</button><button className="secondary" onClick={() => downloadGroupNav(selectedTask.id, selectedTask.result!)}>下载各组逐日净值 CSV</button><small>按各自有效日期导出原值，空值不补零；与当前 Run 的复现包同源。</small></div>}
+          {selectedTask.result && <details className="task-series-charts" key={selectedTask.id}><summary>查看此 Run 的逐日曲线</summary><p>仅回看该 Run 保存的 IC、多空和各组净值；毛／成本后口径与上方下载文件一致，不重新运行研究。</p><SavedSeriesCharts runId={selectedTask.id} result={selectedTask.result} onDownloadLongShort={downloadLongShort} onDownloadGroupNav={downloadGroupNav} showActions={false} includeDistribution={false} /></details>}
           {selectedTask.result && <><div className="compact-metrics"><span><label>有效观测</label><b>{selectedTask.result.coverage}</b></span><span><label>IC均值</label><b>{number(selectedTask.result.ic_mean)}</b></span><span><label>Rank IC</label><b>{number(selectedTask.result.rank_ic_mean)}</b></span><span><label>ICIR</label><b>{number(selectedTask.result.icir)}</b></span><span><label>毛多空收益</label><b>{number(selectedTask.result.long_short_total_return, true)}</b></span><span><label>成本后多空收益</label><b>{number(selectedTask.result.long_short_net_total_return, true)}</b></span></div><h3>分组平均收益</h3><div className="bars">{selectedTask.result.group_returns.map(item => <div className="bar-row" key={item.group}><span>Q{item.group}</span><div><i style={{width: `${Math.min(100, Math.abs(item.mean_return) * 4000 + 8)}%`}} /></div><strong>{number(item.mean_return, true)}</strong></div>)}</div></>}
           {visibleTaskConclusion && <section className={`conclusion ${visibleTaskConclusion.grade}`}><div className="section-title"><div><p className="eyebrow">RULE-BASED DRAFT · v{visibleTaskConclusion.method.version}</p><h3>结构化研究结论</h3></div><span>{visibleTaskConclusion.grade}</span></div><strong>{visibleTaskConclusion.headline}</strong><div className="conclusion-columns"><div><h3>支持证据</h3><ul>{visibleTaskConclusion.evidence.map(item => <li key={item}>{item}</li>)}</ul></div><div><h3>限制条件</h3><ul>{visibleTaskConclusion.limitations.map(item => <li key={item}>{item}</li>)}</ul></div><div><h3>建议下一步</h3><ol>{visibleTaskConclusion.next_steps.map(item => <li key={item}>{item}</li>)}</ol></div></div><small>{visibleTaskConclusion.disclaimer}</small></section>}
           <h3>执行日志</h3><div className="run-logs">{visibleTaskLogs?.map(item => <div className={item.level} key={item.id}><time>{formatTime(item.created_at)}</time><b>{item.event}</b><span>{item.message}</span></div>)}{visibleTaskLogs === null ? <div className="empty">正在加载日志…</div> : visibleTaskLogs.length === 0 && <div className="empty">暂无日志。</div>}</div>

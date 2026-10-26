@@ -238,6 +238,7 @@
 | CHG-20261026-008 | 2026-10-26 | long-short daily CSV export / verified on Mac | 当前及历史结果可导出毛收益、双边换手、成本和净值的逐日原值，明确比例单位与非可成交边界 | [记录](changes/2026-10-26-008-long-short-series-csv.md) | `frontend/src/long-short-export.ts`、工作台/任务页、单测、口径文档、浏览器验收与 A/B/C/D 四责任包 |
 | CHG-20261026-009 | 2026-10-26 | offline series export verifier / verified on Mac | 浏览器下载的 IC 与多空逐日 CSV 可对同 Run 复现 JSON 逐行核对，说明自校验和非签名限制 | [记录](changes/2026-10-26-009-series-export-verifier.md) | `tools/verify_series_exports.py`、后端反例测试、使用/隔离验收记录与 A/B/C/D 四责任包 |
 | CHG-20261026-010 | 2026-10-26 | group NAV CSV export + offline check / verified on Mac | 各组毛净值按原组别/日期顺序导出；隔离浏览器 1,210 行与复现包逐行一致 | [记录](changes/2026-10-26-010-group-nav-csv.md) | `frontend/src/group-nav-export.ts`、工作台/任务页、离线核对/测试、口径/浏览器记录与 A/B/C/D 四责任包 |
+| CHG-20261026-011 | 2026-10-26 | saved-series task revisit / verified on Mac | 任务中心按需回看旧 Run 的 IC、多空和各组净值曲线，切换 Run 重置面板 | [记录](changes/2026-10-26-011-task-series-chart-revisit.md) | `frontend/src/main.tsx::SavedSeriesCharts`、`frontend/src/layout.css`、两 Run 浏览器验收与 A/B/C/D 四责任包 |
 
 ## 历史基线
 
