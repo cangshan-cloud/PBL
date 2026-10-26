@@ -147,6 +147,37 @@ def _align_dated_chart_series(
     return dates, aligned
 
 
+def _daily_series_detail(result: dict) -> str:
+    """Show saved chart values on a shared date axis without filling gaps."""
+    ic_by_date = {str(item["date"]): item for item in result.get("ic_series", [])}
+    nav_by_date = {str(item["date"]): item for item in result.get("long_short_series", [])}
+    group_maps = [
+        (int(item["group"]), {str(point["date"]): point.get("nav") for point in item.get("points", [])})
+        for item in result.get("group_nav", [])
+    ]
+    dates = sorted(set(ic_by_date) | set(nav_by_date) |
+                   {date for _, values in group_maps for date in values})
+    if not dates:
+        return ""
+    group_headings = "".join(f"<th>Q{group} 净值</th>" for group, _ in group_maps)
+    rows = []
+    for date in dates:
+        ic = ic_by_date.get(date, {})
+        nav = nav_by_date.get(date, {})
+        values = [ic.get("ic"), ic.get("rank_ic"), nav.get("nav"), nav.get("net_nav")]
+        cells = "".join(f"<td>{_fmt(value)}</td>" for value in values)
+        cells += "".join(f"<td>{_fmt(points.get(date))}</td>" for _, points in group_maps)
+        rows.append(f"<tr><td>{html.escape(date)}</td>{cells}</tr>")
+    return (
+        f'<details class="series-detail"><summary>展开逐日序列核对表（{len(dates)} 个结果日期）</summary>'
+        '<p>按保存结果日期并集排列；空缺显示“—”，不补零或前值。表内数值保留四位小数，'
+        '完整精度请核对同 Run 结构化结果或逐日 CSV；窄屏可横向滚动。</p>'
+        '<div class="series-table-wrap"><table><thead><tr><th>日期</th><th>IC</th><th>Rank IC</th>'
+        f'<th>毛净值</th><th>成本后净值</th>{group_headings}</tr></thead>'
+        f'<tbody>{"".join(rows)}</tbody></table></div></details>'
+    )
+
+
 def build_report_html(run: Run, result: dict) -> str:
     experiment = run.experiment
     dataset = experiment.dataset_version
@@ -206,6 +237,7 @@ def build_report_html(run: Run, result: dict) -> str:
         group_series,
         baseline=1,
     )
+    daily_series_detail = _daily_series_detail(result)
     histogram = result.get("ic_histogram")
     if histogram is None:
         histogram = ic_histogram([
@@ -325,7 +357,7 @@ def build_report_html(run: Run, result: dict) -> str:
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{html.escape(experiment.name)} · 因子研究报告</title>
 <style>
-body{{font-family:Inter,'PingFang SC','Microsoft YaHei',sans-serif;color:#173128;background:#f4f5ef;margin:0}}main{{max-width:900px;margin:0 auto;padding:56px 42px}}header{{border-bottom:4px solid #173128;padding-bottom:24px}}h1{{font-size:38px;margin:8px 0}}h2{{margin-top:36px;font-size:22px}}.tag{{font-size:11px;letter-spacing:2px;color:#6b7c73}}.grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}}.metric,.meta{{background:white;border:1px solid #dfe5dc;border-radius:12px;padding:16px}}.metric b{{display:block;font-size:25px;margin-top:7px}}.meta-grid{{display:grid;grid-template-columns:1fr 1fr;gap:12px}}.meta small{{display:block;color:#78877f;margin-bottom:5px}}table{{width:100%;border-collapse:collapse;background:white}}th,td{{padding:11px;border-bottom:1px solid #e5e9e2;text-align:left}}th{{background:#173128;color:white}}pre{{white-space:pre-wrap;background:#173128;color:#e2eee7;padding:18px;border-radius:10px}}.risk{{background:#fff5db;border-left:4px solid #d5a22f;padding:16px}}figure{{margin:18px 0;padding:18px;background:white;border:1px solid #dfe5dc;border-radius:12px;break-inside:avoid}}figcaption{{font-weight:700;margin-bottom:8px}}svg{{display:block;width:100%;height:auto}}svg text{{font:11px sans-serif;fill:#68786f}}.legend{{display:flex;gap:18px;flex-wrap:wrap;font-size:12px}}.legend span{{display:inline-flex;align-items:center;gap:6px}}.legend i{{width:14px;height:3px;display:inline-block}}.histogram{{display:grid;gap:5px}}.hist-row{{display:grid;grid-template-columns:100px 1fr 36px;align-items:center;gap:10px;font-size:12px}}.hist-row div{{height:9px;background:#edf2eb;border-radius:5px}}.hist-row i{{display:block;height:100%;background:#176548;border-radius:5px}}.hist-row b{{text-align:right}}footer{{margin-top:44px;color:#7b8982;font-size:12px}}@media print{{body{{background:white}}main{{padding:20px}}figure{{border-color:#bbb}}}}
+body{{font-family:Inter,'PingFang SC','Microsoft YaHei',sans-serif;color:#173128;background:#f4f5ef;margin:0}}main{{max-width:900px;margin:0 auto;padding:56px 42px}}header{{border-bottom:4px solid #173128;padding-bottom:24px}}h1{{font-size:38px;margin:8px 0}}h2{{margin-top:36px;font-size:22px}}.tag{{font-size:11px;letter-spacing:2px;color:#6b7c73}}.grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}}.metric,.meta{{background:white;border:1px solid #dfe5dc;border-radius:12px;padding:16px}}.metric b{{display:block;font-size:25px;margin-top:7px}}.meta-grid{{display:grid;grid-template-columns:1fr 1fr;gap:12px}}.meta small{{display:block;color:#78877f;margin-bottom:5px}}table{{width:100%;border-collapse:collapse;background:white}}th,td{{padding:11px;border-bottom:1px solid #e5e9e2;text-align:left}}th{{background:#173128;color:white}}pre{{white-space:pre-wrap;background:#173128;color:#e2eee7;padding:18px;border-radius:10px}}.risk{{background:#fff5db;border-left:4px solid #d5a22f;padding:16px}}figure{{margin:18px 0;padding:18px;background:white;border:1px solid #dfe5dc;border-radius:12px;break-inside:avoid}}figcaption{{font-weight:700;margin-bottom:8px}}svg{{display:block;width:100%;height:auto}}svg text{{font:11px sans-serif;fill:#68786f}}.legend{{display:flex;gap:18px;flex-wrap:wrap;font-size:12px}}.legend span{{display:inline-flex;align-items:center;gap:6px}}.legend i{{width:14px;height:3px;display:inline-block}}.histogram{{display:grid;gap:5px}}.hist-row{{display:grid;grid-template-columns:100px 1fr 36px;align-items:center;gap:10px;font-size:12px}}.hist-row div{{height:9px;background:#edf2eb;border-radius:5px}}.hist-row i{{display:block;height:100%;background:#176548;border-radius:5px}}.hist-row b{{text-align:right}}.series-detail{{margin:18px 0;padding:16px;background:white;border:1px solid #dfe5dc;border-radius:12px}}.series-detail summary{{cursor:pointer;font-weight:700}}.series-detail p{{font-size:12px;color:#68786f}}.series-table-wrap{{overflow-x:auto}}.series-table-wrap table{{min-width:680px;font-size:12px}}.series-table-wrap th,.series-table-wrap td{{white-space:nowrap}}footer{{margin-top:44px;color:#7b8982;font-size:12px}}@media print{{body{{background:white}}main{{padding:20px}}figure{{border-color:#bbb}}}}
 </style></head><body><main>
 <header><p class="tag">FACTORLAB · {report_kind}</p><h1>{html.escape(experiment.name)}</h1><p>报告由结构化研究结果自动生成，所有版本与参数均绑定到本次Run。价格口径：{price_basis_text}。</p></header>
 {demo_disclosure}
@@ -334,7 +366,7 @@ body{{font-family:Inter,'PingFang SC','Microsoft YaHei',sans-serif;color:#173128
 {component_rows}<h2>数据与复现信息</h2><div class="meta-grid"><div class="meta"><small>数据集</small><b>{html.escape(dataset.name)}</b></div><div class="meta"><small>数据版本</small><b>{html.escape(dataset.version)}</b></div><div class="meta"><small>数据校验和</small><b>{html.escape(dataset.checksum[:16])}…</b></div><div class="meta"><small>代码版本</small><b>{html.escape(experiment.code_version)}</b></div><div class="meta"><small>Run ID</small><b>{html.escape(run.id)}</b></div><div class="meta"><small>状态</small><b>success</b></div><div class="meta"><small>因子日期范围</small><b>{html.escape(str(sample.get('start_date') or '数据起点'))} 至 {html.escape(str(sample.get('end_date') or '数据终点'))}</b></div><div class="meta"><small>实际证券数量</small><b>{int(sample.get('resolved_symbol_count', dataset.symbol_count))}</b></div></div>
 <h2>四、研究参数</h2><pre>{parameters}</pre><p><b>预处理口径：</b>{html.escape(preprocessing_text)}</p>
 <h2>五、分组结果</h2><p>全截面因子同值而跳过分组的日期：{int(result.get('group_skipped_constant_factor_days', 0))} 天；有效证券数少于目标分组数而跳过的日期：{int(result.get('group_skipped_insufficient_sample_days', 0))} 天。上述日期均不计入分组及多空收益；IC 可计算时仍保留。</p><table><thead><tr><th>因子分组</th><th>平均下一日收益</th><th>期末净值</th></tr></thead><tbody>{groups}</tbody></table>{coverage_section}{split_section}
-<h2>时间序列与分布图</h2><p>曲线使用本次 Run 保存的结构化序列；断点表示该日指标不可计算，不按零填补。</p>{ic_chart}{histogram_chart}{group_nav_chart}{nav_chart}
+<h2>时间序列与分布图</h2><p>曲线使用本次 Run 保存的结构化序列；断点表示该日指标不可计算，不按零填补。</p>{ic_chart}{histogram_chart}{group_nav_chart}{nav_chart}{daily_series_detail}
 <h2>六、结构化结论草稿</h2><div class="risk"><p><b>{html.escape(conclusion['headline'])}</b></p><h3>证据</h3><ul>{conclusion_evidence}</ul><h3>限制</h3><ul>{conclusion_limits}</ul><h3>建议下一步</h3><ol>{conclusion_next}</ol><p>{html.escape(conclusion['disclaimer'])}</p></div>
 <h2>七、口径与风险说明</h2><div class="risk"><p>本报告仅用于课程研究，不构成投资建议。样例或历史统计结果不能保证未来表现。</p><ul><li>因子在交易日收盘后形成，最早用于下一交易日收益检验。</li><li>ICIR为IC均值除以IC总体标准差，未做年化。</li><li>成本后收益仅按成员换手扣减固定单边成本，仍未模拟印花税差异、非线性冲击成本、涨跌停和停牌。</li><li>头部组换手率为相邻交易日最高因子组成员变化比例。</li><li>结果受样本范围、复权方式、停牌处理和数据质量影响。</li><li>{html.escape(universe_risk)}</li><li>财务类因子必须按照实际披露日期生效，避免前视偏差。</li></ul></div>
 <footer>FactorLab自动报告 · Run {html.escape(run.id)} · 生成时间以任务完成时间为准</footer>

@@ -15,7 +15,7 @@ from fastapi import HTTPException
 from app.db import Base
 from app.main import download_report, download_report_delivery_copy, preview_report
 from app.models import Artifact, UserRole
-from app.services.reports import _align_dated_chart_series, _svg_chart, build_report_html, get_report, list_reports, read_verified_report, report_delivery_copy
+from app.services.reports import _align_dated_chart_series, _daily_series_detail, _svg_chart, build_report_html, get_report, list_reports, read_verified_report, report_delivery_copy
 from app.services.runs import create_research_run, execute_research_run
 
 
@@ -323,6 +323,33 @@ class ReportTests(unittest.TestCase):
             group_chart = rendered.split("<figcaption>各组净值（初值 1）</figcaption>", 1)[1].split("</figure>", 1)[0]
             self.assertEqual(group_chart.count("<circle "), 2)
             self.assertEqual(group_chart.count("<polyline "), 1)
+
+    def test_report_daily_series_table_joins_dates_without_filling_values(self):
+        result = {
+            "ic_series": [{"date": "2025-01-02", "ic": 0.123456, "rank_ic": None},
+                          {"date": "2025-01-03", "ic": None, "rank_ic": -0.2}],
+            "long_short_series": [{"date": "2025-01-03", "nav": 1.02, "net_nav": 1.01}],
+            "group_nav": [{"group": 1, "points": [{"date": "2025-01-02", "nav": 1.03}]},
+                          {"group": 2, "points": [{"date": "2025-01-06", "nav": 0.98}]}],
+        }
+        detail = _daily_series_detail(result)
+        self.assertIn("3 个结果日期", detail)
+        self.assertIn("<th>Q1 净值</th><th>Q2 净值</th>", detail)
+        self.assertIn("<tr><td>2025-01-02</td><td>0.1235</td><td>—</td><td>—</td><td>—</td><td>1.0300</td><td>—</td></tr>", detail)
+        self.assertIn("<tr><td>2025-01-03</td><td>—</td><td>-0.2000</td><td>1.0200</td><td>1.0100</td><td>—</td><td>—</td></tr>", detail)
+        self.assertIn("<tr><td>2025-01-06</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>0.9800</td></tr>", detail)
+        self.assertEqual(_daily_series_detail({}), "")
+        hostile_date = _daily_series_detail({"ic_series": [
+            {"date": "<script>x</script>", "ic": 0.1, "rank_ic": None},
+        ]})
+        self.assertIn("&lt;script&gt;x&lt;/script&gt;", hostile_date)
+        self.assertNotIn("<script>", hostile_date)
+
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(session, {"factor": "pe", "groups": 2})
+            rendered = build_report_html(run, {"coverage": 0, "group_returns": [], **result})
+            self.assertIn('<details class="series-detail">', rendered)
+            self.assertIn("<tr><td>2025-01-03</td><td>—</td><td>-0.2000</td>", rendered)
 
 
 if __name__ == "__main__":

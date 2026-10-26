@@ -241,6 +241,7 @@
 | CHG-20261026-011 | 2026-10-26 | saved-series task revisit / verified on Mac | 任务中心按需回看旧 Run 的 IC、多空和各组净值曲线，切换 Run 重置面板 | [记录](changes/2026-10-26-011-task-series-chart-revisit.md) | `frontend/src/main.tsx::SavedSeriesCharts`、`frontend/src/layout.css`、两 Run 浏览器验收与 A/B/C/D 四责任包 |
 | CHG-20261026-012 | 2026-10-26 | chart date alignment / locally tested + Mac browser smoke | 净值曲线按共同结果日期对齐、缺日断线，三图标起止日与非自然日口径 | [记录](changes/2026-10-26-012-chart-date-alignment.md) | `frontend/src/chart-series.ts`、图表组件/样式、构造测试、浏览器验收与 A/B/C/D 四责任包 |
 | CHG-20261026-013 | 2026-10-26 | report chart date alignment / locally tested | 新 HTML 报告各组净值按保存日期并集绘制，缺日断线；说明结果日横轴口径，不回写旧归档 | [记录](changes/2026-10-26-013-report-chart-date-alignment.md) | `backend/app/services/reports.py`、`backend/tests/test_reports.py`、`docs/SINGLE_FACTOR_ANALYSIS.md` 与 A/B/C/D 四责任包 |
+| CHG-20261026-014 | 2026-10-26 | report daily series detail / Mac synthetic browser QA | 新 HTML 报告附可折叠逐日序列核对表，按日期并列、缺值留空；仅四位小数供人工核图 | [记录](changes/2026-10-26-014-report-daily-series-table.md) | `backend/app/services/reports.py::_daily_series_detail`、报告回归/浏览器记录与 A/B/C/D 四责任包 |
 
 ## 历史基线
 
