@@ -14,7 +14,7 @@ import { reportListHint } from "./report-list";
 import { saveBlobAsFile } from "./blob-download";
 import { DailyCoverageTable } from "./DailyCoverageTable";
 import { filterTasks, type TaskStatusFilter } from "./task-filter";
-import { taskRefreshDelay } from "./task-refresh";
+import { startTaskPolling } from "./task-refresh";
 import { forSelectedId, type SelectedResource } from "./selected-resource";
 import "./styles.css";
 import "./layout.css";
@@ -292,35 +292,19 @@ function App() {
   }, [selected?.id]);
   React.useEffect(() => {
     if (!user || view !== "tasks") return;
-    let active = true;
-    let timer: number | undefined;
-    const refresh = async () => {
-      let latest: Task[] | null = null;
-      let failed = false;
-      try { latest = await loadTasks(); }
-      catch (error) { failed = true; if (active) setNotice(String(error)); }
-      if (active) timer = window.setTimeout(refresh, failed ? taskRefreshDelay(null) : taskRefreshDelay(latest ?? latestTaskSnapshot.current));
-    };
-    void refresh();
-    return () => { active = false; if (timer !== undefined) window.clearTimeout(timer); };
+    return startTaskPolling(
+      async () => (await loadTasks()) ?? latestTaskSnapshot.current,
+      error => setNotice(String(error)),
+    );
   }, [user, view, loadTasks]);
   React.useEffect(() => {
     if (!user || view !== "comparisons") return;
-    let active = true;
-    let timer: number | undefined;
     setComparisonCandidatesLoading(true);
-    const refresh = async () => {
-      let latest: Task[] | null = null;
-      let failed = false;
-      try { latest = await loadTasks(); }
-      catch (error) { failed = true; if (active) setNotice(String(error)); }
-      if (active) {
-        setComparisonCandidatesLoading(false);
-        timer = window.setTimeout(refresh, failed ? taskRefreshDelay(null) : taskRefreshDelay(latest ?? latestTaskSnapshot.current));
-      }
-    };
-    void refresh();
-    return () => { active = false; if (timer !== undefined) window.clearTimeout(timer); };
+    return startTaskPolling(
+      async () => (await loadTasks()) ?? latestTaskSnapshot.current,
+      error => setNotice(String(error)),
+      () => setComparisonCandidatesLoading(false),
+    );
   }, [user, view, loadTasks]);
   React.useEffect(() => {
     if (!user || view !== "reports") return;
