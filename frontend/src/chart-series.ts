@@ -11,8 +11,8 @@ export type AlignedNavLine = {
   lastValue: number | null;
 };
 
-export function alignNavLines(lines: readonly NavLine[]): { dates: string[]; lines: AlignedNavLine[] } {
-  const dates = [...new Set(lines.flatMap(line => line.points.map(point => point.date)))].sort();
+export function alignNavLines(lines: readonly NavLine[], knownDates: readonly string[] = []): { dates: string[]; lines: AlignedNavLine[] } {
+  const dates = [...new Set([...knownDates, ...lines.flatMap(line => line.points.map(point => point.date))])].sort();
   return {
     dates,
     lines: lines.map(line => {

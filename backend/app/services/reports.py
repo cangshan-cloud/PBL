@@ -134,17 +134,17 @@ def _svg_chart(title: str, dates: list[str], series: list[tuple[str, list[float 
         f'{"".join(paths)}<text x="55" y="225">{html.escape(str(dates[0]))}</text>'
         f'<text x="615" y="225" text-anchor="end">{html.escape(str(dates[-1]))}</text></svg>'
         f'<div class="legend">{"".join(legends)}</div>'
-        '<small>横向按结果日期等距，非自然日间隔；序列缺日时断线。</small></figure>'
+        '<small>横向按已知结果/诊断日期等距，非自然日间隔；已知缺日断线。</small></figure>'
     )
 
 
 def _align_dated_chart_series(
-    series: list[tuple[str, list[dict], str]], value_key: str,
+    series: list[tuple[str, list[dict], str, str]], known_dates: tuple[str, ...] = (),
 ) -> tuple[list[str], list[tuple[str, list[float | None], str]]]:
-    """Align saved series on their date union before index-based SVG rendering."""
-    dates = sorted({str(point["date"]) for _, points, _ in series for point in points})
+    """Align saved series and known diagnostic dates before SVG rendering."""
+    dates = sorted(set(known_dates) | {str(point["date"]) for _, points, _, _ in series for point in points})
     aligned = []
-    for label, points, color in series:
+    for label, points, value_key, color in series:
         by_date = {str(point["date"]): point.get(value_key) for point in points}
         aligned.append((label, [by_date.get(date) for date in dates], color))
     return dates, aligned
@@ -219,29 +219,36 @@ def build_report_html(run: Run, result: dict) -> str:
     price_basis_text = ("封存包源 close（BaoStock adjustflag=1）" if result.get("historical_audit")
                         else "close × adj_factor" if sample.get("price_basis") == "factor_adjusted" else "导入的 close")
     ic_points = result.get("ic_series", [])
+    known_dates = tuple(str(item["date"]) for item in result.get("daily_coverage", []))
+    ic_dates, ic_series = _align_dated_chart_series([
+        ("IC", ic_points, "ic", "#176548"),
+        ("Rank IC", ic_points, "rank_ic", "#cc7b2c"),
+    ], known_dates)
     ic_chart = _svg_chart(
         "每日 IC 与 Rank IC",
-        [str(item.get("date", "")) for item in ic_points],
-        [("IC", [item.get("ic") for item in ic_points], "#176548"),
-         ("Rank IC", [item.get("rank_ic") for item in ic_points], "#cc7b2c")],
+        ic_dates,
+        ic_series,
         baseline=0,
     )
     nav_points = result.get("long_short_series", [])
+    nav_dates, nav_series = _align_dated_chart_series([
+        ("毛净值", nav_points, "nav", "#176548"),
+        ("成本后净值", nav_points, "net_nav", "#cc7b2c"),
+    ], known_dates)
     nav_chart = _svg_chart(
         "多空组合净值（初值 1）",
-        [str(item.get("date", "")) for item in nav_points],
-        [("毛净值", [item.get("nav") for item in nav_points], "#176548"),
-         ("成本后净值", [item.get("net_nav") for item in nav_points], "#cc7b2c")],
+        nav_dates,
+        nav_series,
         baseline=1,
     )
     group_nav = result.get("group_nav", [])
     group_dates, group_series = _align_dated_chart_series(
         [
-            (f"Q{int(item['group'])}", item.get("points", []),
+            (f"Q{int(item['group'])}", item.get("points", []), "nav",
              GROUP_COLORS[(int(item["group"]) - 1) % len(GROUP_COLORS)])
             for item in group_nav
         ],
-        "nav",
+        known_dates,
     )
     group_nav_chart = _svg_chart(
         "各组净值（初值 1）",

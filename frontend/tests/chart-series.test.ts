@@ -29,3 +29,14 @@ test("non-finite points break a line and empty series has no last value", () => 
   assert.equal(aligned.lines[1].lastValue, null);
   assert.deepEqual(aligned.lines[1].segments, []);
 });
+
+test("known diagnostic date breaks even when every saved line lacks that date", () => {
+  const aligned = alignNavLines([
+    { label: "IC", color: "green", points: [
+      { date: "2025-01-02", value: 0.1 }, { date: "2025-01-06", value: 0.2 },
+    ] },
+  ], ["2025-01-03"]);
+  assert.deepEqual(aligned.dates, ["2025-01-02", "2025-01-03", "2025-01-06"]);
+  assert.deepEqual(aligned.lines[0].segments, [[{ index: 0, value: 0.1 }], [{ index: 2, value: 0.2 }]]);
+  assert.equal(aligned.lines[0].lastValue, 0.2);
+});

@@ -74,8 +74,8 @@ function statusLabel(status: string) {
 
 const groupColors = ["#277a5b", "#65a563", "#a5a944", "#d5a04b", "#b86e52", "#6d8bc3", "#805ca8", "#bc73aa", "#4e9ca3", "#707b7b"];
 
-function NavChart({ eyebrow, title, lines, note, action, wide = false }: { eyebrow: string; title: string; lines: NavLine[]; note: string; action?: React.ReactNode; wide?: boolean }) {
-  const aligned = alignNavLines(lines);
+function NavChart({ eyebrow, title, lines, knownDates = [], note, action, wide = false }: { eyebrow: string; title: string; lines: NavLine[]; knownDates?: string[]; note: string; action?: React.ReactNode; wide?: boolean }) {
+  const aligned = alignNavLines(lines, knownDates);
   const valid = aligned.lines.flatMap(line => line.segments.flatMap(segment => segment.map(point => point.value)));
   let low = Math.min(1, ...valid); let high = Math.max(1, ...valid);
   if (low === high) { low -= 0.05; high += 0.05; }
@@ -92,7 +92,7 @@ function NavChart({ eyebrow, title, lines, note, action, wide = false }: { eyebr
     </svg> : <div className="empty">暂无净值序列。</div>}
     {aligned.dates.length > 0 && <div className="chart-date-range"><span>{aligned.dates[0]}</span><span>{aligned.dates.at(-1)}</span></div>}
     <div className="chart-legend">{aligned.lines.map(line => <span key={line.label}><i style={{ background: line.color }} />{line.label} · {number(line.lastValue)}</span>)}</div>
-    <small>{note}；横向按结果日期等距，非自然日间隔；个别序列缺日时断线。</small>
+    <small>{note}；横向按已知结果/诊断日期等距，非自然日间隔；已知缺日断线。</small>
   </article>;
 }
 
@@ -104,22 +104,18 @@ function icHistogram(values: (number | null)[]) {
   return counts.map((count, index) => ({ lower: Number((-1 + index * 0.2).toFixed(1)), upper: Number((-0.8 + index * 0.2).toFixed(1)), count }));
 }
 
-function IcSeriesChart({ runId, series, showDownload = true }: { runId: string; series: Result["ic_series"]; showDownload?: boolean }) {
+function IcSeriesChart({ runId, series, knownDates = [], showDownload = true }: { runId: string; series: Result["ic_series"]; knownDates?: string[]; showDownload?: boolean }) {
   const values = series.map(item => item.ic);
   const valid = values.filter((value): value is number => value != null && Number.isFinite(value));
   const low = Math.min(0, ...valid); const high = Math.max(0, ...valid);
   const span = high - low || 1; const padding = span * 0.08;
   const y = (value: number) => 180 - (value - (low - padding)) * 180 / (span + padding * 2);
-  const segments: { x: number; y: number }[][] = [];
-  let current: { x: number; y: number }[] = [];
-  values.forEach((value, index) => {
-    if (value == null || !Number.isFinite(value)) {
-      if (current.length) segments.push(current);
-      current = [];
-    } else current.push({ x: series.length === 1 ? 300 : index * 600 / (series.length - 1), y: y(value) });
-  });
-  if (current.length) segments.push(current);
-  return <article className="card line-chart"><p className="eyebrow">IC SERIES</p><div className="section-title"><h2>每日 IC</h2>{showDownload && <button className="secondary" onClick={() => saveBlobAsFile(new Blob([icSeriesCsv(runId, series)], { type: "text/csv;charset=utf-8" }), icSeriesFilename(runId))}>下载每日 IC CSV</button>}</div>{valid.length ? <svg viewBox="0 0 600 180" preserveAspectRatio="none" role="img" aria-label="每日 IC，空值处断开"><line x1="0" y1={y(0)} x2="600" y2={y(0)} />{segments.map((segment, index) => segment.length > 1 ? <polyline key={index} points={segment.map(point => `${point.x},${point.y}`).join(" ")} /> : <circle key={index} cx={segment[0].x} cy={segment[0].y} r="3" />)}</svg> : <div className="empty">没有可计算的 IC。</div>}{series.length > 0 && <div className="chart-date-range"><span>{series[0].date}</span><span>{series.at(-1)?.date}</span></div>}<small>{valid.length} 个有效截面；{values.length - valid.length} 个空值不按零填补。横向按结果日期等距，非自然日间隔；CSV 保留全量日期与原始数值。</small></article>;
+  const aligned = alignNavLines([{
+    label: "IC", color: "#3f765d", points: series.map(item => ({ date: item.date, value: item.ic ?? Number.NaN })),
+  }], [...knownDates, ...series.map(item => item.date)]);
+  const segments = aligned.lines[0].segments;
+  const x = (index: number) => aligned.dates.length === 1 ? 300 : index * 600 / (aligned.dates.length - 1);
+  return <article className="card line-chart"><p className="eyebrow">IC SERIES</p><div className="section-title"><h2>每日 IC</h2>{showDownload && <button className="secondary" onClick={() => saveBlobAsFile(new Blob([icSeriesCsv(runId, series)], { type: "text/csv;charset=utf-8" }), icSeriesFilename(runId))}>下载每日 IC CSV</button>}</div>{valid.length ? <svg viewBox="0 0 600 180" preserveAspectRatio="none" role="img" aria-label="每日 IC，已知缺日处断开"><line x1="0" y1={y(0)} x2="600" y2={y(0)} />{segments.map((segment, index) => segment.length > 1 ? <polyline key={index} points={segment.map(point => `${x(point.index)},${y(point.value)}`).join(" ")} /> : <circle key={index} cx={x(segment[0].index)} cy={y(segment[0].value)} r="3" />)}</svg> : <div className="empty">没有可计算的 IC。</div>}{aligned.dates.length > 0 && <div className="chart-date-range"><span>{aligned.dates[0]}</span><span>{aligned.dates.at(-1)}</span></div>}<small>{valid.length} 个有效截面；{aligned.dates.length - series.length} 个已知日期无 IC 记录、{values.length - valid.length} 个原记录为空值，均不填零。横向按已知结果/诊断日期等距，非自然日间隔；CSV 保留原序列日期与数值。</small></article>;
 }
 
 function IcDistribution({ result }: { result: Result }) {
@@ -137,18 +133,19 @@ function SavedSeriesCharts({ runId, result, onDownloadLongShort, onDownloadGroup
   showActions?: boolean;
   includeDistribution?: boolean;
 }) {
+  const knownDates = result.daily_coverage?.map(item => item.date) ?? [];
   return <section className="chart-grid" aria-label={`Run ${runId} 的逐日曲线`}>
-    <IcSeriesChart runId={runId} series={result.ic_series} showDownload={showActions} />
+    <IcSeriesChart runId={runId} series={result.ic_series} knownDates={knownDates} showDownload={showActions} />
     <NavChart eyebrow="LONG SHORT NAV" title="多空组合净值" lines={[
       { label: "毛净值", color: "#277a5b", points: result.long_short_series.map(item => ({ date: item.date, value: item.nav })) },
       { label: "成本后净值", color: "#d69043", points: result.long_short_series.map(item => ({ date: item.date, value: item.net_nav })) },
-    ]} note={`初值 1；成本后净值扣除 ${result.transaction_cost_bps} bps 单边成本`}
+    ]} knownDates={knownDates} note={`初值 1；成本后净值扣除 ${result.transaction_cost_bps} bps 单边成本`}
       action={showActions && <button className="secondary" onClick={() => onDownloadLongShort(runId, result)}>下载多空逐日 CSV</button>} />
     {includeDistribution && <IcDistribution result={result} />}
     <NavChart eyebrow="QUANTILE NAV" title="各组净值" lines={(result.group_nav ?? []).map(item => ({
       label: `Q${item.group}`, color: groupColors[(item.group - 1) % groupColors.length],
       points: item.points.map(point => ({ date: point.date, value: point.nav })),
-    }))} note="各组等权日收益连乘，初值 1；与分组平均收益使用同一结果数据"
+    }))} knownDates={knownDates} note="各组等权日收益连乘，初值 1；与分组平均收益使用同一结果数据"
       action={showActions && <button className="secondary" onClick={() => onDownloadGroupNav(runId, result)}>下载各组逐日净值 CSV</button>} wide />
   </section>;
 }

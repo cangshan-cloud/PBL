@@ -298,10 +298,10 @@ class ReportTests(unittest.TestCase):
     def test_group_nav_report_aligns_dates_and_breaks_missing_day(self):
         dates, series = _align_dated_chart_series([
             ("Q1", [{"date": "2025-01-02", "nav": 1.01},
-                    {"date": "2025-01-06", "nav": 1.03}], "#277a5b"),
+                    {"date": "2025-01-06", "nav": 1.03}], "nav", "#277a5b"),
             ("Q2", [{"date": "2025-01-03", "nav": 0.99},
-                    {"date": "2025-01-06", "nav": 1.02}], "#65a563"),
-        ], "nav")
+                    {"date": "2025-01-06", "nav": 1.02}], "nav", "#65a563"),
+        ])
         self.assertEqual(dates, ["2025-01-02", "2025-01-03", "2025-01-06"])
         self.assertEqual(series[0][1], [1.01, None, 1.03])
         self.assertEqual(series[1][1], [None, 0.99, 1.02])
@@ -323,6 +323,36 @@ class ReportTests(unittest.TestCase):
             group_chart = rendered.split("<figcaption>各组净值（初值 1）</figcaption>", 1)[1].split("</figure>", 1)[0]
             self.assertEqual(group_chart.count("<circle "), 2)
             self.assertEqual(group_chart.count("<polyline "), 1)
+
+    def test_report_charts_break_at_diagnostic_only_date(self):
+        points = [{"date": "2025-01-02", "ic": 0.1, "rank_ic": 0.05},
+                  {"date": "2025-01-06", "ic": 0.2, "rank_ic": 0.1}]
+        dates, aligned = _align_dated_chart_series([
+            ("IC", points, "ic", "#176548"),
+            ("Rank IC", points, "rank_ic", "#cc7b2c"),
+        ], ("2025-01-03",))
+        self.assertEqual(dates, ["2025-01-02", "2025-01-03", "2025-01-06"])
+        self.assertEqual(aligned[0][1], [0.1, None, 0.2])
+        self.assertEqual(_svg_chart("IC", dates, aligned, baseline=0).count("<circle "), 4)
+
+        with Session(self.engine, expire_on_commit=False) as session:
+            run = create_research_run(session, {"factor": "pe", "groups": 2})
+            rendered = build_report_html(run, {
+                "coverage": 0, "group_returns": [], "ic_series": points,
+                "long_short_series": [{"date": "2025-01-02", "nav": 1.01, "net_nav": 1.00},
+                                      {"date": "2025-01-06", "nav": 1.02, "net_nav": 1.01}],
+                "group_nav": [{"group": 1, "points": [{"date": "2025-01-02", "nav": 0.99},
+                                                    {"date": "2025-01-06", "nav": 1.01}]}],
+                "daily_coverage": [{"date": "2025-01-03", "candidate_symbols": 0,
+                                    "eligible_symbols": 0, "excluded_symbols": 0,
+                                    "coverage_ratio": None, "ic_status": "no_observation",
+                                    "group_status": "no_observation"}],
+            })
+            for title in ("每日 IC 与 Rank IC", "多空组合净值（初值 1）", "各组净值（初值 1）"):
+                chart = rendered.split(f"<figcaption>{title}</figcaption>", 1)[1].split("</figure>", 1)[0]
+                self.assertNotIn("<polyline ", chart, title)
+                self.assertIn("2025-01-02", chart)
+                self.assertIn("2025-01-06", chart)
 
     def test_report_daily_series_table_joins_dates_without_filling_values(self):
         result = {
