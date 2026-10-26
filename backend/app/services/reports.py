@@ -15,6 +15,9 @@ from app.services.runs import get_run, list_runs
 
 
 GROUP_COLORS = ("#277a5b", "#65a563", "#a5a944", "#d5a04b", "#b86e52", "#6d8bc3", "#805ca8", "#bc73aa", "#4e9ca3", "#707b7b")
+COVERAGE_STATUS_LABELS = {"valid": "可计算", "insufficient_sample": "样本不足",
+                          "no_observation": "无有效观测", "constant_factor": "因子同值",
+                          "constant_factor_or_return": "常量截面"}
 
 
 def _dataset_risk_disclosures(dataset, parameters: dict | None = None) -> list[str]:
@@ -148,18 +151,20 @@ def _align_dated_chart_series(
 
 
 def _daily_series_detail(result: dict) -> str:
-    """Show saved chart values on a shared date axis without filling gaps."""
+    """Show saved chart values and known sample dates without filling gaps."""
     ic_by_date = {str(item["date"]): item for item in result.get("ic_series", [])}
     nav_by_date = {str(item["date"]): item for item in result.get("long_short_series", [])}
+    coverage_by_date = {str(item["date"]): item for item in result.get("daily_coverage", [])}
     group_maps = [
         (int(item["group"]), {str(point["date"]): point.get("nav") for point in item.get("points", [])})
         for item in result.get("group_nav", [])
     ]
-    dates = sorted(set(ic_by_date) | set(nav_by_date) |
+    dates = sorted(set(ic_by_date) | set(nav_by_date) | set(coverage_by_date) |
                    {date for _, values in group_maps for date in values})
     if not dates:
         return ""
     group_headings = "".join(f"<th>Q{group} 净值</th>" for group, _ in group_maps)
+    status_headings = "<th>IC 状态</th><th>分组状态</th>" if coverage_by_date else ""
     rows = []
     for date in dates:
         ic = ic_by_date.get(date, {})
@@ -167,13 +172,20 @@ def _daily_series_detail(result: dict) -> str:
         values = [ic.get("ic"), ic.get("rank_ic"), nav.get("nav"), nav.get("net_nav")]
         cells = "".join(f"<td>{_fmt(value)}</td>" for value in values)
         cells += "".join(f"<td>{_fmt(points.get(date))}</td>" for _, points in group_maps)
+        if coverage_by_date:
+            diagnostic = coverage_by_date.get(date, {})
+            cells += "".join(
+                f"<td>{html.escape(COVERAGE_STATUS_LABELS.get(status, str(status))) if status is not None else '—'}</td>"
+                for status in (diagnostic.get("ic_status"), diagnostic.get("group_status"))
+            )
         rows.append(f"<tr><td>{html.escape(date)}</td>{cells}</tr>")
     return (
-        f'<details class="series-detail"><summary>展开逐日序列核对表（{len(dates)} 个结果日期）</summary>'
-        '<p>按保存结果日期并集排列；空缺显示“—”，不补零或前值。表内数值保留四位小数，'
+        f'<details class="series-detail"><summary>展开逐日序列核对表（{len(dates)} 个已知日期）</summary>'
+        '<p>按保存序列与可用逐日诊断的日期并集排列；空缺显示“—”，不补零或前值。'
+        '状态仅说明该日计算情况，不推断缺失原因。表内数值保留四位小数，'
         '完整精度请核对同 Run 结构化结果或逐日 CSV；窄屏可横向滚动。</p>'
         '<div class="series-table-wrap"><table><thead><tr><th>日期</th><th>IC</th><th>Rank IC</th>'
-        f'<th>毛净值</th><th>成本后净值</th>{group_headings}</tr></thead>'
+        f'<th>毛净值</th><th>成本后净值</th>{group_headings}{status_headings}</tr></thead>'
         f'<tbody>{"".join(rows)}</tbody></table></div></details>'
     )
 
@@ -294,17 +306,14 @@ def build_report_html(run: Run, result: dict) -> str:
             f"{correlation_table}"
         )
     historical = result.get("historical_audit")
-    coverage_status = {"valid": "可计算", "insufficient_sample": "样本不足",
-                       "no_observation": "无有效观测",
-                       "constant_factor": "因子同值", "constant_factor_or_return": "常量截面"}
     coverage_rows = "".join(
         f"<tr><td>{html.escape(str(item['date']))}</td>"
         f"<td>{'—' if item.get('candidate_symbols') is None else int(item['candidate_symbols'])}</td>"
         f"<td>{int(item['eligible_symbols'])}</td>"
         f"<td>{_fmt(item.get('coverage_ratio'), True)}</td>"
         f"<td>{'—' if item.get('excluded_symbols') is None else int(item['excluded_symbols'])}</td>"
-        f"<td>{html.escape(coverage_status.get(item['ic_status'], str(item['ic_status'])))}</td>"
-        f"<td>{html.escape(coverage_status.get(item['group_status'], str(item['group_status'])))}</td></tr>"
+        f"<td>{html.escape(COVERAGE_STATUS_LABELS.get(item['ic_status'], str(item['ic_status'])))}</td>"
+        f"<td>{html.escape(COVERAGE_STATUS_LABELS.get(item['group_status'], str(item['group_status'])))}</td></tr>"
         for item in result.get("daily_coverage", [])
     )
     coverage_section = (

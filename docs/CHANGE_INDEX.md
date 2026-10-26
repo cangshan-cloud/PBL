@@ -243,6 +243,7 @@
 | CHG-20261026-013 | 2026-10-26 | report chart date alignment / locally tested | 新 HTML 报告各组净值按保存日期并集绘制，缺日断线；说明结果日横轴口径，不回写旧归档 | [记录](changes/2026-10-26-013-report-chart-date-alignment.md) | `backend/app/services/reports.py`、`backend/tests/test_reports.py`、`docs/SINGLE_FACTOR_ANALYSIS.md` 与 A/B/C/D 四责任包 |
 | CHG-20261026-014 | 2026-10-26 | report daily series detail / Mac synthetic browser QA | 新 HTML 报告附可折叠逐日序列核对表，按日期并列、缺值留空；仅四位小数供人工核图 | [记录](changes/2026-10-26-014-report-daily-series-table.md) | `backend/app/services/reports.py::_daily_series_detail`、报告回归/浏览器记录与 A/B/C/D 四责任包 |
 | CHG-20261026-015 | 2026-10-26 | report table API binding / isolated synthetic HTTP test | 合成 CSV 导入→研究→报告预览/归档/交付闭环逐行核对同 Run 表格与复现 JSON | [记录](changes/2026-10-26-015-report-table-api-binding.md) | `backend/tests/test_api_journey.py::test_upload_publish_research_report_and_role_boundaries`、研究口径与 A/B/C/D 四责任包 |
+| CHG-20261026-016 | 2026-10-26 | report known-date coverage / locally tested | 报告逐日核对表纳入诊断独有日期并展示 IC/分组状态，避免所有曲线缺日时整行消失 | [记录](changes/2026-10-26-016-report-known-date-coverage.md) | `backend/app/services/reports.py::_daily_series_detail`、单测/API 回归、研究口径与 A/B/C/D 四责任包 |
 
 ## 历史基线
 

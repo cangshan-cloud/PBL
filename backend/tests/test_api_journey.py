@@ -711,15 +711,20 @@ class ApiJourneyTests(unittest.TestCase):
         dates = sorted(
             {item["date"] for item in result["ic_series"]} |
             {item["date"] for item in result["long_short_series"]} |
+            {item["date"] for item in result["daily_coverage"]} |
             {point["date"] for group in result["group_nav"] for point in group["points"]}
         )
-        self.assertIn(f"{len(dates)} 个结果日期", detail)
+        self.assertIn(f"{len(dates)} 个已知日期", detail)
         self.assertEqual(detail.count("<tr>"), len(dates) + 1)
         self.assertEqual(detail.count(" 净值</th>"), len(result["group_nav"]))
+        self.assertIn("<th>IC 状态</th><th>分组状态</th>", detail)
         ic_by_date = {item["date"]: item for item in result["ic_series"]}
         nav_by_date = {item["date"]: item for item in result["long_short_series"]}
+        coverage_by_date = {item["date"]: item for item in result["daily_coverage"]}
         group_by_date = [{point["date"]: point["nav"] for point in group["points"]}
                          for group in result["group_nav"]]
+        status_labels = {"valid": "可计算", "insufficient_sample": "样本不足", "no_observation": "无有效观测",
+                         "constant_factor": "因子同值", "constant_factor_or_return": "常量截面"}
         for date in dates:
             ic = ic_by_date.get(date, {})
             nav = nav_by_date.get(date, {})
@@ -727,6 +732,11 @@ class ApiJourneyTests(unittest.TestCase):
             cells.extend(group.get(date) for group in group_by_date)
             expected = f'<tr><td>{date}</td>' + "".join(
                 "<td>" + ("—" if value is None else format(value, ".4f")) + "</td>" for value in cells
+            )
+            diagnostic = coverage_by_date.get(date, {})
+            expected += "".join(
+                "<td>" + ("—" if status is None else status_labels.get(status, status)) + "</td>"
+                for status in (diagnostic.get("ic_status"), diagnostic.get("group_status"))
             ) + "</tr>"
             self.assertIn(expected, detail)
         preview = self.client.get(f"/api/v1/reports/{task_id}/html", headers=viewer)

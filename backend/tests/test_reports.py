@@ -333,12 +333,24 @@ class ReportTests(unittest.TestCase):
                           {"group": 2, "points": [{"date": "2025-01-06", "nav": 0.98}]}],
         }
         detail = _daily_series_detail(result)
-        self.assertIn("3 个结果日期", detail)
+        self.assertIn("3 个已知日期", detail)
         self.assertIn("<th>Q1 净值</th><th>Q2 净值</th>", detail)
         self.assertIn("<tr><td>2025-01-02</td><td>0.1235</td><td>—</td><td>—</td><td>—</td><td>1.0300</td><td>—</td></tr>", detail)
         self.assertIn("<tr><td>2025-01-03</td><td>—</td><td>-0.2000</td><td>1.0200</td><td>1.0100</td><td>—</td><td>—</td></tr>", detail)
         self.assertIn("<tr><td>2025-01-06</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>0.9800</td></tr>", detail)
         self.assertEqual(_daily_series_detail({}), "")
+        coverage_only = _daily_series_detail({"daily_coverage": [
+            {"date": "2025-01-07", "ic_status": "no_observation", "group_status": "insufficient_sample"},
+        ]})
+        self.assertIn("1 个已知日期", coverage_only)
+        self.assertIn("<th>IC 状态</th><th>分组状态</th>", coverage_only)
+        self.assertIn("<tr><td>2025-01-07</td><td>—</td><td>—</td><td>—</td><td>—</td><td>无有效观测</td><td>样本不足</td></tr>", coverage_only)
+        combined = _daily_series_detail({**result, "daily_coverage": [
+            {"date": "2025-01-04", "ic_status": "no_observation", "group_status": "no_observation"},
+        ]})
+        self.assertIn("4 个已知日期", combined)
+        self.assertIn("<tr><td>2025-01-04</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>无有效观测</td><td>无有效观测</td></tr>", combined)
+        self.assertIn("<tr><td>2025-01-02</td><td>0.1235</td><td>—</td><td>—</td><td>—</td><td>1.0300</td><td>—</td><td>—</td><td>—</td></tr>", combined)
         hostile_date = _daily_series_detail({"ic_series": [
             {"date": "<script>x</script>", "ic": 0.1, "rank_ic": None},
         ]})
