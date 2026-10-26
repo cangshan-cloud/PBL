@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "node --experimental-strip-types --test tests/research-config.test.ts tests/research-task.test.ts tests/selected-resource.test.ts tests/comparison-request.test.ts tests/auth-resource.test.ts tests/comparison-format.test.ts tests/comparison-download.test.ts tests/comparison-candidates.test.ts tests/report-list.test.ts tests/blob-download.test.ts tests/adapter-upload.test.ts tests/dataset-alerts.test.ts tests/report-download.test.ts tests/daily-coverage.test.ts tests/daily-coverage-export.test.ts tests/ic-series-export.test.ts tests/long-short-export.test.ts tests/task-filter.test.ts tests/task-refresh.test.ts"
+    "test": "node --experimental-strip-types --test tests/research-config.test.ts tests/research-task.test.ts tests/selected-resource.test.ts tests/comparison-request.test.ts tests/auth-resource.test.ts tests/comparison-format.test.ts tests/comparison-download.test.ts tests/comparison-candidates.test.ts tests/report-list.test.ts tests/blob-download.test.ts tests/adapter-upload.test.ts tests/dataset-alerts.test.ts tests/report-download.test.ts tests/daily-coverage.test.ts tests/daily-coverage-export.test.ts tests/ic-series-export.test.ts tests/long-short-export.test.ts tests/group-nav-export.test.ts tests/task-filter.test.ts tests/task-refresh.test.ts"
   },
   "dependencies": {
     "@vitejs/plugin-react": "4.3.4",

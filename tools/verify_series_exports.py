@@ -21,6 +21,7 @@ LONG_SHORT_FIELDS = (
     "run_id", "date", "gross_return", "gross_nav", "two_side_turnover", "cost",
     "net_return", "net_nav", "transaction_cost_bps",
 )
+GROUP_NAV_FIELDS = ("run_id", "group", "date", "nav")
 
 
 def _rows(path: Path, fields: tuple[str, ...]) -> list[dict[str, str]]:
@@ -60,8 +61,9 @@ def _verify(path: Path, fields: tuple[str, ...], expected: list[dict[str, object
 
 
 def verify_series_exports(bundle_path: Path, ic_path: Path | None = None,
-                          long_short_path: Path | None = None) -> dict[str, int]:
-    if ic_path is None and long_short_path is None:
+                          long_short_path: Path | None = None,
+                          group_nav_path: Path | None = None) -> dict[str, int]:
+    if ic_path is None and long_short_path is None and group_nav_path is None:
         raise ValueError("provide at least one series CSV")
     bundle = load_verified_export(bundle_path)
     task = bundle.get("task")
@@ -89,6 +91,16 @@ def verify_series_exports(bundle_path: Path, ic_path: Path | None = None,
                          cost=row["cost"], net_return=row["net_return"],
                          net_nav=row["net_nav"], transaction_cost_bps=cost_bps) for row in series]
         summary["long_short_rows"] = _verify(long_short_path, LONG_SHORT_FIELDS, expected)
+    if group_nav_path is not None:
+        groups = result.get("group_nav")
+        if not isinstance(groups, list) or any(not isinstance(item, dict) or
+                                              not isinstance(item.get("points"), list) or
+                                              any(not isinstance(point, dict) for point in item["points"])
+                                              for item in groups):
+            raise ValueError("reproducibility result has no valid group NAV series")
+        expected = [dict(run_id=run_id, group=item["group"], date=point["date"], nav=point["nav"])
+                    for item in groups for point in item["points"]]
+        summary["group_nav_rows"] = _verify(group_nav_path, GROUP_NAV_FIELDS, expected)
     return summary
 
 
@@ -97,10 +109,11 @@ def main() -> None:
     parser.add_argument("reproducibility_json", type=Path)
     parser.add_argument("--ic-csv", type=Path)
     parser.add_argument("--long-short-csv", type=Path)
+    parser.add_argument("--group-nav-csv", type=Path)
     args = parser.parse_args()
     try:
         print(json.dumps(verify_series_exports(args.reproducibility_json, args.ic_csv,
-                                               args.long_short_csv), ensure_ascii=False))
+                                               args.long_short_csv, args.group_nav_csv), ensure_ascii=False))
     except (OSError, UnicodeError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
         parser.exit(1, f"series export verification failed: {exc}\n")
 

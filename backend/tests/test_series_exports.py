@@ -17,6 +17,7 @@ class SeriesExportVerificationTests(unittest.TestCase):
         self.bundle = root / "reproducibility.json"
         self.ic = root / "ic.csv"
         self.long_short = root / "long-short.csv"
+        self.group_nav = root / "group-nav.csv"
         self.run_id = "858c2667-19b8-4538-a02b-a3a16175adf5"
         self.result = {
             "ic_series": [{"date": "2024-01-02", "ic": -0.123456789, "rank_ic": None},
@@ -25,6 +26,11 @@ class SeriesExportVerificationTests(unittest.TestCase):
                                    "turnover": 2, "cost": 0.002, "net_return": -0.022,
                                    "net_nav": 0.978}],
             "transaction_cost_bps": 10,
+            "group_nav": [
+                {"group": 1, "points": [{"date": "2024-01-02", "nav": 0.99},
+                                        {"date": "2024-01-03", "nav": 1.01}]},
+                {"group": 2, "points": [{"date": "2024-01-02", "nav": 1.02}]},
+            ],
         }
         self._write_bundle()
         self.ic.write_text("\ufeffrun_id,date,ic,rank_ic\r\n"
@@ -33,6 +39,13 @@ class SeriesExportVerificationTests(unittest.TestCase):
         self.long_short.write_text(
             "\ufeffrun_id,date,gross_return,gross_nav,two_side_turnover,cost,net_return,net_nav,transaction_cost_bps\r\n"
             f"{self.run_id},2024-01-02,-0.02,0.98,2,0.002,-0.022,0.978,10\r\n",
+            encoding="utf-8", newline="",
+        )
+        self.group_nav.write_text(
+            "\ufeffrun_id,group,date,nav\r\n"
+            f"{self.run_id},1,2024-01-02,0.99\r\n"
+            f"{self.run_id},1,2024-01-03,1.01\r\n"
+            f"{self.run_id},2,2024-01-02,1.02\r\n",
             encoding="utf-8", newline="",
         )
 
@@ -47,8 +60,10 @@ class SeriesExportVerificationTests(unittest.TestCase):
                                            "result": self.result, "result_sha256": digest}), encoding="utf-8")
 
     def test_both_downloads_match_checksummed_bundle(self):
-        self.assertEqual(verify_series_exports(self.bundle, self.ic, self.long_short),
-                         {"ic_rows": 2, "long_short_rows": 1})
+        self.assertEqual(verify_series_exports(self.bundle, self.ic, self.long_short, self.group_nav),
+                         {"ic_rows": 2, "long_short_rows": 1, "group_nav_rows": 3})
+        self.assertEqual(verify_series_exports(self.bundle, group_nav_path=self.group_nav),
+                         {"group_nav_rows": 3})
 
     def test_wrong_run_missing_row_and_changed_value_are_rejected(self):
         original = self.ic.read_bytes()
@@ -89,6 +104,19 @@ class SeriesExportVerificationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "ic differs"):
             verify_series_exports(self.bundle, self.ic)
 
+    def test_group_nav_wrong_group_order_and_value_are_rejected(self):
+        original = self.group_nav.read_bytes()
+        self.group_nav.write_bytes(original.replace(b",1,2024-01-02", b",2,2024-01-02", 1))
+        with self.assertRaisesRegex(ValueError, "group differs"):
+            verify_series_exports(self.bundle, group_nav_path=self.group_nav)
+        self.group_nav.write_bytes(original.replace(b",1.01\r\n", b",1.02\r\n"))
+        with self.assertRaisesRegex(ValueError, "nav differs"):
+            verify_series_exports(self.bundle, group_nav_path=self.group_nav)
+        lines = original.splitlines(keepends=True)
+        self.group_nav.write_bytes(lines[0] + lines[2] + lines[1] + lines[3])
+        with self.assertRaisesRegex(ValueError, "date differs"):
+            verify_series_exports(self.bundle, group_nav_path=self.group_nav)
+
     def test_changed_bundle_checksum_and_ambiguous_json_are_rejected(self):
         body = self.bundle.read_text(encoding="utf-8")
         self.bundle.write_text(body.replace('"transaction_cost_bps": 10', '"transaction_cost_bps": 20'), encoding="utf-8")
@@ -102,14 +130,16 @@ class SeriesExportVerificationTests(unittest.TestCase):
     def test_empty_series_header_only_and_no_file_rejected(self):
         self.result["ic_series"] = []
         self.result["long_short_series"] = []
+        self.result["group_nav"] = [{"group": 1, "points": []}, {"group": 2, "points": []}]
         self._write_bundle()
         self.ic.write_text("\ufeffrun_id,date,ic,rank_ic\r\n", encoding="utf-8", newline="")
         self.long_short.write_text(
             "\ufeffrun_id,date,gross_return,gross_nav,two_side_turnover,cost,net_return,net_nav,transaction_cost_bps\r\n",
             encoding="utf-8", newline="",
         )
-        self.assertEqual(verify_series_exports(self.bundle, self.ic, self.long_short),
-                         {"ic_rows": 0, "long_short_rows": 0})
+        self.group_nav.write_text("\ufeffrun_id,group,date,nav\r\n", encoding="utf-8", newline="")
+        self.assertEqual(verify_series_exports(self.bundle, self.ic, self.long_short, self.group_nav),
+                         {"ic_rows": 0, "long_short_rows": 0, "group_nav_rows": 0})
         with self.assertRaisesRegex(ValueError, "at least one"):
             verify_series_exports(self.bundle)
 
