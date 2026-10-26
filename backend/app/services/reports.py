@@ -150,14 +150,14 @@ def _svg_chart(title: str, dates: list[str], series: list[tuple[str, list[float 
         if gap_dates else ""
     )
     return (
-        f'<figure><figcaption>{html.escape(title)}</figcaption><svg viewBox="0 0 640 240" '
+        f'<figure><figcaption>{html.escape(title)}</figcaption><div class="chart-scroll"><svg viewBox="0 0 640 240" '
         f'role="img" aria-label="{html.escape(title)}" xmlns="http://www.w3.org/2000/svg">'
         f'<line x1="55" y1="{zero_line:.2f}" x2="615" y2="{zero_line:.2f}" stroke="#b9c9be" stroke-dasharray="4 4"/>'
         f'<text x="4" y="30">{high:.3f}</text><text x="4" y="194">{low:.3f}</text>'
         f'{"".join(paths)}<text x="55" y="225">{html.escape(str(dates[0]))}</text>'
-        f'<text x="615" y="225" text-anchor="end">{html.escape(str(dates[-1]))}</text></svg>'
+        f'<text x="615" y="225" text-anchor="end">{html.escape(str(dates[-1]))}</text></svg></div>'
         f'<div class="legend">{"".join(legends)}</div>{gap_notice}'
-        '<small>横向按已知结果/诊断日期等距，非自然日间隔；已知缺日断线。</small></figure>'
+        '<small>横向按已知结果/诊断日期等距，非自然日间隔；已知缺日断线。窄屏可横向滚动查看完整曲线。</small></figure>'
     )
 
 
@@ -398,6 +398,8 @@ def build_report_html(run: Run, result: dict) -> str:
 <style>
 body{{font-family:Inter,'PingFang SC','Microsoft YaHei',sans-serif;color:#173128;background:#f4f5ef;margin:0}}main{{max-width:900px;margin:0 auto;padding:56px 42px}}header{{border-bottom:4px solid #173128;padding-bottom:24px}}h1{{font-size:38px;margin:8px 0}}h2{{margin-top:36px;font-size:22px}}.tag{{font-size:11px;letter-spacing:2px;color:#6b7c73}}.grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}}.metric,.meta{{background:white;border:1px solid #dfe5dc;border-radius:12px;padding:16px}}.metric b{{display:block;font-size:25px;margin-top:7px}}.meta-grid{{display:grid;grid-template-columns:1fr 1fr;gap:12px}}.meta small{{display:block;color:#78877f;margin-bottom:5px}}table{{width:100%;border-collapse:collapse;background:white}}th,td{{padding:11px;border-bottom:1px solid #e5e9e2;text-align:left}}th{{background:#173128;color:white}}pre{{white-space:pre-wrap;background:#173128;color:#e2eee7;padding:18px;border-radius:10px}}.risk{{background:#fff5db;border-left:4px solid #d5a22f;padding:16px}}figure{{margin:18px 0;padding:18px;background:white;border:1px solid #dfe5dc;border-radius:12px;break-inside:avoid}}figcaption{{font-weight:700;margin-bottom:8px}}svg{{display:block;width:100%;height:auto}}svg text{{font:11px sans-serif;fill:#68786f}}.legend{{display:flex;gap:18px;flex-wrap:wrap;font-size:12px}}.legend span{{display:inline-flex;align-items:center;gap:6px}}.legend i{{width:14px;height:3px;display:inline-block}}.histogram{{display:grid;gap:5px}}.hist-row{{display:grid;grid-template-columns:100px 1fr 36px;align-items:center;gap:10px;font-size:12px}}.hist-row div{{height:9px;background:#edf2eb;border-radius:5px}}.hist-row i{{display:block;height:100%;background:#176548;border-radius:5px}}.hist-row b{{text-align:right}}.series-detail{{margin:18px 0;padding:16px;background:white;border:1px solid #dfe5dc;border-radius:12px}}.series-detail summary{{cursor:pointer;font-weight:700}}.series-detail p{{font-size:12px;color:#68786f}}.series-table-wrap{{overflow-x:auto}}.series-table-wrap table{{min-width:680px;font-size:12px}}.series-table-wrap th,.series-table-wrap td{{white-space:nowrap}}footer{{margin-top:44px;color:#7b8982;font-size:12px}}@media print{{body{{background:white}}main{{padding:20px}}figure{{border-color:#bbb}}}}
 .chart-gap-notice{{margin:10px 0;padding:8px 10px;border:1px solid #e5d5af;border-radius:8px;background:#fff9eb;color:#715824;font-size:12px}}.chart-gap-notice summary{{cursor:pointer;font-weight:700}}.chart-gap-notice p{{max-height:110px;overflow:auto;overflow-wrap:anywhere;line-height:1.6}}.chart-gap-notice small{{color:#756544}}
+.chart-scroll{{overflow-x:auto}}.chart-scroll svg{{min-width:560px}}@media print{{.chart-scroll svg{{min-width:0}}}}
+.meta-grid{{grid-template-columns:repeat(2,minmax(0,1fr))}}.meta{{min-width:0;overflow-wrap:anywhere}}@media(max-width:600px){{main{{padding:24px 16px}}.grid{{grid-template-columns:repeat(2,minmax(0,1fr))}}.meta-grid{{grid-template-columns:minmax(0,1fr)}}}}
 </style></head><body><main>
 <header><p class="tag">FACTORLAB · {report_kind}</p><h1>{html.escape(experiment.name)}</h1><p>报告由结构化研究结果自动生成，所有版本与参数均绑定到本次Run。价格口径：{price_basis_text}。</p></header>
 {demo_disclosure}

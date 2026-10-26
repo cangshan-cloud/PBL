@@ -295,6 +295,9 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(chart.count("<circle "), 2)
         self.assertIn("1 个已知日期在有效点之间无可绘制值", chart)
         self.assertIn("<p>2025-01-03</p>", chart)
+        self.assertIn('<div class="chart-scroll"><svg ', chart)
+        self.assertIn("</svg></div>", chart)
+        self.assertIn("窄屏可横向滚动", chart)
         self.assertNotIn("nan", chart.lower())
 
     def test_chart_gap_disclosure_ignores_edges_and_partial_line_gaps(self):
@@ -368,6 +371,12 @@ class ReportTests(unittest.TestCase):
                 self.assertIn("2025-01-06", chart)
                 self.assertIn("1 个已知日期在有效点之间无可绘制值", chart)
                 self.assertIn("<p>2025-01-03</p>", chart)
+                self.assertIn('<div class="chart-scroll"><svg ', chart)
+            self.assertIn(".chart-scroll svg{min-width:560px}", rendered)
+            self.assertIn("@media print{.chart-scroll svg{min-width:0}}", rendered)
+            self.assertIn(".meta-grid{grid-template-columns:repeat(2,minmax(0,1fr))}", rendered)
+            self.assertIn(".meta{min-width:0;overflow-wrap:anywhere}", rendered)
+            self.assertIn("@media(max-width:600px){main{padding:24px 16px}", rendered)
 
     def test_report_daily_series_table_joins_dates_without_filling_values(self):
         result = {

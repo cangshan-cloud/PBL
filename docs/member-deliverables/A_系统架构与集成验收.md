@@ -650,3 +650,7 @@ OrbStack 恢复后，以专用项目、独立数据库卷/网络和只读私有�
 
 专用 QA 项目只启 db/redis/api/web；浏览器模拟仅拦截任务列表响应，不写数据库，检查后关闭会话和 QA 容器、不删卷。报告新增提示只在 HTML 生成层，不加接口/队列/数据库，主服务未操作。见[浏览器记录](../CHART_GAP_BROWSER_QA_2026-10-26.md)及 [CHG-20261026-020](../changes/2026-10-26-020-report-chart-gap-disclosure.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-27 新报告窄屏布局验收（开发者代执行）
+
+仅生成 `/private/tmp` 合成 HTML 并用本机环回静态服务检查；服务与浏览器均已关闭。修正仅在报告 HTML/CSS 层，不新增 API、数据库或任务，不操作主服务。见[浏览器记录](../REPORT_GAP_MOBILE_QA_2026-10-27.md)及 [CHG-20261027-001](../changes/2026-10-27-001-report-mobile-chart-layout.md)。实际执行者：Codex；队长本人未签收。
+
