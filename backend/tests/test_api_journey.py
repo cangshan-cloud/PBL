@@ -706,7 +706,36 @@ class ApiJourneyTests(unittest.TestCase):
         self.assertEqual(report.status_code, 200, report.text)
         self.assertIn("因子研究报告", report.text)
         self.assertIn("attachment", report.headers["content-disposition"])
-        self.assertEqual(self.client.get(f"/api/v1/reports/{task_id}/html", headers=viewer).status_code, 200)
+        detail = report.text.split('<details class="series-detail">', 1)[1].split("</details>", 1)[0]
+        result = bundle.json()["result"]
+        dates = sorted(
+            {item["date"] for item in result["ic_series"]} |
+            {item["date"] for item in result["long_short_series"]} |
+            {point["date"] for group in result["group_nav"] for point in group["points"]}
+        )
+        self.assertIn(f"{len(dates)} 个结果日期", detail)
+        self.assertEqual(detail.count("<tr>"), len(dates) + 1)
+        self.assertEqual(detail.count(" 净值</th>"), len(result["group_nav"]))
+        ic_by_date = {item["date"]: item for item in result["ic_series"]}
+        nav_by_date = {item["date"]: item for item in result["long_short_series"]}
+        group_by_date = [{point["date"]: point["nav"] for point in group["points"]}
+                         for group in result["group_nav"]]
+        for date in dates:
+            ic = ic_by_date.get(date, {})
+            nav = nav_by_date.get(date, {})
+            cells = [ic.get("ic"), ic.get("rank_ic"), nav.get("nav"), nav.get("net_nav")]
+            cells.extend(group.get(date) for group in group_by_date)
+            expected = f'<tr><td>{date}</td>' + "".join(
+                "<td>" + ("—" if value is None else format(value, ".4f")) + "</td>" for value in cells
+            ) + "</tr>"
+            self.assertIn(expected, detail)
+        preview = self.client.get(f"/api/v1/reports/{task_id}/html", headers=viewer)
+        self.assertEqual(preview.status_code, 200, preview.text)
+        self.assertEqual(preview.content, report.content)
+        delivery = self.client.get(f"/api/v1/reports/{task_id}/delivery", headers=researcher)
+        self.assertEqual(delivery.status_code, 200, delivery.text)
+        self.assertIn('<details class="series-detail">' + detail + "</details>", delivery.text)
+        self.assertEqual(delivery.headers["x-archived-report-sha256"], hashlib.sha256(report.content).hexdigest())
 
         second = self.client.post(
             "/api/v1/users", headers=admin,
