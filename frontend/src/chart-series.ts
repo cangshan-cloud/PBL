@@ -11,6 +11,18 @@ export type AlignedNavLine = {
   lastValue: number | null;
 };
 
+export function interiorAllMissingDates(aligned: { dates: readonly string[]; lines: readonly AlignedNavLine[] }): string[] {
+  const present = new Set(aligned.lines.flatMap(line => line.segments.flatMap(segment => segment.map(point => point.index))));
+  if (present.size < 2) return [];
+  let first = aligned.dates.length;
+  let last = -1;
+  for (const index of present) {
+    if (index < first) first = index;
+    if (index > last) last = index;
+  }
+  return aligned.dates.filter((_, index) => index > first && index < last && !present.has(index));
+}
+
 export function alignNavLines(lines: readonly NavLine[], knownDates: readonly string[] = []): { dates: string[]; lines: AlignedNavLine[] } {
   const dates = [...new Set([...knownDates, ...lines.flatMap(line => line.points.map(point => point.date))])].sort();
   return {

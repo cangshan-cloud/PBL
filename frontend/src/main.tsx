@@ -15,7 +15,7 @@ import { saveBlobAsFile } from "./blob-download";
 import { icSeriesCsv, icSeriesFilename } from "./ic-series-export";
 import { longShortCsv, longShortFilename } from "./long-short-export";
 import { groupNavCsv, groupNavFilename } from "./group-nav-export";
-import { alignNavLines, type NavLine } from "./chart-series";
+import { alignNavLines, interiorAllMissingDates, type NavLine } from "./chart-series";
 import { DailyCoverageTable } from "./DailyCoverageTable";
 import { filterTasks, type TaskStatusFilter } from "./task-filter";
 import { startReportPolling, startTaskPolling } from "./task-refresh";
@@ -74,8 +74,14 @@ function statusLabel(status: string) {
 
 const groupColors = ["#277a5b", "#65a563", "#a5a944", "#d5a04b", "#b86e52", "#6d8bc3", "#805ca8", "#bc73aa", "#4e9ca3", "#707b7b"];
 
+function KnownGapNotice({ dates }: { dates: string[] }) {
+  if (dates.length === 0) return null;
+  return <details className="chart-gap-notice"><summary>{dates.length} 个已知日期在有效点之间无可绘制值</summary><p>{dates.join("、")}</p><small>仅按本 Run 保存的结果与逐日诊断识别，不推断缺值原因或未记录的市场日期。</small></details>;
+}
+
 function NavChart({ eyebrow, title, lines, knownDates = [], note, action, wide = false }: { eyebrow: string; title: string; lines: NavLine[]; knownDates?: string[]; note: string; action?: React.ReactNode; wide?: boolean }) {
   const aligned = alignNavLines(lines, knownDates);
+  const gapDates = interiorAllMissingDates(aligned);
   const valid = aligned.lines.flatMap(line => line.segments.flatMap(segment => segment.map(point => point.value)));
   let low = Math.min(1, ...valid); let high = Math.max(1, ...valid);
   if (low === high) { low -= 0.05; high += 0.05; }
@@ -91,6 +97,7 @@ function NavChart({ eyebrow, title, lines, knownDates = [], note, action, wide =
         : <circle key={`${line.label}-${index}`} cx={x(segment[0].index)} cy={y(segment[0].value)} r="3" style={{ fill: line.color }} />))}
     </svg> : <div className="empty">暂无净值序列。</div>}
     {aligned.dates.length > 0 && <div className="chart-date-range"><span>{aligned.dates[0]}</span><span>{aligned.dates.at(-1)}</span></div>}
+    <KnownGapNotice dates={gapDates} />
     <div className="chart-legend">{aligned.lines.map(line => <span key={line.label}><i style={{ background: line.color }} />{line.label} · {number(line.lastValue)}</span>)}</div>
     <small>{note}；横向按已知结果/诊断日期等距，非自然日间隔；已知缺日断线。</small>
   </article>;
@@ -113,9 +120,10 @@ function IcSeriesChart({ runId, series, knownDates = [], showDownload = true }: 
   const aligned = alignNavLines([{
     label: "IC", color: "#3f765d", points: series.map(item => ({ date: item.date, value: item.ic ?? Number.NaN })),
   }], [...knownDates, ...series.map(item => item.date)]);
+  const gapDates = interiorAllMissingDates(aligned);
   const segments = aligned.lines[0].segments;
   const x = (index: number) => aligned.dates.length === 1 ? 300 : index * 600 / (aligned.dates.length - 1);
-  return <article className="card line-chart"><p className="eyebrow">IC SERIES</p><div className="section-title"><h2>每日 IC</h2>{showDownload && <button className="secondary" onClick={() => saveBlobAsFile(new Blob([icSeriesCsv(runId, series)], { type: "text/csv;charset=utf-8" }), icSeriesFilename(runId))}>下载每日 IC CSV</button>}</div>{valid.length ? <svg viewBox="0 0 600 180" preserveAspectRatio="none" role="img" aria-label="每日 IC，已知缺日处断开"><line x1="0" y1={y(0)} x2="600" y2={y(0)} />{segments.map((segment, index) => segment.length > 1 ? <polyline key={index} points={segment.map(point => `${x(point.index)},${y(point.value)}`).join(" ")} /> : <circle key={index} cx={x(segment[0].index)} cy={y(segment[0].value)} r="3" />)}</svg> : <div className="empty">没有可计算的 IC。</div>}{aligned.dates.length > 0 && <div className="chart-date-range"><span>{aligned.dates[0]}</span><span>{aligned.dates.at(-1)}</span></div>}<small>{valid.length} 个有效截面；{aligned.dates.length - series.length} 个已知日期无 IC 记录、{values.length - valid.length} 个原记录为空值，均不填零。横向按已知结果/诊断日期等距，非自然日间隔；CSV 保留原序列日期与数值。</small></article>;
+  return <article className="card line-chart"><p className="eyebrow">IC SERIES</p><div className="section-title"><h2>每日 IC</h2>{showDownload && <button className="secondary" onClick={() => saveBlobAsFile(new Blob([icSeriesCsv(runId, series)], { type: "text/csv;charset=utf-8" }), icSeriesFilename(runId))}>下载每日 IC CSV</button>}</div>{valid.length ? <svg viewBox="0 0 600 180" preserveAspectRatio="none" role="img" aria-label="每日 IC，已知缺日处断开"><line x1="0" y1={y(0)} x2="600" y2={y(0)} />{segments.map((segment, index) => segment.length > 1 ? <polyline key={index} points={segment.map(point => `${x(point.index)},${y(point.value)}`).join(" ")} /> : <circle key={index} cx={x(segment[0].index)} cy={y(segment[0].value)} r="3" />)}</svg> : <div className="empty">没有可计算的 IC。</div>}{aligned.dates.length > 0 && <div className="chart-date-range"><span>{aligned.dates[0]}</span><span>{aligned.dates.at(-1)}</span></div>}<KnownGapNotice dates={gapDates} /><small>{valid.length} 个有效截面；{aligned.dates.length - series.length} 个已知日期无 IC 记录、{values.length - valid.length} 个原记录为空值，均不填零。横向按已知结果/诊断日期等距，非自然日间隔；CSV 保留原序列日期与数值。</small></article>;
 }
 
 function IcDistribution({ result }: { result: Result }) {

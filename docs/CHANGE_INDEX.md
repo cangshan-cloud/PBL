@@ -246,6 +246,7 @@
 | CHG-20261026-016 | 2026-10-26 | report known-date coverage / locally tested | 报告逐日核对表纳入诊断独有日期并展示 IC/分组状态，避免所有曲线缺日时整行消失 | [记录](changes/2026-10-26-016-report-known-date-coverage.md) | `backend/app/services/reports.py::_daily_series_detail`、单测/API 回归、研究口径与 A/B/C/D 四责任包 |
 | CHG-20261026-017 | 2026-10-26 | chart known-date axis / locally tested | 网页和新报告三类曲线统一加入逐日诊断日期，已知全部序列缺日时断线；旧结果退化兼容 | [记录](changes/2026-10-26-017-chart-known-date-axis.md) | `frontend/src/chart-series.ts`、`frontend/src/main.tsx`、`backend/app/services/reports.py`、双端测试、口径与 A/B/C/D 四责任包 |
 | CHG-20261026-018 | 2026-10-26 | known-date browser QA / verified on Mac | 隔离旧任务三图无回归；合成报告 390px 窄屏可滚至状态列，已知全空日期保留 | [记录](changes/2026-10-26-018-known-date-browser-qa.md) | [浏览器验收](KNOWN_DATE_BROWSER_QA_2026-10-26.md)、A/B/C/D 四责任包；无生产代码改动 |
+| CHG-20261026-019 | 2026-10-26 | chart internal gap disclosure / locally tested | 网页三类曲线可展开列出有效点之间的已知全线空缺日期，不猜测缺失原因 | [记录](changes/2026-10-26-019-chart-gap-disclosure.md) | `frontend/src/chart-series.ts`、`main.tsx`、样式/单测、研究口径与 A/B/C/D 四责任包 |
 
 ## 历史基线
 

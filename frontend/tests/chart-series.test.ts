@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { alignNavLines } from "../src/chart-series.ts";
+import { alignNavLines, interiorAllMissingDates } from "../src/chart-series.ts";
 
 test("NAV lines share ordered dates and break rather than bridge absent dates", () => {
   const aligned = alignNavLines([
@@ -39,4 +39,21 @@ test("known diagnostic date breaks even when every saved line lacks that date", 
   assert.deepEqual(aligned.dates, ["2025-01-02", "2025-01-03", "2025-01-06"]);
   assert.deepEqual(aligned.lines[0].segments, [[{ index: 0, value: 0.1 }], [{ index: 2, value: 0.2 }]]);
   assert.equal(aligned.lines[0].lastValue, 0.2);
+  assert.deepEqual(interiorAllMissingDates(aligned), ["2025-01-03"]);
+});
+
+test("gap notice lists only internal dates where every line is absent", () => {
+  const aligned = alignNavLines([
+    { label: "Q1", color: "green", points: [
+      { date: "2025-01-02", value: 1 }, { date: "2025-01-04", value: 1.02 },
+    ] },
+    { label: "Q2", color: "blue", points: [
+      { date: "2025-01-03", value: 1.01 }, { date: "2025-01-07", value: 1.03 },
+    ] },
+  ], ["2025-01-01", "2025-01-06", "2025-01-08"]);
+  assert.deepEqual(interiorAllMissingDates(aligned), ["2025-01-06"]);
+  assert.deepEqual(interiorAllMissingDates(alignNavLines([], ["2025-01-02"])), []);
+  assert.deepEqual(interiorAllMissingDates(alignNavLines([
+    { label: "IC", color: "green", points: [{ date: "2025-01-02", value: 0.1 }] },
+  ], ["2025-01-03"])), []);
 });
