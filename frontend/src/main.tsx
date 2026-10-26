@@ -15,6 +15,7 @@ import { saveBlobAsFile } from "./blob-download";
 import { icSeriesCsv, icSeriesFilename } from "./ic-series-export";
 import { longShortCsv, longShortFilename } from "./long-short-export";
 import { groupNavCsv, groupNavFilename } from "./group-nav-export";
+import { alignNavLines, type NavLine } from "./chart-series";
 import { DailyCoverageTable } from "./DailyCoverageTable";
 import { filterTasks, type TaskStatusFilter } from "./task-filter";
 import { startReportPolling, startTaskPolling } from "./task-refresh";
@@ -71,19 +72,28 @@ function statusLabel(status: string) {
   return ({ pending: "等待执行", running: "运行中", success: "成功", failed: "失败", cancelled: "已取消" } as Record<string, string>)[status] ?? status;
 }
 
-type NavLine = { label: string; color: string; values: number[] };
 const groupColors = ["#277a5b", "#65a563", "#a5a944", "#d5a04b", "#b86e52", "#6d8bc3", "#805ca8", "#bc73aa", "#4e9ca3", "#707b7b"];
 
 function NavChart({ eyebrow, title, lines, note, action, wide = false }: { eyebrow: string; title: string; lines: NavLine[]; note: string; action?: React.ReactNode; wide?: boolean }) {
-  const valid = lines.flatMap(line => line.values.filter(Number.isFinite));
-  const length = Math.max(0, ...lines.map(line => line.values.length));
+  const aligned = alignNavLines(lines);
+  const valid = aligned.lines.flatMap(line => line.segments.flatMap(segment => segment.map(point => point.value)));
   let low = Math.min(1, ...valid); let high = Math.max(1, ...valid);
   if (low === high) { low -= 0.05; high += 0.05; }
   const padding = (high - low) * 0.08;
   low -= padding; high += padding;
   const y = (value: number) => 180 - (value - low) * 180 / (high - low);
-  const x = (index: number) => length === 1 ? 300 : index * 600 / (length - 1);
-  return <article className={`card line-chart${wide ? " group-nav" : ""}`}><p className="eyebrow">{eyebrow}</p><div className="section-title"><h2>{title}</h2>{action}</div>{valid.length ? <svg viewBox="0 0 600 180" preserveAspectRatio="none" role="img" aria-label={title}><line x1="0" y1={y(1)} x2="600" y2={y(1)} />{lines.map(line => line.values.length > 1 ? <polyline key={line.label} style={{ stroke: line.color }} points={line.values.map((value, index) => `${x(index)},${y(value)}`).join(" ")} /> : line.values.length === 1 ? <circle key={line.label} cx={x(0)} cy={y(line.values[0])} r="3" style={{ fill: line.color }} /> : null)}</svg> : <div className="empty">暂无净值序列。</div>}<div className="chart-legend">{lines.map(line => <span key={line.label}><i style={{ background: line.color }} />{line.label} · {line.values.length ? number(line.values.at(-1)) : "—"}</span>)}</div><small>{note}</small></article>;
+  const x = (index: number) => aligned.dates.length === 1 ? 300 : index * 600 / (aligned.dates.length - 1);
+  return <article className={`card line-chart${wide ? " group-nav" : ""}`}><p className="eyebrow">{eyebrow}</p><div className="section-title"><h2>{title}</h2>{action}</div>
+    {valid.length ? <svg viewBox="0 0 600 180" preserveAspectRatio="none" role="img" aria-label={`${title}，按结果日期等距排列`}>
+      <line x1="0" y1={y(1)} x2="600" y2={y(1)} />
+      {aligned.lines.flatMap(line => line.segments.map((segment, index) => segment.length > 1
+        ? <polyline key={`${line.label}-${index}`} style={{ stroke: line.color }} points={segment.map(point => `${x(point.index)},${y(point.value)}`).join(" ")} />
+        : <circle key={`${line.label}-${index}`} cx={x(segment[0].index)} cy={y(segment[0].value)} r="3" style={{ fill: line.color }} />))}
+    </svg> : <div className="empty">暂无净值序列。</div>}
+    {aligned.dates.length > 0 && <div className="chart-date-range"><span>{aligned.dates[0]}</span><span>{aligned.dates.at(-1)}</span></div>}
+    <div className="chart-legend">{aligned.lines.map(line => <span key={line.label}><i style={{ background: line.color }} />{line.label} · {number(line.lastValue)}</span>)}</div>
+    <small>{note}；横向按结果日期等距，非自然日间隔；个别序列缺日时断线。</small>
+  </article>;
 }
 
 function icHistogram(values: (number | null)[]) {
@@ -109,7 +119,7 @@ function IcSeriesChart({ runId, series, showDownload = true }: { runId: string; 
     } else current.push({ x: series.length === 1 ? 300 : index * 600 / (series.length - 1), y: y(value) });
   });
   if (current.length) segments.push(current);
-  return <article className="card line-chart"><p className="eyebrow">IC SERIES</p><div className="section-title"><h2>每日 IC</h2>{showDownload && <button className="secondary" onClick={() => saveBlobAsFile(new Blob([icSeriesCsv(runId, series)], { type: "text/csv;charset=utf-8" }), icSeriesFilename(runId))}>下载每日 IC CSV</button>}</div>{valid.length ? <svg viewBox="0 0 600 180" preserveAspectRatio="none" role="img" aria-label="每日 IC，空值处断开"><line x1="0" y1={y(0)} x2="600" y2={y(0)} />{segments.map((segment, index) => segment.length > 1 ? <polyline key={index} points={segment.map(point => `${point.x},${point.y}`).join(" ")} /> : <circle key={index} cx={segment[0].x} cy={segment[0].y} r="3" />)}</svg> : <div className="empty">没有可计算的 IC。</div>}<small>{valid.length} 个有效截面；{values.length - valid.length} 个空值不按零填补。CSV 保留全量日期与原始数值。</small></article>;
+  return <article className="card line-chart"><p className="eyebrow">IC SERIES</p><div className="section-title"><h2>每日 IC</h2>{showDownload && <button className="secondary" onClick={() => saveBlobAsFile(new Blob([icSeriesCsv(runId, series)], { type: "text/csv;charset=utf-8" }), icSeriesFilename(runId))}>下载每日 IC CSV</button>}</div>{valid.length ? <svg viewBox="0 0 600 180" preserveAspectRatio="none" role="img" aria-label="每日 IC，空值处断开"><line x1="0" y1={y(0)} x2="600" y2={y(0)} />{segments.map((segment, index) => segment.length > 1 ? <polyline key={index} points={segment.map(point => `${point.x},${point.y}`).join(" ")} /> : <circle key={index} cx={segment[0].x} cy={segment[0].y} r="3" />)}</svg> : <div className="empty">没有可计算的 IC。</div>}{series.length > 0 && <div className="chart-date-range"><span>{series[0].date}</span><span>{series.at(-1)?.date}</span></div>}<small>{valid.length} 个有效截面；{values.length - valid.length} 个空值不按零填补。横向按结果日期等距，非自然日间隔；CSV 保留全量日期与原始数值。</small></article>;
 }
 
 function IcDistribution({ result }: { result: Result }) {
@@ -130,14 +140,14 @@ function SavedSeriesCharts({ runId, result, onDownloadLongShort, onDownloadGroup
   return <section className="chart-grid" aria-label={`Run ${runId} 的逐日曲线`}>
     <IcSeriesChart runId={runId} series={result.ic_series} showDownload={showActions} />
     <NavChart eyebrow="LONG SHORT NAV" title="多空组合净值" lines={[
-      { label: "毛净值", color: "#277a5b", values: result.long_short_series.map(item => item.nav) },
-      { label: "成本后净值", color: "#d69043", values: result.long_short_series.map(item => item.net_nav) },
+      { label: "毛净值", color: "#277a5b", points: result.long_short_series.map(item => ({ date: item.date, value: item.nav })) },
+      { label: "成本后净值", color: "#d69043", points: result.long_short_series.map(item => ({ date: item.date, value: item.net_nav })) },
     ]} note={`初值 1；成本后净值扣除 ${result.transaction_cost_bps} bps 单边成本`}
       action={showActions && <button className="secondary" onClick={() => onDownloadLongShort(runId, result)}>下载多空逐日 CSV</button>} />
     {includeDistribution && <IcDistribution result={result} />}
     <NavChart eyebrow="QUANTILE NAV" title="各组净值" lines={(result.group_nav ?? []).map(item => ({
       label: `Q${item.group}`, color: groupColors[(item.group - 1) % groupColors.length],
-      values: item.points.map(point => point.nav),
+      points: item.points.map(point => ({ date: point.date, value: point.nav })),
     }))} note="各组等权日收益连乘，初值 1；与分组平均收益使用同一结果数据"
       action={showActions && <button className="secondary" onClick={() => onDownloadGroupNav(runId, result)}>下载各组逐日净值 CSV</button>} wide />
   </section>;

@@ -239,6 +239,7 @@
 | CHG-20261026-009 | 2026-10-26 | offline series export verifier / verified on Mac | 浏览器下载的 IC 与多空逐日 CSV 可对同 Run 复现 JSON 逐行核对，说明自校验和非签名限制 | [记录](changes/2026-10-26-009-series-export-verifier.md) | `tools/verify_series_exports.py`、后端反例测试、使用/隔离验收记录与 A/B/C/D 四责任包 |
 | CHG-20261026-010 | 2026-10-26 | group NAV CSV export + offline check / verified on Mac | 各组毛净值按原组别/日期顺序导出；隔离浏览器 1,210 行与复现包逐行一致 | [记录](changes/2026-10-26-010-group-nav-csv.md) | `frontend/src/group-nav-export.ts`、工作台/任务页、离线核对/测试、口径/浏览器记录与 A/B/C/D 四责任包 |
 | CHG-20261026-011 | 2026-10-26 | saved-series task revisit / verified on Mac | 任务中心按需回看旧 Run 的 IC、多空和各组净值曲线，切换 Run 重置面板 | [记录](changes/2026-10-26-011-task-series-chart-revisit.md) | `frontend/src/main.tsx::SavedSeriesCharts`、`frontend/src/layout.css`、两 Run 浏览器验收与 A/B/C/D 四责任包 |
+| CHG-20261026-012 | 2026-10-26 | chart date alignment / locally tested + Mac browser smoke | 净值曲线按共同结果日期对齐、缺日断线，三图标起止日与非自然日口径 | [记录](changes/2026-10-26-012-chart-date-alignment.md) | `frontend/src/chart-series.ts`、图表组件/样式、构造测试、浏览器验收与 A/B/C/D 四责任包 |
 
 ## 历史基线
 
