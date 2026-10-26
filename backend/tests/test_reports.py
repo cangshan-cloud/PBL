@@ -15,7 +15,7 @@ from fastapi import HTTPException
 from app.db import Base
 from app.main import download_report, download_report_delivery_copy, preview_report
 from app.models import Artifact, UserRole
-from app.services.reports import _align_dated_chart_series, _daily_series_detail, _svg_chart, build_report_html, get_report, list_reports, read_verified_report, report_delivery_copy
+from app.services.reports import _align_dated_chart_series, _daily_series_detail, _interior_all_missing_dates, _svg_chart, build_report_html, get_report, list_reports, read_verified_report, report_delivery_copy
 from app.services.runs import create_research_run, execute_research_run
 
 
@@ -293,7 +293,20 @@ class ReportTests(unittest.TestCase):
         self.assertIn("factor &lt;A&gt;", chart)
         self.assertNotIn("<polyline", chart)
         self.assertEqual(chart.count("<circle "), 2)
+        self.assertIn("1 个已知日期在有效点之间无可绘制值", chart)
+        self.assertIn("<p>2025-01-03</p>", chart)
         self.assertNotIn("nan", chart.lower())
+
+    def test_chart_gap_disclosure_ignores_edges_and_partial_line_gaps(self):
+        dates = ["2025-01-01", "2025-01-02", "2025-01-03", "2025-01-04", "2025-01-06", "2025-01-07"]
+        series = [
+            ("Q1", [None, 1.0, None, 1.02, None, None], "#176548"),
+            ("Q2", [None, None, 1.01, None, None, 1.03], "#cc7b2c"),
+        ]
+        self.assertEqual(_interior_all_missing_dates(dates, series), ["2025-01-06"])
+        self.assertEqual(_interior_all_missing_dates(dates, [("IC", [None, 0.1], "#176548")]), [])
+        self.assertEqual(_interior_all_missing_dates(dates, []), [])
+        self.assertIn("2025-01-06", _svg_chart("各组净值", dates, series, baseline=1))
 
     def test_group_nav_report_aligns_dates_and_breaks_missing_day(self):
         dates, series = _align_dated_chart_series([
@@ -353,6 +366,8 @@ class ReportTests(unittest.TestCase):
                 self.assertNotIn("<polyline ", chart, title)
                 self.assertIn("2025-01-02", chart)
                 self.assertIn("2025-01-06", chart)
+                self.assertIn("1 个已知日期在有效点之间无可绘制值", chart)
+                self.assertIn("<p>2025-01-03</p>", chart)
 
     def test_report_daily_series_table_joins_dates_without_filling_values(self):
         result = {

@@ -76,6 +76,20 @@ def _fmt(value: float | int | None, percent: bool = False) -> str:
     return f"{float(value):.4f}"
 
 
+def _interior_all_missing_dates(
+    dates: list[str], series: list[tuple[str, list[float | None], str]],
+) -> list[str]:
+    present = [
+        any(index < len(values) and isinstance(values[index], (int, float))
+            and math.isfinite(values[index]) for _, values, _ in series)
+        for index in range(len(dates))
+    ]
+    valid_indices = [index for index, has_value in enumerate(present) if has_value]
+    if len(valid_indices) < 2:
+        return []
+    return [dates[index] for index in range(valid_indices[0] + 1, valid_indices[-1]) if not present[index]]
+
+
 def _svg_chart(title: str, dates: list[str], series: list[tuple[str, list[float | None], str]], *, baseline: float) -> str:
     """Build a self-contained, print-friendly chart from saved result series."""
     if not dates:
@@ -126,6 +140,15 @@ def _svg_chart(title: str, dates: list[str], series: list[tuple[str, list[float 
         )
         legends.append(f'<span><i style="background:{color}"></i>{html.escape(label)}</span>')
     zero_line = y(baseline)
+    gap_dates = _interior_all_missing_dates(dates, series)
+    gap_notice = (
+        '<details class="chart-gap-notice">'
+        f'<summary>{len(gap_dates)} 个已知日期在有效点之间无可绘制值</summary>'
+        f'<p>{"、".join(html.escape(date) for date in gap_dates)}</p>'
+        '<small>仅按本 Run 保存的结果与逐日诊断识别，不推断缺值原因或未记录的市场日期。</small>'
+        '</details>'
+        if gap_dates else ""
+    )
     return (
         f'<figure><figcaption>{html.escape(title)}</figcaption><svg viewBox="0 0 640 240" '
         f'role="img" aria-label="{html.escape(title)}" xmlns="http://www.w3.org/2000/svg">'
@@ -133,7 +156,7 @@ def _svg_chart(title: str, dates: list[str], series: list[tuple[str, list[float 
         f'<text x="4" y="30">{high:.3f}</text><text x="4" y="194">{low:.3f}</text>'
         f'{"".join(paths)}<text x="55" y="225">{html.escape(str(dates[0]))}</text>'
         f'<text x="615" y="225" text-anchor="end">{html.escape(str(dates[-1]))}</text></svg>'
-        f'<div class="legend">{"".join(legends)}</div>'
+        f'<div class="legend">{"".join(legends)}</div>{gap_notice}'
         '<small>横向按已知结果/诊断日期等距，非自然日间隔；已知缺日断线。</small></figure>'
     )
 
@@ -374,6 +397,7 @@ def build_report_html(run: Run, result: dict) -> str:
 <title>{html.escape(experiment.name)} · 因子研究报告</title>
 <style>
 body{{font-family:Inter,'PingFang SC','Microsoft YaHei',sans-serif;color:#173128;background:#f4f5ef;margin:0}}main{{max-width:900px;margin:0 auto;padding:56px 42px}}header{{border-bottom:4px solid #173128;padding-bottom:24px}}h1{{font-size:38px;margin:8px 0}}h2{{margin-top:36px;font-size:22px}}.tag{{font-size:11px;letter-spacing:2px;color:#6b7c73}}.grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}}.metric,.meta{{background:white;border:1px solid #dfe5dc;border-radius:12px;padding:16px}}.metric b{{display:block;font-size:25px;margin-top:7px}}.meta-grid{{display:grid;grid-template-columns:1fr 1fr;gap:12px}}.meta small{{display:block;color:#78877f;margin-bottom:5px}}table{{width:100%;border-collapse:collapse;background:white}}th,td{{padding:11px;border-bottom:1px solid #e5e9e2;text-align:left}}th{{background:#173128;color:white}}pre{{white-space:pre-wrap;background:#173128;color:#e2eee7;padding:18px;border-radius:10px}}.risk{{background:#fff5db;border-left:4px solid #d5a22f;padding:16px}}figure{{margin:18px 0;padding:18px;background:white;border:1px solid #dfe5dc;border-radius:12px;break-inside:avoid}}figcaption{{font-weight:700;margin-bottom:8px}}svg{{display:block;width:100%;height:auto}}svg text{{font:11px sans-serif;fill:#68786f}}.legend{{display:flex;gap:18px;flex-wrap:wrap;font-size:12px}}.legend span{{display:inline-flex;align-items:center;gap:6px}}.legend i{{width:14px;height:3px;display:inline-block}}.histogram{{display:grid;gap:5px}}.hist-row{{display:grid;grid-template-columns:100px 1fr 36px;align-items:center;gap:10px;font-size:12px}}.hist-row div{{height:9px;background:#edf2eb;border-radius:5px}}.hist-row i{{display:block;height:100%;background:#176548;border-radius:5px}}.hist-row b{{text-align:right}}.series-detail{{margin:18px 0;padding:16px;background:white;border:1px solid #dfe5dc;border-radius:12px}}.series-detail summary{{cursor:pointer;font-weight:700}}.series-detail p{{font-size:12px;color:#68786f}}.series-table-wrap{{overflow-x:auto}}.series-table-wrap table{{min-width:680px;font-size:12px}}.series-table-wrap th,.series-table-wrap td{{white-space:nowrap}}footer{{margin-top:44px;color:#7b8982;font-size:12px}}@media print{{body{{background:white}}main{{padding:20px}}figure{{border-color:#bbb}}}}
+.chart-gap-notice{{margin:10px 0;padding:8px 10px;border:1px solid #e5d5af;border-radius:8px;background:#fff9eb;color:#715824;font-size:12px}}.chart-gap-notice summary{{cursor:pointer;font-weight:700}}.chart-gap-notice p{{max-height:110px;overflow:auto;overflow-wrap:anywhere;line-height:1.6}}.chart-gap-notice small{{color:#756544}}
 </style></head><body><main>
 <header><p class="tag">FACTORLAB · {report_kind}</p><h1>{html.escape(experiment.name)}</h1><p>报告由结构化研究结果自动生成，所有版本与参数均绑定到本次Run。价格口径：{price_basis_text}。</p></header>
 {demo_disclosure}

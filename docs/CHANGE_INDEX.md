@@ -247,6 +247,7 @@
 | CHG-20261026-017 | 2026-10-26 | chart known-date axis / locally tested | 网页和新报告三类曲线统一加入逐日诊断日期，已知全部序列缺日时断线；旧结果退化兼容 | [记录](changes/2026-10-26-017-chart-known-date-axis.md) | `frontend/src/chart-series.ts`、`frontend/src/main.tsx`、`backend/app/services/reports.py`、双端测试、口径与 A/B/C/D 四责任包 |
 | CHG-20261026-018 | 2026-10-26 | known-date browser QA / verified on Mac | 隔离旧任务三图无回归；合成报告 390px 窄屏可滚至状态列，已知全空日期保留 | [记录](changes/2026-10-26-018-known-date-browser-qa.md) | [浏览器验收](KNOWN_DATE_BROWSER_QA_2026-10-26.md)、A/B/C/D 四责任包；无生产代码改动 |
 | CHG-20261026-019 | 2026-10-26 | chart internal gap disclosure / locally tested | 网页三类曲线可展开列出有效点之间的已知全线空缺日期，不猜测缺失原因 | [记录](changes/2026-10-26-019-chart-gap-disclosure.md) | `frontend/src/chart-series.ts`、`main.tsx`、样式/单测、研究口径与 A/B/C/D 四责任包 |
+| CHG-20261026-020 | 2026-10-26 | report chart gap disclosure + web browser QA | 新 HTML 报告三图同步提示内部全线空缺；网页用隔离旧 Run 和浏览器构造响应验收 | [记录](changes/2026-10-26-020-report-chart-gap-disclosure.md) | `backend/app/services/reports.py`、测试、[浏览器记录](CHART_GAP_BROWSER_QA_2026-10-26.md)、口径与 A/B/C/D 四责任包 |
 
 ## 历史基线
 
