@@ -191,6 +191,13 @@ function App() {
     setTaskStatusFilter("all");
     setView("tasks");
   };
+  const openSelectedTaskReport = () => {
+    if (!selectedTask || selectedTask.status !== "success") return;
+    setSelectedReportId(selectedTask.id);
+    setReportQuery(selectedTask.id);
+    setReportListLoading(true);
+    setView("reports");
+  };
   const researchInput = {
     mode: researchMode,
     datasetId: selected?.id ?? null,
@@ -691,7 +698,7 @@ function App() {
       <section className="card task-filters"><label>检索任务<input type="search" value={taskQuery} onChange={event => setTaskQuery(event.target.value)} placeholder="Run ID 或研究名称" /></label><label>任务状态<select value={taskStatusFilter} onChange={event => setTaskStatusFilter(event.target.value as TaskStatusFilter)}><option value="all">全部状态</option><option value="success">成功</option><option value="running">运行中</option><option value="pending">等待中</option><option value="failed">失败</option><option value="cancelled">已取消</option></select></label><span aria-live="polite">显示 {visibleTasks.length}/{tasks.length} 项任务</span></section>
       <section className="task-layout">
         <div className="card task-list">{visibleTasks.map(item => <button key={item.id} className={selectedTask?.id === item.id ? "selected" : ""} onClick={() => setSelectedTaskId(item.id)}><span className={`status ${item.status}`}>{statusLabel(item.status)}</span><strong>{item.experiment_name ?? "研究任务"}</strong><small>{formatTime(item.queued_at)}</small><i><b style={{width: `${item.progress ?? 0}%`}} /></i></button>)}{!tasks.length ? <div className="empty">尚无研究任务。</div> : !visibleTasks.length && <div className="empty">没有符合检索和状态条件的任务。</div>}</div>
-        <div className="card task-detail">{selectedTask ? <><div className="section-title"><div><p className="eyebrow">RUN · {selectedTask.id.slice(0, 8)}</p><h2>{selectedTask.experiment_name}</h2></div><div className="task-actions"><span className={`status ${selectedTask.status}`}>{statusLabel(selectedTask.status)}</span><button onClick={downloadReproducibilityBundle}>下载复现包</button>{canResearch && (selectedTask.status === "pending" || selectedTask.status === "running") && <button onClick={() => taskAction("cancel")} disabled={loading || Boolean(selectedTask.cancellation_requested_at)}>{selectedTask.cancellation_requested_at ? "等待取消" : "取消任务"}</button>}{canResearch && (selectedTask.status === "failed" || selectedTask.status === "cancelled") && <button onClick={() => taskAction("retry")} disabled={loading}>重新运行</button>}</div></div>
+        <div className="card task-detail">{selectedTask ? <><div className="section-title"><div><p className="eyebrow">RUN · {selectedTask.id.slice(0, 8)}</p><h2>{selectedTask.experiment_name}</h2></div><div className="task-actions"><span className={`status ${selectedTask.status}`}>{statusLabel(selectedTask.status)}</span><button onClick={downloadReproducibilityBundle}>下载复现包</button>{selectedTask.status === "success" && <button onClick={openSelectedTaskReport}>查看同 Run 报告</button>}{canResearch && (selectedTask.status === "pending" || selectedTask.status === "running") && <button onClick={() => taskAction("cancel")} disabled={loading || Boolean(selectedTask.cancellation_requested_at)}>{selectedTask.cancellation_requested_at ? "等待取消" : "取消任务"}</button>}{canResearch && (selectedTask.status === "failed" || selectedTask.status === "cancelled") && <button onClick={() => taskAction("retry")} disabled={loading}>重新运行</button>}</div></div>
           {selectedTask.error_summary && <p className="error">{selectedTask.error_summary}</p>}
           <div className="repro-grid"><span><label>数据版本</label><b>{selectedTask.dataset_version}</b><small>{selectedTask.dataset_version_id}</small></span><span><label>因子版本</label><b>{selectedTask.factor_version}</b><small>{selectedTask.factor_version_id}</small></span><span><label>代码版本</label><b>{selectedTask.code_version}</b><small>实验创建时固定</small></span><span><label>执行时间</label><b>{formatTime(selectedTask.started_at)}</b><small>结束：{formatTime(selectedTask.finished_at)}</small></span></div>
           <h3>研究参数</h3><pre>{JSON.stringify(selectedTask.parameters, null, 2)}</pre>

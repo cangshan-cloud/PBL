@@ -27,3 +27,12 @@ test("report selection stays within visible matches and clears on zero matches",
   assert.equal(selectVisibleReport(matched, "def-002")?.run_id, "ABC-001");
   assert.equal(selectVisibleReport(filterReports(reports, "not-found"), "ABC-001"), undefined);
 });
+
+test("full Run query disambiguates same-name reports and cannot fall back to another archive", () => {
+  const sameName = [
+    { run_id: "run-111", experiment_name: "重复名称" },
+    { run_id: "run-222", experiment_name: "重复名称" },
+  ];
+  assert.equal(selectVisibleReport(filterReports(sameName, "run-222"), "run-222")?.run_id, "run-222");
+  assert.equal(selectVisibleReport(filterReports(sameName, "run-333"), "run-333"), undefined);
+});
