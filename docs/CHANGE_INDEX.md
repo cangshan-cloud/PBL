@@ -236,6 +236,7 @@
 | CHG-20261026-006 | 2026-10-26 | task-to-report identity link / locally tested + Mac browser smoke | 成功任务可按完整 Run ID 打开同 Run 报告，旧检索条件不串档 | [记录](changes/2026-10-26-006-task-report-link.md) | `frontend/src/main.tsx`、`report-list.test.ts`、浏览器验收与 A/B/C/D 四责任包 |
 | CHG-20261026-007 | 2026-10-26 | daily IC CSV export / locally tested + isolated download | 当前及历史结果可导出带完整 Run 的每日 IC/Rank IC 原值 CSV，空值不补零 | [记录](changes/2026-10-26-007-ic-series-csv.md) | `frontend/src/ic-series-export.ts`、共用 CSV 转义、工作台/任务页、单测、浏览器验收与 A/B/C/D 四责任包 |
 | CHG-20261026-008 | 2026-10-26 | long-short daily CSV export / verified on Mac | 当前及历史结果可导出毛收益、双边换手、成本和净值的逐日原值，明确比例单位与非可成交边界 | [记录](changes/2026-10-26-008-long-short-series-csv.md) | `frontend/src/long-short-export.ts`、工作台/任务页、单测、口径文档、浏览器验收与 A/B/C/D 四责任包 |
+| CHG-20261026-009 | 2026-10-26 | offline series export verifier / verified on Mac | 浏览器下载的 IC 与多空逐日 CSV 可对同 Run 复现 JSON 逐行核对，说明自校验和非签名限制 | [记录](changes/2026-10-26-009-series-export-verifier.md) | `tools/verify_series_exports.py`、后端反例测试、使用/隔离验收记录与 A/B/C/D 四责任包 |
 
 ## 历史基线
 
