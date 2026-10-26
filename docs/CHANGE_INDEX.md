@@ -234,6 +234,7 @@
 | CHG-20261026-004 | 2026-10-26 | report archive search / locally tested + Mac browser smoke | 按研究名称或 Run ID 检索旧归档；零匹配时隐藏旧预览与下载 | [记录](changes/2026-10-26-004-report-archive-search.md) | `frontend/src/report-list.ts`、`main.tsx`、检索测试、浏览器验收与 A/B/C/D 四责任包 |
 | CHG-20261026-005 | 2026-10-26 | report-to-task identity link / locally tested + Mac browser smoke | 同名归档显示短 Run，选中报告显示完整身份并可定位同 Run 任务 | [记录](changes/2026-10-26-005-report-task-link.md) | `frontend/src/main.tsx`、`layout.css`、浏览器验收与 A/B/C/D 四责任包 |
 | CHG-20261026-006 | 2026-10-26 | task-to-report identity link / locally tested + Mac browser smoke | 成功任务可按完整 Run ID 打开同 Run 报告，旧检索条件不串档 | [记录](changes/2026-10-26-006-task-report-link.md) | `frontend/src/main.tsx`、`report-list.test.ts`、浏览器验收与 A/B/C/D 四责任包 |
+| CHG-20261026-007 | 2026-10-26 | daily IC CSV export / locally tested + isolated download | 当前及历史结果可导出带完整 Run 的每日 IC/Rank IC 原值 CSV，空值不补零 | [记录](changes/2026-10-26-007-ic-series-csv.md) | `frontend/src/ic-series-export.ts`、共用 CSV 转义、工作台/任务页、单测、浏览器验收与 A/B/C/D 四责任包 |
 
 ## 历史基线
 

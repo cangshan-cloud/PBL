@@ -76,6 +76,10 @@ main > header > button { flex: 0 0 auto; }
 .task-detail > .section-title { align-items: flex-start; flex-wrap: wrap; }
 .task-detail > .section-title > div:first-child { min-width: 0; }
 .task-detail > .section-title h2 { overflow-wrap: anywhere; }
+.task-actions.task-series-export { justify-content: flex-start; margin: 12px 0 18px; }
+.task-series-export small { color: #68776e; font-size: 11px; }
+.line-chart > .section-title { align-items: center; flex-wrap: wrap; }
+.line-chart > .section-title button { padding: 8px 12px; background: #eef3e6; box-shadow: none; }
 .task-actions { flex-wrap: wrap; justify-content: flex-end; }
 .repro-grid, .compact-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .repro-grid b, .repro-grid small { overflow-wrap: anywhere; }
