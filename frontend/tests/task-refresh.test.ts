@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ACTIVE_TASK_REFRESH_MS, IDLE_TASK_REFRESH_MS, startTaskPolling, taskRefreshDelay, type TaskPollClock } from "../src/task-refresh.ts";
+import { ACTIVE_TASK_REFRESH_MS, IDLE_TASK_REFRESH_MS, startReportPolling, startTaskPolling, taskRefreshDelay, type TaskPollClock } from "../src/task-refresh.ts";
 
 function fakeClock() {
   let next = 1;
@@ -85,5 +85,24 @@ test("poller backs off after an error and suppresses late work after stop", asyn
   rejectLate(new Error("late network failure"));
   await flush();
   assert.deepEqual(lateErrors, []);
+  assert.equal(scheduled.size, 0);
+});
+
+test("report polling waits for each request and stays at the idle interval", async () => {
+  const { clock, scheduled, fireNext } = fakeClock();
+  let resolve!: (value: string[]) => void;
+  let loads = 0;
+  const stop = startReportPolling(() => { loads++; return new Promise(release => { resolve = release; }); }, () => assert.fail("unexpected report error"), undefined, clock);
+  assert.equal(loads, 1);
+  assert.equal(scheduled.size, 0);
+  resolve(["report-a"]);
+  await flush();
+  assert.equal([...scheduled.values()][0].delayMs, IDLE_TASK_REFRESH_MS);
+  fireNext();
+  assert.equal(loads, 2);
+  assert.equal(scheduled.size, 0);
+  stop();
+  resolve(["report-b"]);
+  await flush();
   assert.equal(scheduled.size, 0);
 });

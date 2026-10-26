@@ -14,7 +14,7 @@ import { reportListHint } from "./report-list";
 import { saveBlobAsFile } from "./blob-download";
 import { DailyCoverageTable } from "./DailyCoverageTable";
 import { filterTasks, type TaskStatusFilter } from "./task-filter";
-import { startTaskPolling } from "./task-refresh";
+import { startReportPolling, startTaskPolling } from "./task-refresh";
 import { forSelectedId, type SelectedResource } from "./selected-resource";
 import "./styles.css";
 import "./layout.css";
@@ -164,6 +164,7 @@ function App() {
   const comparisonSession = React.useRef(0);
   const authSession = React.useRef(0);
   const taskLoadSerial = React.useRef(0);
+  const reportLoadSerial = React.useRef(0);
   const latestTaskSnapshot = React.useRef<Task[]>([]);
   const [notice, setNotice] = React.useState("");
   const published = datasets.filter(item => item.status === "published");
@@ -264,14 +265,16 @@ function App() {
 
   const loadReports = React.useCallback(async () => {
     const session = authSession.current;
-    const value = await loadForCurrentSession(async () => {
+    const request = ++reportLoadSerial.current;
+    const value = await loadForLatestRequest(async () => {
       const response = await apiFetch("/reports");
       if (!response.ok) throw new Error("报告列表加载失败");
       return response.json() as Promise<Report[]>;
-    }, session, () => authSession.current);
-    if (!value) return;
+    }, session, () => authSession.current, request, () => reportLoadSerial.current);
+    if (!value) return null;
     setReports(value);
     setSelectedReportId(current => value.some(item => item.run_id === current) ? current : value[0]?.run_id || "");
+    return value;
   }, []);
 
   React.useEffect(() => {
@@ -308,12 +311,12 @@ function App() {
   }, [user, view, loadTasks]);
   React.useEffect(() => {
     if (!user || view !== "reports") return;
-    let active = true;
     setReportListLoading(true);
-    loadReports().catch(error => { if (active) setNotice(String(error)); })
-      .finally(() => { if (active) setReportListLoading(false); });
-    const timer = window.setInterval(() => loadReports().catch(() => undefined), 2000);
-    return () => { active = false; window.clearInterval(timer); };
+    return startReportPolling(
+      loadReports,
+      error => setNotice(String(error)),
+      () => setReportListLoading(false),
+    );
   }, [user, view, loadReports]);
   React.useEffect(() => { if (user?.role === "admin" && view === "users") loadUsers().catch(error => setNotice(String(error))); }, [user, view, loadUsers]);
   React.useEffect(() => {
@@ -706,7 +709,7 @@ function App() {
       <form className="card user-create" onSubmit={createPlatformUser}><div><label>用户名</label><input name="username" required pattern="[A-Za-z][A-Za-z0-9_]+" minLength={3} placeholder="researcher2" /></div><div><label>显示名称</label><input name="display_name" required placeholder="研究员二号" /></div><div><label>初始密码</label><input name="password" type="password" required minLength={10} placeholder="至少10位" /></div><div><label>角色</label><select name="role" defaultValue="researcher"><option value="researcher">研究员</option><option value="viewer">只读用户</option><option value="admin">管理员</option></select></div><button disabled={loading}>创建账号</button></form>
       <section className="card user-table"><div className="user-row heading"><span>用户</span><span>角色</span><span>状态</span><span>创建时间</span><span>操作</span></div>{users.map(item => <div className="user-row" key={item.id}><span><b>{item.display_name}</b><small>{item.username}</small></span><span><select value={item.role} disabled={loading || item.id === user.id} onChange={event => updatePlatformUser(item.id, { role: event.target.value })}><option value="admin">管理员</option><option value="researcher">研究员</option><option value="viewer">只读用户</option></select></span><span><i className={item.is_active ? "active" : "disabled"}>{item.is_active ? "已启用" : "已停用"}</i></span><span><small>{formatTime(item.created_at)}</small></span><span><button disabled={loading || item.id === user.id} onClick={() => updatePlatformUser(item.id, { is_active: !item.is_active })}>{item.is_active ? "停用" : "启用"}</button></span></div>)}</section>
     </> : <>
-      <header><div><p className="eyebrow">REPORT ARCHIVE</p><h1>把结构化结果变成可交付报告</h1><p>每份报告都绑定唯一Run，可在线预览、下载并打印为PDF。下载的是含数据披露的交付副本；原始归档保持不变。</p></div>{selectedReport && <button className="download" onClick={downloadReport}>下载披露版HTML</button>}</header>
+      <header><div><p className="eyebrow">REPORT ARCHIVE</p><h1>把结构化结果变成可交付报告</h1><p>每份报告都绑定唯一Run，可在线预览、下载并打印为PDF。下载的是含数据披露的交付副本；原始归档保持不变。列表每 30 秒自动刷新，也可手动刷新。</p></div><div className="task-actions"><button className="secondary" onClick={() => loadReports().catch(error => setNotice(String(error)))}>刷新报告</button>{selectedReport && <button className="download" onClick={downloadReport}>下载披露版HTML</button>}</div></header>
       {isKnownSyntheticDemo(selectedReportDataset) && <div className="notice" role="note">当前报告对应内置合成演示数据，按工作日生成且含公告休市日行情；仅用于功能验收，不能作为真实市场证据。历史归档 HTML 按原始校验和提供，未被改写。</div>}
       {importedCsvProvenanceNotice(selectedReportDataset) && <div className="notice" role="note">当前报告对应的{importedCsvProvenanceNotice(selectedReportDataset)}归档 HTML 保持原始字节，下载交付副本会附加当前披露。</div>}
       {selectedReportDataset && !isKnownSyntheticDemo(selectedReportDataset) && (selectedReportDataset.quality_report.weekend_row_count ?? 0) > 0 && <div className="notice" role="alert">当前报告的数据版本含周末日期行情；请先核对源文件。历史归档 HTML 未改写。</div>}
