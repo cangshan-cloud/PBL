@@ -228,6 +228,7 @@
 | CHG-20261025-010 | 2026-10-25 | full daily coverage CSV browser QA / verified on Mac | 隔离真实历史任务两次浏览器下载均为 242 行、同 SHA；Run ID 与有效观测核对一致 | [记录](changes/2026-10-25-010-daily-coverage-csv-browser-qa.md) | 浏览器验收记录与 A/B/C/D 四责任包；无生产代码改动 |
 | CHG-20261025-011 | 2026-10-25 | task center daily coverage revisit / verified on Mac | 旧任务可在任务中心重看逐日诊断和下载全量 CSV；切换 Run 重置筛选与页码 | [记录](changes/2026-10-25-011-task-center-coverage-revisit.md) | `frontend/src/main.tsx`、研究口径、旧任务浏览器验收与 A/B/C/D 四责任包 |
 | CHG-20261025-012 | 2026-10-25 | task center search and status filter / verified on Mac | 按 Run ID/名称与状态定位旧任务；零匹配时隐藏旧详情，隔离浏览器实点通过 | [记录](changes/2026-10-25-012-task-center-filter.md) | `frontend/src/task-filter.ts`、任务中心/布局/测试、浏览器验收与 A/B/C/D 四责任包 |
+| CHG-20261026-001 | 2026-10-26 | adaptive task-list refresh / locally tested + Mac browser smoke | 运行中 2 秒、空闲 30 秒；顺序调度避免重叠，旧响应/错误不覆盖新列表，保留手动刷新 | [记录](changes/2026-10-26-001-adaptive-task-refresh.md) | `frontend/src/task-refresh.ts`、`auth-resource.ts`、工作台调度/测试、页面验收与 A/B/C/D 四责任包 |
 
 ## 历史基线
 

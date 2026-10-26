@@ -6,7 +6,7 @@ import { createRoot } from "react-dom/client";
 import { buildResearchConfiguration, longShortGroupLabel, resultForConfiguration, validateResearchConfiguration } from "./research-config";
 import { pollResearchTask } from "./research-task";
 import { resolveCurrentComparison } from "./comparison-request";
-import { loadForCurrentSession } from "./auth-resource";
+import { loadForCurrentSession, loadForLatestRequest } from "./auth-resource";
 import { comparisonDatasetLabel, comparisonDelta, comparisonSourceLabel } from "./comparison-format";
 import { comparisonDownloadFilename, comparisonJsonContent } from "./comparison-download";
 import { comparisonCandidateHint } from "./comparison-candidates";
@@ -14,6 +14,7 @@ import { reportListHint } from "./report-list";
 import { saveBlobAsFile } from "./blob-download";
 import { DailyCoverageTable } from "./DailyCoverageTable";
 import { filterTasks, type TaskStatusFilter } from "./task-filter";
+import { taskRefreshDelay } from "./task-refresh";
 import { forSelectedId, type SelectedResource } from "./selected-resource";
 import "./styles.css";
 import "./layout.css";
@@ -162,6 +163,8 @@ function App() {
   const researchSession = React.useRef(0);
   const comparisonSession = React.useRef(0);
   const authSession = React.useRef(0);
+  const taskLoadSerial = React.useRef(0);
+  const latestTaskSnapshot = React.useRef<Task[]>([]);
   const [notice, setNotice] = React.useState("");
   const published = datasets.filter(item => item.status === "published");
   const isHistoricalDataset = (item: Dataset) => item.quality_report.dataset_kind === "hs300_bundle_v1";
@@ -246,14 +249,17 @@ function App() {
 
   const loadTasks = React.useCallback(async () => {
     const session = authSession.current;
-    const value = await loadForCurrentSession(async () => {
+    const request = ++taskLoadSerial.current;
+    const value = await loadForLatestRequest(async () => {
       const response = await apiFetch("/research/tasks");
       if (!response.ok) throw new Error("任务列表加载失败");
       return response.json() as Promise<Task[]>;
-    }, session, () => authSession.current);
-    if (!value) return;
+    }, session, () => authSession.current, request, () => taskLoadSerial.current);
+    if (!value) return null;
+    latestTaskSnapshot.current = value;
     setTasks(value);
     setSelectedTaskId(current => value.some(item => item.id === current) ? current : value[0]?.id || "");
+    return value;
   }, []);
 
   const loadReports = React.useCallback(async () => {
@@ -286,18 +292,35 @@ function App() {
   }, [selected?.id]);
   React.useEffect(() => {
     if (!user || view !== "tasks") return;
-    loadTasks().catch(error => setNotice(String(error)));
-    const timer = window.setInterval(() => loadTasks().catch(() => undefined), 2000);
-    return () => window.clearInterval(timer);
+    let active = true;
+    let timer: number | undefined;
+    const refresh = async () => {
+      let latest: Task[] | null = null;
+      let failed = false;
+      try { latest = await loadTasks(); }
+      catch (error) { failed = true; if (active) setNotice(String(error)); }
+      if (active) timer = window.setTimeout(refresh, failed ? taskRefreshDelay(null) : taskRefreshDelay(latest ?? latestTaskSnapshot.current));
+    };
+    void refresh();
+    return () => { active = false; if (timer !== undefined) window.clearTimeout(timer); };
   }, [user, view, loadTasks]);
   React.useEffect(() => {
     if (!user || view !== "comparisons") return;
     let active = true;
+    let timer: number | undefined;
     setComparisonCandidatesLoading(true);
-    loadTasks().catch(error => { if (active) setNotice(String(error)); })
-      .finally(() => { if (active) setComparisonCandidatesLoading(false); });
-    const timer = window.setInterval(() => loadTasks().catch(() => undefined), 2000);
-    return () => { active = false; window.clearInterval(timer); };
+    const refresh = async () => {
+      let latest: Task[] | null = null;
+      let failed = false;
+      try { latest = await loadTasks(); }
+      catch (error) { failed = true; if (active) setNotice(String(error)); }
+      if (active) {
+        setComparisonCandidatesLoading(false);
+        timer = window.setTimeout(refresh, failed ? taskRefreshDelay(null) : taskRefreshDelay(latest ?? latestTaskSnapshot.current));
+      }
+    };
+    void refresh();
+    return () => { active = false; if (timer !== undefined) window.clearTimeout(timer); };
   }, [user, view, loadTasks]);
   React.useEffect(() => {
     if (!user || view !== "reports") return;
@@ -465,6 +488,7 @@ function App() {
     setTask(null);
     setTaskConfigKey("");
     setTasks([]);
+    latestTaskSnapshot.current = [];
     setSelectedTaskId("");
     setTaskLogs(null);
     setTaskConclusion(null);
@@ -666,7 +690,7 @@ function App() {
       {isAdmin && <form className="card bundle-registration" onSubmit={registerHistoricalBundle}><div><p className="eyebrow">SEALED HISTORICAL BUNDLE</p><h2>注册本机历史数据包</h2><small>先将私有包放在 DATA_ROOT 同级的 real/bundles 目录；输入包 ID 注册草稿，核对后再发布。</small></div><label htmlFor="bundle-id">包 ID<input id="bundle-id" value={bundleId} onChange={event => setBundleId(event.target.value)} placeholder="hs300_2024_…" pattern="hs300_2024_[0-9a-f]{16}" required /></label><button disabled={loading}>{loading ? "校验中…" : "注册历史包"}</button></form>}
       <section className="dataset-list">{datasets.map(item => <article className="card dataset" key={item.id}><div className="section-title"><div><p className="eyebrow">{item.dataset_key}</p><h2>{item.name}</h2></div><span className={`status ${item.status === "published" ? "success" : "idle"}`}>{item.status === "published" ? "已发布" : "草稿"}</span></div><div className="dataset-stats"><span><b>{item.row_count}</b> 行</span><span><b>{item.symbol_count}</b> 只证券</span><span><b>{item.start_date ?? "—"}</b> 起始</span><span><b>{item.end_date ?? "—"}</b> 结束</span></div><div className="quality-summary">{isHistoricalDataset(item) ? <><span><b>{item.quality_report.verified_files ?? "—"}</b>已校验文件</span><span><b>{item.quality_report.member_trading_days ?? "—"}</b>历史成员日</span><span><b>整包摘要</b>非逐字段质量检查</span></> : <><span><b>{item.quality_report.columns?.length ?? 3}</b>字段</span><span><b>{Object.values(item.quality_report.missing_counts ?? {}).reduce((sum, value) => sum + value, 0)}</b>缺失单元格</span><span><b>{item.quality_report.valid === false ? "异常" : "通过"}</b>质量检查</span><span><b>{item.quality_report.internal_calendar_gap_count ?? "—"}</b>活跃期缺日</span></>}</div>{!isHistoricalDataset(item) && (item.quality_report.internal_calendar_gap_count ?? 0) > 0 && <p className="notice">推断日历中有 {item.quality_report.symbols_with_internal_calendar_gaps} 只证券在自身首末记录之间合计缺少 {item.quality_report.internal_calendar_gap_count} 个证券日；可能涉及停牌或源数据缺行，非导入错误。</p>}<p className="checksum">SHA-256 · {item.checksum}</p><div className="dataset-actions"><span>{item.source_filename} · 版本 {item.version}</span><div><button className="secondary" onClick={() => toggleDatasetPreview(item.id)} disabled={loading}>{datasetPreview?.dataset_id === item.id ? "收起详情" : isHistoricalDataset(item) ? "查看清单摘要" : "质量与预览"}</button>{isAdmin && item.status === "draft" && <button onClick={() => publishDataset(item.id)} disabled={loading}>确认发布</button>}</div></div>{datasetPreview?.dataset_id === item.id && <div className="dataset-preview">{isHistoricalDataset(item) ? <><h3>封存包清单摘要</h3><p>展示包身份与文件计数，不代表对行情字段完整率的逐项检查。</p></> : <><h3>字段完整率</h3><div className="field-quality">{(item.quality_report.columns ?? datasetPreview.columns).map(column => <span key={column}><b>{column}</b><i>{number(item.quality_report.completeness?.[column] ?? 1, true)}</i><small>缺失 {item.quality_report.missing_counts?.[column] ?? 0}</small></span>)}</div>{Object.keys(item.quality_report.numeric_summary ?? {}).length > 0 && <><h3>数值字段范围</h3><div className="numeric-quality">{Object.entries(item.quality_report.numeric_summary ?? {}).map(([column, stats]) => <span key={column}><b>{column}</b><small>最小 {number(stats.min)}</small><small>均值 {number(stats.mean)}</small><small>最大 {number(stats.max)}</small></span>)}</div></>}</>}<h3>{isHistoricalDataset(item) ? "清单项目" : `前 ${datasetPreview.preview_count} 行预览`}</h3><div className="preview-scroll"><table><thead><tr>{datasetPreview.columns.map(column => <th key={column}>{column}</th>)}</tr></thead><tbody>{datasetPreview.rows.map((row, index) => <tr key={index}>{datasetPreview.columns.map(column => <td key={column}>{row[column] || <em>空</em>}</td>)}</tr>)}</tbody></table></div>{datasetPreview.truncated && <small>仅展示前 {datasetPreview.preview_count} 行，共 {datasetPreview.total_rows} 行。</small>}</div>}</article>)}{!datasets.length && <div className="empty card">尚无数据版本。</div>}</section>
     </> : view === "tasks" ? <>
-      <header><div><p className="eyebrow">RUN REGISTRY</p><h1>每次运行都有状态，也有来路</h1><p>查看任务进度、失败原因、版本绑定与不可变研究结果。</p></div><button onClick={() => loadTasks()} disabled={loading}>刷新任务</button></header>
+      <header><div><p className="eyebrow">RUN REGISTRY</p><h1>每次运行都有状态，也有来路</h1><p>查看任务进度、失败原因、版本绑定与不可变研究结果。运行中每 2 秒刷新，全部结束后每 30 秒刷新。</p></div><button onClick={() => loadTasks()} disabled={loading}>刷新任务</button></header>
       <section className="card task-filters"><label>检索任务<input type="search" value={taskQuery} onChange={event => setTaskQuery(event.target.value)} placeholder="Run ID 或研究名称" /></label><label>任务状态<select value={taskStatusFilter} onChange={event => setTaskStatusFilter(event.target.value as TaskStatusFilter)}><option value="all">全部状态</option><option value="success">成功</option><option value="running">运行中</option><option value="pending">等待中</option><option value="failed">失败</option><option value="cancelled">已取消</option></select></label><span aria-live="polite">显示 {visibleTasks.length}/{tasks.length} 项任务</span></section>
       <section className="task-layout">
         <div className="card task-list">{visibleTasks.map(item => <button key={item.id} className={selectedTask?.id === item.id ? "selected" : ""} onClick={() => setSelectedTaskId(item.id)}><span className={`status ${item.status}`}>{statusLabel(item.status)}</span><strong>{item.experiment_name ?? "研究任务"}</strong><small>{formatTime(item.queued_at)}</small><i><b style={{width: `${item.progress ?? 0}%`}} /></i></button>)}{!tasks.length ? <div className="empty">尚无研究任务。</div> : !visibleTasks.length && <div className="empty">没有符合检索和状态条件的任务。</div>}</div>
@@ -681,7 +705,7 @@ function App() {
       </section>
       {!!selectedTask?.result?.daily_coverage?.length && <DailyCoverageTable key={selectedTask.id} runId={selectedTask.id} rows={selectedTask.result.daily_coverage} candidateCoverage={selectedTask.result.candidate_coverage} coverage={selectedTask.result.coverage} coverageRatio={selectedTask.result.coverage_ratio} zeroObservationDays={selectedTask.result.zero_observation_days} />}
     </> : view === "comparisons" ? <>
-      <header><div><p className="eyebrow">EXPERIMENT COMPARISON</p><h1>让历史实验在同一张表里说话</h1><p>选择 2–6 个成功任务；首个选择作为差值基准，系统会检查数据版本、分组数和共同日期。</p></div><button onClick={runComparison} disabled={comparisonLoading || comparisonRunIds.length < 2}>{comparisonLoading ? "对比中…" : `生成对比（${comparisonRunIds.length}）`}</button></header>
+      <header><div><p className="eyebrow">EXPERIMENT COMPARISON</p><h1>让历史实验在同一张表里说话</h1><p>选择 2–6 个成功任务；首个选择作为差值基准，系统会检查数据版本、分组数和共同日期。空闲时每 30 秒刷新候选。</p></div><div className="task-actions"><button className="secondary" onClick={() => loadTasks()}>刷新候选</button><button onClick={runComparison} disabled={comparisonLoading || comparisonRunIds.length < 2}>{comparisonLoading ? "对比中…" : `生成对比（${comparisonRunIds.length}）`}</button></div></header>
       <section className="comparison-picker card">{tasks.filter(item => item.status === "success" && item.result).map(item => <label key={item.id} className={comparisonRunIds.includes(item.id) ? "selected" : ""}><input type="checkbox" checked={comparisonRunIds.includes(item.id)} onChange={() => toggleComparisonRun(item.id)} disabled={!comparisonRunIds.includes(item.id) && comparisonRunIds.length >= 6} /><span><b>{item.experiment_name}</b><small>{factorName(String(item.parameters?.factor ?? ""))} · {comparisonDatasetLabel(item.dataset_version, item.dataset_version_id)} · {formatTime(item.finished_at)}</small></span></label>)}{comparisonCandidateHint(tasks, comparisonCandidatesLoading) && <div className="empty">{comparisonCandidateHint(tasks, comparisonCandidatesLoading)}</div>}</section>
       {comparison && <><section className={`comparison-summary card ${comparison.comparable ? "ready" : "warning"}`}><div><p className="eyebrow">COMPARABILITY CHECK</p><h2>{comparison.comparable ? "所列口径检查通过，仍属描述性回溯" : "存在口径差异，请谨慎解释"}</h2></div><span>共同 IC 日期 <b>{comparison.common_ic_date_count}</b> · 共同多空分组日期 <b>{comparison.common_group_date_count}</b></span><div className="comparison-downloads"><button onClick={() => downloadComparison("csv")} disabled={comparisonLoading}>下载 CSV</button><button onClick={() => downloadComparison("html")} disabled={comparisonLoading}>下载 HTML 报告</button><button onClick={downloadComparisonJson} disabled={comparisonLoading}>下载 JSON 快照</button></div>{comparison.warnings.map(message => <p key={message}>{message}</p>)}</section><section className="card comparison-table"><div className="preview-scroll"><table><thead><tr><th>指标（原始全区间）</th>{comparison.items.map((item, index) => <th key={item.run_id}>{item.experiment_name}<small>{index === 0 ? "基准" : factorName(item.factor)}</small></th>)}</tr></thead><tbody>{comparisonMetrics.map(([key, label, percent]) => <tr key={key}><th>{label}</th>{comparison.items.map((item, index) => <td key={item.run_id}><b>{key === "coverage" ? item.metrics[key] ?? "—" : number(item.metrics[key], percent)}</b>{index > 0 && <small>较基准 {comparisonDelta(item.delta_from_baseline[key], key === "coverage" ? "count" : percent ? "percent" : "decimal")}</small>}</td>)}</tr>)}</tbody></table></div></section><section className="card comparison-table"><h2>验证期 IC 摘要</h2><p>仅展示已保存的时间切分结果；未切分任务显示为缺失。原始排名不是验证期排名，也不代表同股票样本或验证期收益。{comparison.common_validation_ic_date_count !== null && `共同验证期有效 IC 日：${comparison.common_validation_ic_date_count}。`}</p><div className="preview-scroll"><table><thead><tr><th>验证期</th>{comparison.items.map(item => <th key={item.run_id}>{item.experiment_name}</th>)}</tr></thead><tbody><tr><th>起始日</th>{comparison.items.map(item => <td key={item.run_id}>{item.validation_start_date ?? "—"}</td>)}</tr>{([ ["valid_ic_dates", "有效 IC 日", false], ["ic_mean", "IC 均值", false], ["rank_ic_mean", "Rank IC", false], ["icir", "ICIR", false], ["ic_positive_ratio", "IC 为正", true] ] as const).map(([key, label, percent]) => <tr key={key}><th>{label}</th>{comparison.items.map(item => <td key={item.run_id}>{key === "valid_ic_dates" ? item.validation_ic?.[key] ?? "—" : number(item.validation_ic?.[key], percent)}</td>)}</tr>)}</tbody></table></div></section><section className="comparison-rankings">{Object.entries(comparison.rankings).map(([metric, runIds]) => <article className="card" key={metric}><label>{comparisonMetrics.find(item => item[0] === metric)?.[1] ?? metric} 原始排名</label>{runIds.map((id, index) => { const item = comparison.items.find(value => value.run_id === id); return <span key={id}><b>{index + 1}</b>{item?.experiment_name}</span>; })}</article>)}</section></>}
       {comparison && <div className="notice">共同日期摘要只对齐有效 IC 日期；下方严格样本摘要进一步对齐证券×日期，并在交集截面重算 IC。两者均不重算多空收益或换手；原始指标及排名仍采用各任务全区间。</div>}
