@@ -232,6 +232,7 @@
 | CHG-20261026-002 | 2026-10-26 | testable task polling scheduler / locally tested | 共用可注入时钟的轮询器，直接测试无重叠、状态切换、失败退避和卸载后忽略迟到结果 | [记录](changes/2026-10-26-002-tested-task-poller.md) | `frontend/src/task-refresh.ts`、`main.tsx`、轮询测试及 A/B/C/D 四责任包 |
 | CHG-20261026-003 | 2026-10-26 | report-list sequential refresh / locally tested + Mac browser smoke | 报告列表改为请求完成后 30 秒刷新，增加手动刷新；旧归档预览与下载实点通过 | [记录](changes/2026-10-26-003-report-list-refresh.md) | `frontend/src/task-refresh.ts`、`main.tsx`、受控时钟测试、浏览器验收与 A/B/C/D 四责任包 |
 | CHG-20261026-004 | 2026-10-26 | report archive search / locally tested + Mac browser smoke | 按研究名称或 Run ID 检索旧归档；零匹配时隐藏旧预览与下载 | [记录](changes/2026-10-26-004-report-archive-search.md) | `frontend/src/report-list.ts`、`main.tsx`、检索测试、浏览器验收与 A/B/C/D 四责任包 |
+| CHG-20261026-005 | 2026-10-26 | report-to-task identity link / locally tested + Mac browser smoke | 同名归档显示短 Run，选中报告显示完整身份并可定位同 Run 任务 | [记录](changes/2026-10-26-005-report-task-link.md) | `frontend/src/main.tsx`、`layout.css`、浏览器验收与 A/B/C/D 四责任包 |
 
 ## 历史基线
 

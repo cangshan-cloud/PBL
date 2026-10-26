@@ -82,6 +82,12 @@ main > header > button { flex: 0 0 auto; }
 .run-logs { min-width: 0; }
 
 .report-layout { grid-template-columns: minmax(240px, 280px) minmax(0, 1fr); }
+.report-detail { min-width: 0; display: grid; gap: 12px; }
+.report-identity { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) auto; align-items: center; gap: 12px; padding: 14px 18px; }
+.report-identity > div { min-width: 0; display: grid; gap: 4px; }
+.report-identity span { color: #68776e; font-size: 11px; }
+.report-identity code { color: #243c30; font-size: 11px; overflow-wrap: anywhere; }
+.report-identity button { padding: 9px 12px; background: #eef3e6; box-shadow: none; }
 .report-preview { min-width: 0; height: min(76vh, 900px); }
 .comparison-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .comparison-picker label { min-width: 0; }
@@ -114,6 +120,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 @media (max-width: 1100px) {
   .task-layout, .report-layout { grid-template-columns: minmax(0, 1fr); }
+  .report-identity { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .report-identity button { justify-self: start; }
   .task-list, .report-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .report-preview { height: 68vh; }
 }
@@ -140,6 +148,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .task-detail { padding: 18px; }
   .task-actions { width: 100%; justify-content: flex-start; }
   .task-actions button { white-space: normal; }
+  .report-identity { grid-template-columns: minmax(0, 1fr); }
   .report-preview { min-height: 420px; height: 62vh; }
   .comparison-table th, .comparison-table td { min-width: 120px; padding: 10px; }
 }

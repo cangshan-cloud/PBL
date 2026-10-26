@@ -183,6 +183,14 @@ function App() {
   const visibleTaskLogs = forSelectedId(taskLogs, selectedTask?.id);
   const visibleTaskConclusion = taskConclusion?.run_id === selectedTask?.id ? taskConclusion : null;
   const visibleReportHtml = forSelectedId(reportHtml, selectedReport?.run_id);
+
+  const openSelectedReportTask = () => {
+    if (!selectedReport) return;
+    setSelectedTaskId(selectedReport.run_id);
+    setTaskQuery(selectedReport.run_id);
+    setTaskStatusFilter("all");
+    setView("tasks");
+  };
   const researchInput = {
     mode: researchMode,
     datasetId: selected?.id ?? null,
@@ -717,7 +725,7 @@ function App() {
       {selectedReportDataset && !isKnownSyntheticDemo(selectedReportDataset) && (selectedReportDataset.quality_report.weekend_row_count ?? 0) > 0 && <div className="notice" role="alert">当前报告的数据版本含周末日期行情；请先核对源文件。历史归档 HTML 未改写。</div>}
       {reportCalendarNotice && <div className="notice" role="alert">{reportCalendarNotice}</div>}
       <section className="card task-filters"><label>检索报告<input type="search" value={reportQuery} onChange={event => setReportQuery(event.target.value)} placeholder="Run ID 或研究名称" /></label><span aria-live="polite">显示 {visibleReports.length}/{reports.length} 份报告</span></section>
-      <section className="report-layout"><div className="card report-list">{visibleReports.map(item => <button key={item.run_id} className={selectedReport?.run_id === item.run_id ? "selected" : ""} onClick={() => setSelectedReportId(item.run_id)}><strong>{item.experiment_name}</strong><span>数据 {item.dataset_version} · 因子 {item.factor_version}</span><small>{formatTime(item.created_at)}</small></button>)}{reportListHint(reports.length, reportListLoading) && <div className="empty">{reportListHint(reports.length, reportListLoading)}</div>}{reports.length > 0 && visibleReports.length === 0 && <div className="empty">没有符合检索条件的报告。</div>}</div><div className="card report-preview">{selectedReport && visibleReportHtml ? <iframe title={selectedReport.experiment_name} srcDoc={visibleReportHtml} sandbox="allow-same-origin" /> : <div className="empty">{selectedReport ? "正在加载报告预览…" : reports.length > 0 && visibleReports.length === 0 ? "没有符合检索条件的报告可预览。" : "暂无可预览报告。"}</div>}</div></section>
+      <section className="report-layout"><div className="card report-list">{visibleReports.map(item => <button key={item.run_id} className={selectedReport?.run_id === item.run_id ? "selected" : ""} onClick={() => setSelectedReportId(item.run_id)}><strong>{item.experiment_name}</strong><span>Run {item.run_id.slice(0, 8)} · 数据 {item.dataset_version} · 因子 {item.factor_version}</span><small>{formatTime(item.created_at)}</small></button>)}{reportListHint(reports.length, reportListLoading) && <div className="empty">{reportListHint(reports.length, reportListLoading)}</div>}{reports.length > 0 && visibleReports.length === 0 && <div className="empty">没有符合检索条件的报告。</div>}</div><div className="report-detail">{selectedReport && <section className="card report-identity" aria-label="当前报告身份"><div><span>完整 Run ID</span><code>{selectedReport.run_id}</code></div><div><span>归档 SHA-256</span><code>{selectedReport.checksum}</code></div><button className="secondary" onClick={openSelectedReportTask}>查看对应任务</button></section>}<div className="card report-preview">{selectedReport && visibleReportHtml ? <iframe title={selectedReport.experiment_name} srcDoc={visibleReportHtml} sandbox="allow-same-origin" /> : <div className="empty">{selectedReport ? "正在加载报告预览…" : reports.length > 0 && visibleReports.length === 0 ? "没有符合检索条件的报告可预览。" : "暂无可预览报告。"}</div>}</div></div></section>
     </>}<footer>研究结果仅用于课程研究，不构成投资建议。</footer></main></div>;
 }
 
