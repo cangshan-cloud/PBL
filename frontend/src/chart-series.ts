@@ -11,6 +11,13 @@ export type AlignedNavLine = {
   lastValue: number | null;
 };
 
+export function icChartLines(series: readonly { date: string; ic: number | null; rank_ic: number | null }[]): NavLine[] {
+  return [
+    { label: "IC", color: "#3f765d", points: series.map(item => ({ date: item.date, value: item.ic ?? Number.NaN })) },
+    { label: "Rank IC", color: "#d69043", points: series.map(item => ({ date: item.date, value: item.rank_ic ?? Number.NaN })) },
+  ];
+}
+
 export function interiorAllMissingDates(aligned: { dates: readonly string[]; lines: readonly AlignedNavLine[] }): string[] {
   const present = new Set(aligned.lines.flatMap(line => line.segments.flatMap(segment => segment.map(point => point.index))));
   if (present.size < 2) return [];

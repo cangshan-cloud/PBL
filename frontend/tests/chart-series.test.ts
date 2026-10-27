@@ -1,6 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { alignNavLines, interiorAllMissingDates } from "../src/chart-series.ts";
+import { alignNavLines, icChartLines, interiorAllMissingDates } from "../src/chart-series.ts";
+
+test("IC and Rank IC use separate saved values, gaps, and last finite points", () => {
+  const series = [
+    { date: "2025-01-02", ic: 0.1, rank_ic: -0.2 },
+    { date: "2025-01-03", ic: null, rank_ic: 0.3 },
+    { date: "2025-01-06", ic: -0.1, rank_ic: null },
+  ];
+  const aligned = alignNavLines(icChartLines(series), ["2025-01-07"]);
+  assert.deepEqual(aligned.lines.map(line => line.label), ["IC", "Rank IC"]);
+  assert.deepEqual(aligned.lines[0].segments, [[{ index: 0, value: 0.1 }], [{ index: 2, value: -0.1 }]]);
+  assert.deepEqual(aligned.lines[1].segments, [[{ index: 0, value: -0.2 }, { index: 1, value: 0.3 }]]);
+  assert.deepEqual(aligned.lines.map(line => line.lastValue), [-0.1, 0.3]);
+  assert.deepEqual(interiorAllMissingDates(aligned), []);
+});
 
 test("NAV lines share ordered dates and break rather than bridge absent dates", () => {
   const aligned = alignNavLines([
