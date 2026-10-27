@@ -12,7 +12,7 @@
 
 四个 CSV 参数可任意选择，但至少要给一个。退出码 0 会输出各文件核对的行数。工具先检查复现 JSON 的结构版本、重复键和结果 SHA-256，再按原日期与组别顺序逐行核对列名、完整 Run ID、空值与每个原始数值；多空 CSV 同时核对单边成本参数。逐日诊断还核对候选/有效/排除数、原始覆盖率与 IC/分组状态码；旧结果没有 `daily_coverage` 时不能核对该文件，不会臆造空序列。错 Run、缺行、换序、列被改动、非有限数值或结果校验和不符均返回非零。无有效分组日允许只有表头；各组 CSV 按组别展开 `run_id,group,date,nav`，这里的净值为未扣成本的毛净值。
 
-这是一致性核对，**不是数字签名，也不是独立重算**。复现 JSON 的 `task.id` 未包含在 `result_sha256` 内；协调修改 JSON 身份与 CSV 身份仍可骗过本工具。应从可信平台分别取得文件，并核对任务页面身份。工具不认证行情来源、数据授权、因子公式、显著性或可成交收益。浏览器下载文件与复现包的真实历史 Run 核对见 [IC/多空记录](SERIES_EXPORT_QA_2026-10-26.md)、[各组净值记录](GROUP_NAV_CSV_BROWSER_QA_2026-10-26.md)及[逐日诊断离线记录](DAILY_COVERAGE_EXPORT_OFFLINE_QA_2026-10-27.md)，决策见 [CHG-20261026-009](changes/2026-10-26-009-series-export-verifier.md)、[CHG-20261026-010](changes/2026-10-26-010-group-nav-csv.md)和 [CHG-20261027-007](changes/2026-10-27-007-daily-coverage-offline-verification.md)。
+这是一致性核对，**不是数字签名，也不是独立重算**。旧 V1 复现 JSON 的 `task.id` 未包含在 `result_sha256` 内；新版 V2 增加整包摘要，正常修改身份或数据版本而不改摘要会被拒，但协调重写内容和摘要仍可骗过无密钥校验。若要明确只验新版，先对同一 JSON 运行 [整包命令的 `--require-v2`](REPRODUCIBILITY_EXPORT_CHECK.md)。应从可信平台分别取得文件，并核对任务页面身份。工具不认证行情来源、数据授权、因子公式、显著性或可成交收益。浏览器下载文件与复现包的真实历史 Run 核对见 [IC/多空记录](SERIES_EXPORT_QA_2026-10-26.md)、[各组净值记录](GROUP_NAV_CSV_BROWSER_QA_2026-10-26.md)及[逐日诊断离线记录](DAILY_COVERAGE_EXPORT_OFFLINE_QA_2026-10-27.md)，决策见 [CHG-20261026-009](changes/2026-10-26-009-series-export-verifier.md)、[CHG-20261026-010](changes/2026-10-26-010-group-nav-csv.md)、[CHG-20261027-007](changes/2026-10-27-007-daily-coverage-offline-verification.md)和 [CHG-20261027-012](changes/2026-10-27-012-bound-reproducibility-bundle.md)。
 
 ## 复现结果内部一致性审计
 

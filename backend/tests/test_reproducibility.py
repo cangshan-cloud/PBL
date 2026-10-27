@@ -37,7 +37,7 @@ class ReproducibilityTests(unittest.TestCase):
 
             self.assertEqual(response.media_type, "application/json; charset=utf-8")
             self.assertIn("attachment", response.headers["content-disposition"])
-            self.assertEqual(bundle["schema_version"], 1)
+            self.assertEqual(bundle["schema_version"], 2)
             self.assertEqual(bundle["task"]["id"], run.id)
             self.assertEqual(bundle["task"]["code_version"], run.experiment.code_version)
             self.assertEqual(bundle["dataset"]["checksum_sha256"], run.experiment.dataset_version.checksum)
@@ -46,6 +46,10 @@ class ReproducibilityTests(unittest.TestCase):
             self.assertEqual(bundle["result"]["coverage"], run.artifacts[0].content["coverage"])
             canonical = json.dumps(bundle["result"], ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
             self.assertEqual(bundle["result_sha256"], hashlib.sha256(canonical.encode("utf-8")).hexdigest())
+            unsigned = {key: value for key, value in bundle.items() if key != "bundle_sha256"}
+            canonical_bundle = json.dumps(unsigned, ensure_ascii=False, sort_keys=True,
+                                          separators=(",", ":"), allow_nan=False)
+            self.assertEqual(bundle["bundle_sha256"], hashlib.sha256(canonical_bundle.encode("utf-8")).hexdigest())
             self.assertEqual(len(bundle["report_sha256"]), 64)
             self.assertTrue(any(item["event"] == "completed" for item in bundle["logs"]))
             self.assertNotIn("storage_uri", response.body.decode("utf-8"))
@@ -53,11 +57,26 @@ class ReproducibilityTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as directory:
                 bundle_path = Path(directory) / "reproducibility.json"
                 bundle_path.write_bytes(response.body)
-                self.assertEqual(verify_export(bundle_path), {"result_verified": True})
+                self.assertEqual(verify_export(bundle_path, require_v2=True),
+                                 {"result_verified": True, "bundle_verified": True})
                 damaged = dict(bundle)
                 damaged["result"] = {**bundle["result"], "coverage": -1}
                 bundle_path.write_text(json.dumps(damaged), encoding="utf-8")
                 with self.assertRaisesRegex(ValueError, "result checksum mismatch"):
+                    verify_export(bundle_path)
+                for changed in (
+                    {"task": {**bundle["task"], "id": "another-run"}},
+                    {"dataset": {**bundle["dataset"], "checksum_sha256": "0" * 64}},
+                    {"factor": {**bundle["factor"], "formula": "changed"}},
+                    {"report_sha256": "0" * 64},
+                ):
+                    with self.subTest(changed=list(changed)):
+                        bundle_path.write_text(json.dumps({**bundle, **changed}), encoding="utf-8")
+                        with self.assertRaisesRegex(ValueError, "bundle checksum mismatch"):
+                            verify_export(bundle_path)
+                bundle_path.write_text(json.dumps({key: value for key, value in bundle.items()
+                                                   if key != "bundle_sha256"}), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "no valid bundle checksum"):
                     verify_export(bundle_path)
 
     def test_offline_verifier_checks_optional_report_bytes(self):
@@ -74,6 +93,8 @@ class ReproducibilityTests(unittest.TestCase):
             }), encoding="utf-8")
             self.assertEqual(verify_export(bundle_path, report_path),
                              {"result_verified": True, "report_verified": True})
+            with self.assertRaisesRegex(ValueError, "not schema v2"):
+                verify_export(bundle_path, require_v2=True)
             report_path.write_bytes(b"<html>changed</html>")
             with self.assertRaisesRegex(ValueError, "report checksum mismatch"):
                 verify_export(bundle_path, report_path)
@@ -103,6 +124,8 @@ class ReproducibilityTests(unittest.TestCase):
             self.assertIsNone(bundle["result"])
             self.assertIsNone(bundle["result_sha256"])
             self.assertIsNone(bundle["report_sha256"])
+            self.assertEqual(bundle["schema_version"], 2)
+            self.assertEqual(len(bundle["bundle_sha256"]), 64)
 
 
 if __name__ == "__main__":

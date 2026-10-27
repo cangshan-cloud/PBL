@@ -22,12 +22,15 @@ class ComposeStackSnapshotTests(unittest.TestCase):
         canonical = json.dumps(self.run["result"], ensure_ascii=False, sort_keys=True,
                                separators=(",", ":")).encode("utf-8")
         self.bundle = {
-            "schema_version": 1,
+            "schema_version": 2,
             "task": {"id": "run-1"},
             "result": dict(self.run["result"]),
             "result_sha256": hashlib.sha256(canonical).hexdigest(),
             "report_sha256": hashlib.sha256(self.report.encode("utf-8")).hexdigest(),
         }
+        canonical_bundle = json.dumps(self.bundle, ensure_ascii=False, sort_keys=True,
+                                      separators=(",", ":")).encode("utf-8")
+        self.bundle["bundle_sha256"] = hashlib.sha256(canonical_bundle).hexdigest()
 
     def test_matching_snapshot_passes(self):
         verify_snapshot(self.bundle, self.run, self.report)
@@ -54,6 +57,15 @@ class ComposeStackSnapshotTests(unittest.TestCase):
         self.bundle["result"] = None
         with self.assertRaisesRegex(RuntimeError, "differs from the task"):
             verify_snapshot(self.bundle, self.run, self.report)
+
+    def test_v2_metadata_checksum_and_v1_legacy(self):
+        self.bundle["dataset"] = {"checksum_sha256": "changed"}
+        with self.assertRaisesRegex(RuntimeError, "bundle checksum mismatch"):
+            verify_snapshot(self.bundle, self.run, self.report)
+        self.bundle.pop("dataset")
+        self.bundle.pop("bundle_sha256")
+        self.bundle["schema_version"] = 1
+        verify_snapshot(self.bundle, self.run, self.report)
 
     def test_write_check_requires_acknowledgement_before_network(self):
         with patch.dict(os.environ, {"FACTORLAB_SMOKE_URL": "http://127.0.0.1:18002/api/v1"}), \

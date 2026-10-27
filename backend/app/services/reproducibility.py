@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 
+from fastapi.encoders import jsonable_encoder
+
 from app.models import Run
 from app.services.runs import serialize_run
 
@@ -18,8 +20,8 @@ def build_reproducibility_bundle(run: Run) -> dict:
         canonical = json.dumps(result, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
         result_digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
     report = next((item for item in run.artifacts if item.artifact_type == "report_html"), None)
-    return {
-        "schema_version": 1,
+    bundle = jsonable_encoder({
+        "schema_version": 2,
         "task": task,
         "dataset": {
             "id": dataset.id,
@@ -51,4 +53,7 @@ def build_reproducibility_bundle(run: Run) -> dict:
             "This bundle records a completed or in-progress run; it does not include the source dataset file.",
             "Checksums identify stored content but do not prove the dataset or report is still available.",
         ],
-    }
+    })
+    canonical = json.dumps(bundle, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    bundle["bundle_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return bundle

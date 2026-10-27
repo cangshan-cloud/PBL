@@ -100,7 +100,7 @@ class HistoricalAuditExportTests(unittest.TestCase):
             verify_exports(self.bundle_path, self.daily_path, self.unlabeled_path)
 
     def test_unsupported_schema_is_rejected_before_audit_comparison(self):
-        for version in (None, 2, True):
+        for version in (None, 3, True):
             with self.subTest(version=version):
                 self._write_exports()
                 bundle = json.loads(self.bundle_path.read_text(encoding="utf-8"))
@@ -111,6 +111,12 @@ class HistoricalAuditExportTests(unittest.TestCase):
                 self.bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
                 with self.assertRaisesRegex(ValueError, "unsupported reproducibility bundle schema"):
                     verify_exports(self.bundle_path, self.daily_path, self.unlabeled_path)
+        self._write_exports()
+        bundle = json.loads(self.bundle_path.read_text(encoding="utf-8"))
+        bundle["schema_version"] = 2
+        self.bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "no valid bundle checksum"):
+            verify_exports(self.bundle_path, self.daily_path, self.unlabeled_path)
 
     def test_duplicate_json_key_is_rejected(self):
         body = self.bundle_path.read_text(encoding="utf-8")

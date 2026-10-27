@@ -27,7 +27,7 @@ def require_explicit_write_target(argv: list[str] | None = None) -> None:
 
 def verify_snapshot(bundle: dict, run: dict, report: str) -> None:
     task = bundle.get("task")
-    if bundle.get("schema_version") != 1 or not isinstance(task, dict) or task.get("id") != run["id"]:
+    if type(bundle.get("schema_version")) is not int or bundle["schema_version"] not in {1, 2} or not isinstance(task, dict) or task.get("id") != run["id"]:
         raise RuntimeError("reproducibility bundle does not match the completed run")
     result = bundle.get("result")
     if not isinstance(result, dict) or result != run.get("result"):
@@ -38,6 +38,12 @@ def verify_snapshot(bundle: dict, run: dict, report: str) -> None:
         raise RuntimeError("reproducibility result checksum mismatch")
     if hashlib.sha256(report.encode("utf-8")).hexdigest() != bundle.get("report_sha256"):
         raise RuntimeError("reproducibility report checksum mismatch")
+    if bundle["schema_version"] == 2:
+        unsigned = {key: value for key, value in bundle.items() if key != "bundle_sha256"}
+        canonical_bundle = json.dumps(unsigned, ensure_ascii=False, sort_keys=True,
+                                      separators=(",", ":"), allow_nan=False).encode("utf-8")
+        if hashlib.sha256(canonical_bundle).hexdigest() != bundle.get("bundle_sha256"):
+            raise RuntimeError("reproducibility bundle checksum mismatch")
 
 
 def request(path: str, *, method: str = "GET", payload: dict | None = None, token: str | None = None):
