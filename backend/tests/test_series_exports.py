@@ -18,6 +18,7 @@ class SeriesExportVerificationTests(unittest.TestCase):
         self.ic = root / "ic.csv"
         self.long_short = root / "long-short.csv"
         self.group_nav = root / "group-nav.csv"
+        self.daily_coverage = root / "daily-coverage.csv"
         self.run_id = "858c2667-19b8-4538-a02b-a3a16175adf5"
         self.result = {
             "ic_series": [{"date": "2024-01-02", "ic": -0.123456789, "rank_ic": None},
@@ -30,6 +31,13 @@ class SeriesExportVerificationTests(unittest.TestCase):
                 {"group": 1, "points": [{"date": "2024-01-02", "nav": 0.99},
                                         {"date": "2024-01-03", "nav": 1.01}]},
                 {"group": 2, "points": [{"date": "2024-01-02", "nav": 1.02}]},
+            ],
+            "daily_coverage": [
+                {"date": "2024-01-02", "candidate_symbols": 3, "eligible_symbols": 2,
+                 "coverage_ratio": 2 / 3, "excluded_symbols": 1,
+                 "ic_status": "valid", "group_status": "insufficient_sample"},
+                {"date": "2024-01-03", "eligible_symbols": 0, "coverage_ratio": None,
+                 "ic_status": "no_observation", "group_status": "no_observation"},
             ],
         }
         self._write_bundle()
@@ -48,6 +56,12 @@ class SeriesExportVerificationTests(unittest.TestCase):
             f"{self.run_id},2,2024-01-02,1.02\r\n",
             encoding="utf-8", newline="",
         )
+        self.daily_coverage.write_text(
+            "\ufeffrun_id,date,candidate_symbols,eligible_symbols,coverage_ratio,excluded_symbols,ic_status,group_status\r\n"
+            f"{self.run_id},2024-01-02,3,2,{2 / 3},1,valid,insufficient_sample\r\n"
+            f"{self.run_id},2024-01-03,,0,,,no_observation,no_observation\r\n",
+            encoding="utf-8", newline="",
+        )
 
     def tearDown(self):
         self.temp.cleanup()
@@ -59,11 +73,45 @@ class SeriesExportVerificationTests(unittest.TestCase):
         self.bundle.write_text(json.dumps({"schema_version": 1, "task": {"id": self.run_id},
                                            "result": self.result, "result_sha256": digest}), encoding="utf-8")
 
-    def test_both_downloads_match_checksummed_bundle(self):
-        self.assertEqual(verify_series_exports(self.bundle, self.ic, self.long_short, self.group_nav),
-                         {"ic_rows": 2, "long_short_rows": 1, "group_nav_rows": 3})
+    def test_all_downloads_match_checksummed_bundle(self):
+        self.assertEqual(verify_series_exports(self.bundle, self.ic, self.long_short,
+                                               self.group_nav, self.daily_coverage),
+                         {"ic_rows": 2, "long_short_rows": 1, "group_nav_rows": 3,
+                          "daily_coverage_rows": 2})
         self.assertEqual(verify_series_exports(self.bundle, group_nav_path=self.group_nav),
                          {"group_nav_rows": 3})
+        self.assertEqual(verify_series_exports(self.bundle, daily_coverage_path=self.daily_coverage),
+                         {"daily_coverage_rows": 2})
+
+    def test_daily_coverage_wrong_run_missing_row_status_ratio_and_columns_are_rejected(self):
+        original = self.daily_coverage.read_bytes()
+        self.daily_coverage.write_bytes(original.replace(self.run_id.encode(), b"wrong-run", 1))
+        with self.assertRaisesRegex(ValueError, "run_id differs"):
+            verify_series_exports(self.bundle, daily_coverage_path=self.daily_coverage)
+        lines = original.splitlines(keepends=True)
+        self.daily_coverage.write_bytes(lines[0] + lines[1])
+        with self.assertRaisesRegex(ValueError, "row count differs"):
+            verify_series_exports(self.bundle, daily_coverage_path=self.daily_coverage)
+        self.daily_coverage.write_bytes(original.replace(b",valid,insufficient_sample", b",valid,valid"))
+        with self.assertRaisesRegex(ValueError, "group_status differs"):
+            verify_series_exports(self.bundle, daily_coverage_path=self.daily_coverage)
+        self.daily_coverage.write_bytes(original.replace(str(2 / 3).encode(), b"0.5"))
+        with self.assertRaisesRegex(ValueError, "coverage_ratio differs"):
+            verify_series_exports(self.bundle, daily_coverage_path=self.daily_coverage)
+        self.daily_coverage.write_bytes(original.replace(b"candidate_symbols", b"candidates"))
+        with self.assertRaisesRegex(ValueError, "unexpected CSV columns"):
+            verify_series_exports(self.bundle, daily_coverage_path=self.daily_coverage)
+
+    def test_daily_coverage_requires_saved_series_and_preserves_nulls(self):
+        original = self.daily_coverage.read_bytes()
+        self.daily_coverage.write_bytes(original.replace(b",2024-01-03,,0,,", b",2024-01-03,0,0,,"))
+        with self.assertRaisesRegex(ValueError, "candidate_symbols differs"):
+            verify_series_exports(self.bundle, daily_coverage_path=self.daily_coverage)
+        self.daily_coverage.write_bytes(original)
+        del self.result["daily_coverage"]
+        self._write_bundle()
+        with self.assertRaisesRegex(ValueError, "no valid daily coverage series"):
+            verify_series_exports(self.bundle, daily_coverage_path=self.daily_coverage)
 
     def test_wrong_run_missing_row_and_changed_value_are_rejected(self):
         original = self.ic.read_bytes()

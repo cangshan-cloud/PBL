@@ -674,3 +674,7 @@ OrbStack 恢复后，以专用项目、独立数据库卷/网络和只读私有�
 
 仅读取现有 `result.time_split`，无新接口、任务或数据库变更。隔离浏览器构造字段仅在会话中，退出后消失；QA 容器已关闭，主栈未操作。见[浏览器验收](../IC_SPLIT_DATE_CONTEXT_QA_2026-10-27.md)及 [CHG-20261027-006](../changes/2026-10-27-006-ic-split-date-context.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-27 逐日诊断离线核对集成（开发者代执行）
+
+现有只读校验脚本扩展一个可选 CSV 参数，不增加服务、数据库或前端接口；四份留存下载与同 Run 复现 JSON 核对通过。未启动容器或改主服务。见[离线验收](../DAILY_COVERAGE_EXPORT_OFFLINE_QA_2026-10-27.md)及 [CHG-20261027-007](../changes/2026-10-27-007-daily-coverage-offline-verification.md)。实际执行者：Codex；队长本人未签收。
+

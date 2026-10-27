@@ -1,4 +1,4 @@
-"""Reconcile browser-downloaded daily series CSVs with one reproducibility JSON.
+"""Reconcile browser-downloaded daily series and coverage CSVs with one reproducibility JSON.
 
 This is a read-only export check, not an independent factor or market-data audit.
 """
@@ -22,6 +22,10 @@ LONG_SHORT_FIELDS = (
     "net_return", "net_nav", "transaction_cost_bps",
 )
 GROUP_NAV_FIELDS = ("run_id", "group", "date", "nav")
+DAILY_COVERAGE_FIELDS = (
+    "run_id", "date", "candidate_symbols", "eligible_symbols", "coverage_ratio",
+    "excluded_symbols", "ic_status", "group_status",
+)
 
 
 def _rows(path: Path, fields: tuple[str, ...]) -> list[dict[str, str]]:
@@ -62,8 +66,9 @@ def _verify(path: Path, fields: tuple[str, ...], expected: list[dict[str, object
 
 def verify_series_exports(bundle_path: Path, ic_path: Path | None = None,
                           long_short_path: Path | None = None,
-                          group_nav_path: Path | None = None) -> dict[str, int]:
-    if ic_path is None and long_short_path is None and group_nav_path is None:
+                          group_nav_path: Path | None = None,
+                          daily_coverage_path: Path | None = None) -> dict[str, int]:
+    if all(path is None for path in (ic_path, long_short_path, group_nav_path, daily_coverage_path)):
         raise ValueError("provide at least one series CSV")
     bundle = load_verified_export(bundle_path)
     task = bundle.get("task")
@@ -101,6 +106,18 @@ def verify_series_exports(bundle_path: Path, ic_path: Path | None = None,
         expected = [dict(run_id=run_id, group=item["group"], date=point["date"], nav=point["nav"])
                     for item in groups for point in item["points"]]
         summary["group_nav_rows"] = _verify(group_nav_path, GROUP_NAV_FIELDS, expected)
+    if daily_coverage_path is not None:
+        series = result.get("daily_coverage")
+        if not isinstance(series, list) or any(not isinstance(row, dict) for row in series):
+            raise ValueError("reproducibility result has no valid daily coverage series")
+        expected = [dict(run_id=run_id, date=row["date"],
+                         candidate_symbols=row.get("candidate_symbols"),
+                         eligible_symbols=row["eligible_symbols"],
+                         coverage_ratio=row.get("coverage_ratio"),
+                         excluded_symbols=row.get("excluded_symbols"),
+                         ic_status=row["ic_status"], group_status=row["group_status"])
+                    for row in series]
+        summary["daily_coverage_rows"] = _verify(daily_coverage_path, DAILY_COVERAGE_FIELDS, expected)
     return summary
 
 
@@ -110,10 +127,12 @@ def main() -> None:
     parser.add_argument("--ic-csv", type=Path)
     parser.add_argument("--long-short-csv", type=Path)
     parser.add_argument("--group-nav-csv", type=Path)
+    parser.add_argument("--daily-coverage-csv", type=Path)
     args = parser.parse_args()
     try:
         print(json.dumps(verify_series_exports(args.reproducibility_json, args.ic_csv,
-                                               args.long_short_csv, args.group_nav_csv), ensure_ascii=False))
+                                               args.long_short_csv, args.group_nav_csv,
+                                               args.daily_coverage_csv), ensure_ascii=False))
     except (OSError, UnicodeError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
         parser.exit(1, f"series export verification failed: {exc}\n")
 
