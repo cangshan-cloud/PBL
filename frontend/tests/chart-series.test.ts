@@ -1,6 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { alignNavLines, icChartLines, icInspectionRows, interiorAllMissingDates } from "../src/chart-series.ts";
+import { alignNavLines, icChartLines, icInspectionRows, interiorAllMissingDates, navInspectionRows } from "../src/chart-series.ts";
+
+test("NAV inspection aligns saved groups without filling absent values", () => {
+  assert.deepEqual(navInspectionRows([
+    { label: "Q1", color: "green", points: [{ date: "2025-01-02", value: 1.123456789 }, { date: "2025-01-06", value: 1.2 }] },
+    { label: "Q2", color: "orange", points: [{ date: "2025-01-03", value: 0.9 }, { date: "2025-01-06", value: Number.NaN }] },
+  ], ["2025-01-04"]), [
+    { date: "2025-01-02", values: [{ label: "Q1", value: 1.123456789 }, { label: "Q2", value: null }], hasRecord: true },
+    { date: "2025-01-03", values: [{ label: "Q1", value: null }, { label: "Q2", value: 0.9 }], hasRecord: true },
+    { date: "2025-01-04", values: [{ label: "Q1", value: null }, { label: "Q2", value: null }], hasRecord: false },
+    { date: "2025-01-06", values: [{ label: "Q1", value: 1.2 }, { label: "Q2", value: null }], hasRecord: true },
+  ]);
+});
 
 test("IC date inspection preserves saved precision and known diagnostic-only dates", () => {
   assert.deepEqual(icInspectionRows([

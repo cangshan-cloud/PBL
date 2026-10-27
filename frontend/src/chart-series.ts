@@ -11,6 +11,25 @@ export type AlignedNavLine = {
   lastValue: number | null;
 };
 
+export type ChartInspectionRow = {
+  date: string;
+  values: { label: string; value: number | null }[];
+  hasRecord: boolean;
+};
+
+export function navInspectionRows(lines: readonly NavLine[], knownDates: readonly string[] = []): ChartInspectionRow[] {
+  const byLine = lines.map(line => new Map(line.points.map(point => [point.date, point.value])));
+  const dates = [...new Set([...knownDates, ...lines.flatMap(line => line.points.map(point => point.date))])].sort();
+  return dates.map(date => ({
+    date,
+    values: lines.map((line, index) => {
+      const value = byLine[index].get(date);
+      return { label: line.label, value: value !== undefined && Number.isFinite(value) ? value : null };
+    }),
+    hasRecord: byLine.some(points => points.has(date)),
+  }));
+}
+
 export function icChartLines(series: readonly { date: string; ic: number | null; rank_ic: number | null }[]): NavLine[] {
   return [
     { label: "IC", color: "#3f765d", points: series.map(item => ({ date: item.date, value: item.ic ?? Number.NaN })) },

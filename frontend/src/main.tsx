@@ -15,7 +15,7 @@ import { saveBlobAsFile } from "./blob-download";
 import { icSeriesCsv, icSeriesFilename } from "./ic-series-export";
 import { longShortCsv, longShortFilename } from "./long-short-export";
 import { groupNavCsv, groupNavFilename } from "./group-nav-export";
-import { alignNavLines, icChartLines, icInspectionRows, interiorAllMissingDates, type NavLine } from "./chart-series";
+import { alignNavLines, icChartLines, icInspectionRows, interiorAllMissingDates, navInspectionRows, type ChartInspectionRow, type NavLine } from "./chart-series";
 import { DailyCoverageTable } from "./DailyCoverageTable";
 import { filterTasks, type TaskStatusFilter } from "./task-filter";
 import { startReportPolling, startTaskPolling } from "./task-refresh";
@@ -79,7 +79,26 @@ function KnownGapNotice({ dates }: { dates: string[] }) {
   return <details className="chart-gap-notice"><summary>{dates.length} 个已知日期在有效点之间无可绘制值</summary><p>{dates.join("、")}</p><small>仅按本 Run 保存的结果与逐日诊断识别，不推断缺值原因或未记录的市场日期。</small></details>;
 }
 
-function NavChart({ eyebrow, title, lines, knownDates = [], note, action, wide = false }: { eyebrow: string; title: string; lines: NavLine[]; knownDates?: string[]; note: string; action?: React.ReactNode; wide?: boolean }) {
+function ChartDateInspector({ id, name, rows, missingRecordNote }: { id: string; name: string; rows: ChartInspectionRow[]; missingRecordNote: string }) {
+  const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
+  const foundIndex = rows.findIndex(item => item.date === selectedDate);
+  const selectedIndex = foundIndex >= 0 ? foundIndex : rows.length - 1;
+  const inspected = rows[selectedIndex];
+  if (!inspected) return null;
+  return <div className="chart-date-inspector">
+    <div className="chart-date-picker">
+      <label htmlFor={id}>核对日期</label>
+      <button type="button" disabled={selectedIndex === 0} onClick={() => setSelectedDate(rows[selectedIndex - 1].date)} aria-label={`${name}查看前一个已知日期`}>前一日</button>
+      <select id={id} aria-label={`${name}核对日期`} value={inspected.date} onChange={event => setSelectedDate(event.target.value)}>{rows.map(item => <option key={item.date} value={item.date}>{item.date}</option>)}</select>
+      <button type="button" disabled={selectedIndex === rows.length - 1} onClick={() => setSelectedDate(rows[selectedIndex + 1].date)} aria-label={`${name}查看后一个已知日期`}>后一日</button>
+    </div>
+    <div className="chart-date-values">{inspected.values.map(item => <span key={item.label}>{item.label} <strong>{item.value != null && Number.isFinite(item.value) ? String(item.value) : "—"}</strong></span>)}</div>
+    {!inspected.hasRecord && <small>{missingRecordNote}</small>}
+    {inspected.hasRecord && inspected.values.every(item => item.value === null) && <small>该日期有原记录，但当前图各线均无可绘制值。</small>}
+  </div>;
+}
+
+function NavChart({ eyebrow, title, lines, knownDates = [], note, action, wide = false, inspectorId }: { eyebrow: string; title: string; lines: NavLine[]; knownDates?: string[]; note: string; action?: React.ReactNode; wide?: boolean; inspectorId: string }) {
   const aligned = alignNavLines(lines, knownDates);
   const gapDates = interiorAllMissingDates(aligned);
   const valid = aligned.lines.flatMap(line => line.segments.flatMap(segment => segment.map(point => point.value)));
@@ -99,7 +118,8 @@ function NavChart({ eyebrow, title, lines, knownDates = [], note, action, wide =
     {aligned.dates.length > 0 && <div className="chart-date-range"><span>{aligned.dates[0]}</span><span>{aligned.dates.at(-1)}</span></div>}
     <KnownGapNotice dates={gapDates} />
     <div className="chart-legend">{aligned.lines.map(line => <span key={line.label}><i style={{ background: line.color }} />{line.label} · {number(line.lastValue)}</span>)}</div>
-    <small>{note}；横向按已知结果/诊断日期等距，非自然日间隔；已知缺日断线。</small>
+    <ChartDateInspector id={inspectorId} name={title} rows={navInspectionRows(lines, knownDates)} missingRecordNote="该日期仅见于逐日诊断，没有保存的净值记录。" />
+    <small>{note}；横向按已知结果/诊断日期等距，非自然日间隔；已知缺日断线。图例为末次可绘制值，日期核对区保留保存数值。</small>
   </article>;
 }
 
@@ -115,11 +135,11 @@ function IcSeriesChart({ runId, series, knownDates = [], showDownload = true }: 
   const icCount = series.filter(item => item.ic != null && Number.isFinite(item.ic)).length;
   const rankIcCount = series.filter(item => item.rank_ic != null && Number.isFinite(item.rank_ic)).length;
   const aligned = alignNavLines(icChartLines(series), [...knownDates, ...series.map(item => item.date)]);
-  const inspectionRows = icInspectionRows(series, knownDates);
-  const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
-  const foundIndex = inspectionRows.findIndex(item => item.date === selectedDate);
-  const selectedIndex = foundIndex >= 0 ? foundIndex : inspectionRows.length - 1;
-  const inspected = inspectionRows[selectedIndex];
+  const inspectionRows = icInspectionRows(series, knownDates).map(item => ({
+    date: item.date,
+    values: [{ label: "IC", value: item.ic }, { label: "Rank IC", value: item.rank_ic }],
+    hasRecord: item.hasRecord,
+  }));
   const valid = aligned.lines.flatMap(line => line.segments.flatMap(segment => segment.map(point => point.value)));
   const low = Math.min(0, ...valid); const high = Math.max(0, ...valid);
   const span = high - low || 1; const padding = span * 0.08;
@@ -138,17 +158,7 @@ function IcSeriesChart({ runId, series, knownDates = [], showDownload = true }: 
     {aligned.dates.length > 0 && <div className="chart-date-range"><span>{aligned.dates[0]}</span><span>{aligned.dates.at(-1)}</span></div>}
     <KnownGapNotice dates={gapDates} />
     <div className="chart-legend">{aligned.lines.map(line => <span key={line.label}><i style={{ background: line.color }} />{line.label} · {number(line.lastValue)}</span>)}</div>
-    {inspected && <div className="ic-date-inspector">
-      <div className="ic-date-picker">
-        <label htmlFor={`ic-date-${runId}`}>核对日期</label>
-        <button type="button" disabled={selectedIndex === 0} onClick={() => setSelectedDate(inspectionRows[selectedIndex - 1].date)} aria-label="查看前一个已知日期">前一日</button>
-        <select id={`ic-date-${runId}`} value={inspected.date} onChange={event => setSelectedDate(event.target.value)}>{inspectionRows.map(item => <option key={item.date} value={item.date}>{item.date}</option>)}</select>
-        <button type="button" disabled={selectedIndex === inspectionRows.length - 1} onClick={() => setSelectedDate(inspectionRows[selectedIndex + 1].date)} aria-label="查看后一个已知日期">后一日</button>
-      </div>
-      <div className="ic-date-values"><span>IC <strong>{inspected.ic != null && Number.isFinite(inspected.ic) ? String(inspected.ic) : "—"}</strong></span><span>Rank IC <strong>{inspected.rank_ic != null && Number.isFinite(inspected.rank_ic) ? String(inspected.rank_ic) : "—"}</strong></span></div>
-      {!inspected.hasRecord && <small>该日期仅见于逐日诊断，没有保存的相关性记录。</small>}
-      {inspected.hasRecord && inspected.ic == null && inspected.rank_ic == null && <small>该日期有原记录，但两项相关性均为空值。</small>}
-    </div>}
+    <ChartDateInspector id={`ic-date-${runId}`} name="IC 与 Rank IC" rows={inspectionRows} missingRecordNote="该日期仅见于逐日诊断，没有保存的相关性记录。" />
     <small>{icCount} 个有效 IC 截面、{rankIcCount} 个有效 Rank IC 截面；{aligned.dates.length - new Set(series.map(item => item.date)).size} 个已知日期无原记录，原记录中 IC 有 {series.length - icCount} 个、Rank IC 有 {series.length - rankIcCount} 个不可绘制值，均不填零。横向按已知结果/诊断日期等距，非自然日间隔；图例为末次可绘制值，日期核对区和 CSV 保留原数值。</small>
   </article>;
 }
@@ -171,13 +181,13 @@ function SavedSeriesCharts({ runId, result, onDownloadLongShort, onDownloadGroup
   const knownDates = result.daily_coverage?.map(item => item.date) ?? [];
   return <section className="chart-grid" aria-label={`Run ${runId} 的逐日曲线`}>
     <IcSeriesChart key={runId} runId={runId} series={result.ic_series} knownDates={knownDates} showDownload={showActions} />
-    <NavChart eyebrow="LONG SHORT NAV" title="多空组合净值" lines={[
+    <NavChart key={`${runId}-long-short`} inspectorId={`long-short-date-${runId}`} eyebrow="LONG SHORT NAV" title="多空组合净值" lines={[
       { label: "毛净值", color: "#277a5b", points: result.long_short_series.map(item => ({ date: item.date, value: item.nav })) },
       { label: "成本后净值", color: "#d69043", points: result.long_short_series.map(item => ({ date: item.date, value: item.net_nav })) },
     ]} knownDates={knownDates} note={`初值 1；成本后净值扣除 ${result.transaction_cost_bps} bps 单边成本`}
       action={showActions && <button className="secondary" onClick={() => onDownloadLongShort(runId, result)}>下载多空逐日 CSV</button>} />
     {includeDistribution && <IcDistribution result={result} />}
-    <NavChart eyebrow="QUANTILE NAV" title="各组净值" lines={(result.group_nav ?? []).map(item => ({
+    <NavChart key={`${runId}-groups`} inspectorId={`group-date-${runId}`} eyebrow="QUANTILE NAV" title="各组净值" lines={(result.group_nav ?? []).map(item => ({
       label: `Q${item.group}`, color: groupColors[(item.group - 1) % groupColors.length],
       points: item.points.map(point => ({ date: point.date, value: point.nav })),
     }))} knownDates={knownDates} note="各组等权日收益连乘，初值 1；与分组平均收益使用同一结果数据"
