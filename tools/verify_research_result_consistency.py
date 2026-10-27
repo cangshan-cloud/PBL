@@ -34,6 +34,14 @@ def _close(actual: object, expected: float, label: str) -> None:
         raise ValueError(f"{label}: arithmetic mismatch")
 
 
+def _optional_close(actual: object, expected: float | None, label: str) -> None:
+    if expected is None:
+        if actual is not None:
+            raise ValueError(f"{label}: expected null")
+    else:
+        _close(actual, expected, label)
+
+
 def _dated_rows(value: object, label: str) -> tuple[list[dict], list[str]]:
     if not isinstance(value, list) or any(not isinstance(row, dict) or not isinstance(row.get("date"), str)
                                           for row in value):
@@ -160,12 +168,24 @@ def verify_result_consistency(bundle_path: Path) -> dict[str, int]:
 
     if ic_dates != expected_ic_dates:
         raise ValueError("ic_series: dates differ from eligible cross-sections")
+    valid_ic = [point["ic"] for point in ic if point["ic"] is not None]
+    valid_rank_ic = [point["rank_ic"] for point in ic if point["rank_ic"] is not None]
+    ic_mean = fmean(valid_ic) if valid_ic else None
+    ic_std = (0.0 if max(valid_ic) - min(valid_ic) <= 1e-12 else pstdev(valid_ic)) if len(valid_ic) > 1 else None
+    for field, expected in (
+        ("ic_mean", ic_mean), ("ic_std", ic_std),
+        ("rank_ic_mean", fmean(valid_rank_ic) if valid_rank_ic else None),
+        ("icir", ic_mean / ic_std if ic_mean is not None and ic_std else None),
+        ("ic_positive_ratio", sum(value > 0 for value in valid_ic) / len(valid_ic) if valid_ic else None),
+    ):
+        _optional_close(result.get(field), expected, field)
     if long_short_dates != expected_group_dates:
         raise ValueError("long_short_series: dates differ from valid group dates")
     groups = result.get("group_nav")
     if not isinstance(groups, list):
         raise ValueError("group_nav: missing groups")
     group_ids = []
+    group_daily_returns: dict[int, list[float | None]] = {}
     for group in groups:
         if not isinstance(group, dict):
             raise ValueError("group_nav: invalid group")
@@ -173,10 +193,32 @@ def verify_result_consistency(bundle_path: Path) -> dict[str, int]:
         _, dates = _dated_rows(group.get("points"), "group_nav.points")
         if dates != expected_group_dates:
             raise ValueError("group_nav: dates differ from valid group dates")
+        previous_nav = 1.0
+        daily_returns: list[float | None] = []
+        for point in group["points"]:
+            nav = _number(point.get("nav"), f"group_nav.{group['group']}.{point['date']}.nav")
+            if previous_nav == 0:
+                if nav != 0:
+                    raise ValueError("group_nav: zero NAV cannot recover to a nonzero value")
+                daily_returns.append(None)
+            else:
+                daily_returns.append(nav / previous_nav - 1.0)
+            previous_nav = nav
+        group_daily_returns[group["group"]] = daily_returns
     if group_ids != list(range(1, len(groups) + 1)):
         raise ValueError("group_nav: group IDs are not sequential")
     if expected_group_dates and len(groups) < 2:
         raise ValueError("group_nav: valid group dates require at least two groups")
+    saved_group_returns = result.get("group_returns")
+    if not isinstance(saved_group_returns, list) or any(not isinstance(item, dict) for item in saved_group_returns):
+        raise ValueError("group_returns: invalid summary")
+    expected_return_groups = group_ids if expected_group_dates else []
+    if [item.get("group") for item in saved_group_returns] != expected_return_groups:
+        raise ValueError("group_returns: group IDs differ from NAV series")
+    for item in saved_group_returns:
+        derived = group_daily_returns[item["group"]]
+        if all(value is not None for value in derived):
+            _close(item.get("mean_return"), fmean(derived), f"group_returns.{item['group']}.mean_return")
     for row in daily:
         if row["group_status"] == "valid" and row["eligible_symbols"] < len(groups):
             raise ValueError(f"{row['date']}: valid group has too few observations")
@@ -185,9 +227,16 @@ def verify_result_consistency(bundle_path: Path) -> dict[str, int]:
 
     gross_nav = net_nav = 1.0
     cost_bps = _number(result.get("transaction_cost_bps"), "transaction_cost_bps")
-    for row in long_short:
+    group_return_dates_checked = 0
+    for index, row in enumerate(long_short):
         day = row["date"]
         gross_return = _number(row.get("return"), f"{day}.return")
+        if group_ids:
+            bottom = group_daily_returns[1][index]
+            top = group_daily_returns[len(groups)][index]
+            if bottom is not None and top is not None:
+                _close(gross_return, top - bottom, f"{day}.long_short_group_return")
+                group_return_dates_checked += 1
         turnover = _number(row.get("turnover"), f"{day}.turnover")
         if turnover < 0 or cost_bps < 0:
             raise ValueError(f"{day}: negative turnover or transaction cost")
@@ -199,6 +248,17 @@ def verify_result_consistency(bundle_path: Path) -> dict[str, int]:
         net_nav *= 1 + net_return
         _close(row.get("nav"), gross_nav, f"{day}.nav")
         _close(row.get("net_nav"), net_nav, f"{day}.net_nav")
+    gross_returns = [row["return"] for row in long_short]
+    net_returns = [row["net_return"] for row in long_short]
+    turnovers = [row["turnover"] for row in long_short]
+    for field, expected in (
+        ("long_short_mean", fmean(gross_returns) if gross_returns else None),
+        ("long_short_net_mean", fmean(net_returns) if net_returns else None),
+        ("long_short_total_return", gross_nav - 1.0 if long_short else None),
+        ("long_short_net_total_return", net_nav - 1.0 if long_short else None),
+        ("long_short_turnover", fmean(turnovers) if turnovers else None),
+    ):
+        _optional_close(result.get(field), expected, field)
 
     for field, expected in (("candidate_coverage", candidate_total), ("coverage", eligible_total),
                             ("zero_observation_days", zero_days),
@@ -211,7 +271,8 @@ def verify_result_consistency(bundle_path: Path) -> dict[str, int]:
     elif result.get("coverage_ratio") is not None:
         raise ValueError("coverage_ratio: expected null for zero candidates")
     summary = {"daily_dates": len(daily_dates), "ic_dates": len(ic_dates),
-               "group_dates": len(expected_group_dates), "eligible_observations": eligible_total}
+               "group_dates": len(expected_group_dates), "eligible_observations": eligible_total,
+               "group_return_dates_checked": group_return_dates_checked}
     task = bundle.get("task")
     parameters = task.get("parameters") if isinstance(task, dict) else None
     declared_cutoff = parameters.get("validation_start_date") if isinstance(parameters, dict) else None

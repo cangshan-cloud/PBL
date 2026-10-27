@@ -37,11 +37,18 @@ class ResearchResultConsistencyTests(unittest.TestCase):
             ],
             "ic_series": [{"date": "2024-01-02", "ic": 1.0, "rank_ic": 1.0},
                           {"date": "2024-01-03", "ic": None, "rank_ic": None}],
+            "ic_mean": 1.0, "ic_std": None, "rank_ic_mean": 1.0, "icir": None,
+            "ic_positive_ratio": 1.0,
             "long_short_series": [{"date": "2024-01-02", "return": 0.03, "nav": 1.03,
                                    "turnover": 2.0, "cost": 0.002, "net_return": 0.028,
                                    "net_nav": 1.028}],
             "group_nav": [{"group": 1, "points": [{"date": "2024-01-02", "nav": 0.99}]},
                           {"group": 2, "points": [{"date": "2024-01-02", "nav": 1.02}]}],
+            "group_returns": [{"group": 1, "mean_return": -0.01},
+                              {"group": 2, "mean_return": 0.02}],
+            "long_short_mean": 0.03, "long_short_net_mean": 0.028,
+            "long_short_total_return": 0.03, "long_short_net_total_return": 0.028,
+            "long_short_turnover": 2.0,
             "coverage": 5, "candidate_coverage": 9, "coverage_ratio": 5 / 9,
             "zero_observation_days": 1, "group_skipped_constant_factor_days": 1,
             "group_skipped_insufficient_sample_days": 1, "transaction_cost_bps": 10,
@@ -72,7 +79,7 @@ class ResearchResultConsistencyTests(unittest.TestCase):
     def test_consistent_result(self):
         self.assertEqual(verify_result_consistency(self.path),
                          {"daily_dates": 4, "ic_dates": 2, "group_dates": 1,
-                          "eligible_observations": 5})
+                          "eligible_observations": 5, "group_return_dates_checked": 1})
 
     def test_counts_ratios_and_aggregate_tampering_with_valid_checksum(self):
         self._reject(lambda r: r["daily_coverage"][0].update(excluded_symbols=0), "counts differ")
@@ -95,6 +102,44 @@ class ResearchResultConsistencyTests(unittest.TestCase):
         self._reject(lambda r: r["long_short_series"][0].update(nav=1.04), "nav: arithmetic mismatch")
         self._reject(lambda r: r["long_short_series"][0].update(net_nav=1.03), "net_nav: arithmetic mismatch")
         self._reject(lambda r: r.update(transaction_cost_bps=-1), "negative turnover or transaction cost")
+
+    def test_ic_and_group_aggregate_tampering_with_valid_checksum(self):
+        self._reject(lambda r: r.update(ic_mean=0.5), "ic_mean: arithmetic mismatch")
+        self._reject(lambda r: r.update(rank_ic_mean=0.5), "rank_ic_mean: arithmetic mismatch")
+        self._reject(lambda r: r.update(ic_positive_ratio=0.5), "ic_positive_ratio: arithmetic mismatch")
+        self._reject(lambda r: r["group_returns"][0].update(mean_return=0),
+                     "group_returns.1.mean_return: arithmetic mismatch")
+        self._reject(lambda r: (r["group_nav"][1]["points"][0].update(nav=1.03),
+                                r["group_returns"][1].update(mean_return=0.03)),
+                     "long_short_group_return: arithmetic mismatch")
+        self._reject(lambda r: r.update(long_short_mean=0.04), "long_short_mean: arithmetic mismatch")
+        self._reject(lambda r: r.update(long_short_net_total_return=0.03),
+                     "long_short_net_total_return: arithmetic mismatch")
+
+    def test_zero_group_nav_skips_only_unrecoverable_daily_return(self):
+        first, second = date(2024, 1, 2), date(2024, 1, 3)
+        observations = [Observation(first, "A", 1, -1.0), Observation(first, "B", 2, 0.02),
+                        Observation(second, "A", 1, 0.01), Observation(second, "B", 2, 0.02)]
+        result = evaluate(observations, groups=2, winsorize=False, standardize=False,
+                          mad_scale=3, transaction_cost_bps=0)
+        enrich_daily_coverage(result, [first, second], {first: 2, second: 2})
+        self.result = result
+        self._write()
+        self.assertEqual(verify_result_consistency(self.path)["group_return_dates_checked"], 1)
+        self._reject(lambda r: r["group_nav"][0]["points"][1].update(nav=0.01),
+                     "zero NAV cannot recover")
+
+    def test_no_valid_ic_or_group_day_remains_a_valid_empty_result(self):
+        day = date(2024, 1, 2)
+        result = evaluate([Observation(day, "A", 1, 0.01)], groups=2,
+                          winsorize=False, standardize=False, mad_scale=3,
+                          transaction_cost_bps=0)
+        enrich_daily_coverage(result, [day], {day: 1})
+        self.result = result
+        self._write()
+        self.assertEqual(verify_result_consistency(self.path),
+                         {"daily_dates": 1, "ic_dates": 0, "group_dates": 0,
+                          "eligible_observations": 1, "group_return_dates_checked": 0})
 
     def test_checksum_still_required(self):
         text = self.path.read_text(encoding="utf-8")

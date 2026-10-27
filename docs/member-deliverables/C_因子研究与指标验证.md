@@ -686,3 +686,7 @@ Rank IC 图线展示保存的每日秩相关，不重算 Spearman；两线独立
 ## 2026-10-27 切分 IC 摘要复核（开发者代执行）
 
 动量/反转真实小样本临时 Run 均从保存全区间 IC/Rank IC 序列核回两段均值、ICIR、正比例与有效日数，验证期各 58 日；并非独立重算每日 IC 或预测力证据。见[验收](../REAL_SAMPLE_SPLIT_CONSISTENCY_QA_2026-10-27.md)及 [CHG-20261027-009](../changes/2026-10-27-009-time-split-result-audit.md)。实际执行者：Codex；队长本人未签收。
+
+## 2026-10-27 全区间指标与组间收益复核（开发者代执行）
+
+留存真实历史 Run 的 IC 均值/标准差/ICIR、Rank IC 均值和各组平均日收益可从保存逐日序列核回；242 个多空日与首末组净值隐含收益一致。不能据此证明因子显著或可交易。见[只读验收](../RESEARCH_RESULT_CONSISTENCY_QA_2026-10-27.md)及 [CHG-20261027-010](../changes/2026-10-27-010-ic-group-aggregate-audit.md)。实际执行者：Codex；队长本人未签收。
