@@ -670,3 +670,7 @@ OrbStack 恢复后，以专用项目、独立数据库卷/网络和只读私有�
 
 共用只读前端组件分别服务相关性、多空和分组图，按 Run ID 重置，不增加 API、队列或数据库。隔离 QA 只启 db/redis/api/web，验收后已关闭。见[浏览器验收](../NAV_DATE_INSPECTOR_QA_2026-10-27.md)及 [CHG-20261027-005](../changes/2026-10-27-005-nav-date-inspector.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-27 时间切分图形提示集成（开发者代执行）
+
+仅读取现有 `result.time_split`，无新接口、任务或数据库变更。隔离浏览器构造字段仅在会话中，退出后消失；QA 容器已关闭，主栈未操作。见[浏览器验收](../IC_SPLIT_DATE_CONTEXT_QA_2026-10-27.md)及 [CHG-20261027-006](../changes/2026-10-27-006-ic-split-date-context.md)。实际执行者：Codex；队长本人未签收。
+

@@ -1,6 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { alignNavLines, icChartLines, icInspectionRows, interiorAllMissingDates, navInspectionRows } from "../src/chart-series.ts";
+import { alignNavLines, icChartLines, icInspectionRows, interiorAllMissingDates, navInspectionRows, splitDateStage } from "../src/chart-series.ts";
+
+test("split date stages exclude embargo and dates outside saved stage ranges", () => {
+  const split = {
+    embargo_signal_date: "2025-01-03",
+    research: { start_date: "2025-01-01", end_date: "2025-01-02" },
+    validation: { start_date: "2025-01-06", end_date: "2025-01-08" },
+  };
+  assert.equal(splitDateStage("2024-12-31", split), "outside");
+  assert.equal(splitDateStage("2025-01-01", split), "research");
+  assert.equal(splitDateStage("2025-01-02", split), "research");
+  assert.equal(splitDateStage("2025-01-03", split), "embargo");
+  assert.equal(splitDateStage("2025-01-04", split), "outside");
+  assert.equal(splitDateStage("2025-01-06", split), "validation");
+  assert.equal(splitDateStage("2025-01-08", split), "validation");
+  assert.equal(splitDateStage("2025-01-09", split), "outside");
+});
 
 test("NAV inspection aligns saved groups without filling absent values", () => {
   assert.deepEqual(navInspectionRows([

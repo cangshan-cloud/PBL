@@ -17,6 +17,19 @@ export type ChartInspectionRow = {
   hasRecord: boolean;
 };
 
+export type TimeSplitDateBoundary = {
+  embargo_signal_date: string;
+  research: { start_date: string; end_date: string };
+  validation: { start_date: string; end_date: string };
+};
+
+export function splitDateStage(date: string, split: TimeSplitDateBoundary): "research" | "embargo" | "validation" | "outside" {
+  if (date === split.embargo_signal_date) return "embargo";
+  if (date >= split.research.start_date && date <= split.research.end_date) return "research";
+  if (date >= split.validation.start_date && date <= split.validation.end_date) return "validation";
+  return "outside";
+}
+
 export function navInspectionRows(lines: readonly NavLine[], knownDates: readonly string[] = []): ChartInspectionRow[] {
   const byLine = lines.map(line => new Map(line.points.map(point => [point.date, point.value])));
   const dates = [...new Set([...knownDates, ...lines.flatMap(line => line.points.map(point => point.date))])].sort();

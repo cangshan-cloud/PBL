@@ -15,7 +15,7 @@ import { saveBlobAsFile } from "./blob-download";
 import { icSeriesCsv, icSeriesFilename } from "./ic-series-export";
 import { longShortCsv, longShortFilename } from "./long-short-export";
 import { groupNavCsv, groupNavFilename } from "./group-nav-export";
-import { alignNavLines, icChartLines, icInspectionRows, interiorAllMissingDates, navInspectionRows, type ChartInspectionRow, type NavLine } from "./chart-series";
+import { alignNavLines, icChartLines, icInspectionRows, interiorAllMissingDates, navInspectionRows, splitDateStage, type ChartInspectionRow, type NavLine } from "./chart-series";
 import { DailyCoverageTable } from "./DailyCoverageTable";
 import { filterTasks, type TaskStatusFilter } from "./task-filter";
 import { startReportPolling, startTaskPolling } from "./task-refresh";
@@ -79,7 +79,7 @@ function KnownGapNotice({ dates }: { dates: string[] }) {
   return <details className="chart-gap-notice"><summary>{dates.length} 个已知日期在有效点之间无可绘制值</summary><p>{dates.join("、")}</p><small>仅按本 Run 保存的结果与逐日诊断识别，不推断缺值原因或未记录的市场日期。</small></details>;
 }
 
-function ChartDateInspector({ id, name, rows, missingRecordNote }: { id: string; name: string; rows: ChartInspectionRow[]; missingRecordNote: string }) {
+function ChartDateInspector({ id, name, rows, missingRecordNote, periodNote }: { id: string; name: string; rows: ChartInspectionRow[]; missingRecordNote: string; periodNote?: (date: string) => string }) {
   const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
   const foundIndex = rows.findIndex(item => item.date === selectedDate);
   const selectedIndex = foundIndex >= 0 ? foundIndex : rows.length - 1;
@@ -93,6 +93,7 @@ function ChartDateInspector({ id, name, rows, missingRecordNote }: { id: string;
       <button type="button" disabled={selectedIndex === rows.length - 1} onClick={() => setSelectedDate(rows[selectedIndex + 1].date)} aria-label={`${name}查看后一个已知日期`}>后一日</button>
     </div>
     <div className="chart-date-values">{inspected.values.map(item => <span key={item.label}>{item.label} <strong>{item.value != null && Number.isFinite(item.value) ? String(item.value) : "—"}</strong></span>)}</div>
+    {periodNote && <small className="chart-period-note">{periodNote(inspected.date)}</small>}
     {!inspected.hasRecord && <small>{missingRecordNote}</small>}
     {inspected.hasRecord && inspected.values.every(item => item.value === null) && <small>该日期有原记录，但当前图各线均无可绘制值。</small>}
   </div>;
@@ -131,7 +132,7 @@ function icHistogram(values: (number | null)[]) {
   return counts.map((count, index) => ({ lower: Number((-1 + index * 0.2).toFixed(1)), upper: Number((-0.8 + index * 0.2).toFixed(1)), count }));
 }
 
-function IcSeriesChart({ runId, series, knownDates = [], showDownload = true }: { runId: string; series: Result["ic_series"]; knownDates?: string[]; showDownload?: boolean }) {
+function IcSeriesChart({ runId, series, knownDates = [], showDownload = true, timeSplit }: { runId: string; series: Result["ic_series"]; knownDates?: string[]; showDownload?: boolean; timeSplit?: Result["time_split"] }) {
   const icCount = series.filter(item => item.ic != null && Number.isFinite(item.ic)).length;
   const rankIcCount = series.filter(item => item.rank_ic != null && Number.isFinite(item.rank_ic)).length;
   const aligned = alignNavLines(icChartLines(series), [...knownDates, ...series.map(item => item.date)]);
@@ -146,6 +147,12 @@ function IcSeriesChart({ runId, series, knownDates = [], showDownload = true }: 
   const y = (value: number) => 180 - (value - (low - padding)) * 180 / (span + padding * 2);
   const gapDates = interiorAllMissingDates(aligned);
   const x = (index: number) => aligned.dates.length === 1 ? 300 : index * 600 / (aligned.dates.length - 1);
+  const periodNote = timeSplit ? (date: string) => ({
+    research: "研究期日期范围：是否有有效 IC 仍以读数与分段摘要为准。",
+    embargo: "边界隔离信号日：可出现在全区间曲线，但不参与研究期或验证期摘要。",
+    validation: "验证期日期范围：这仍是回溯分段，不是前瞻证明。",
+    outside: "不在两段已保存观测范围内；不能据此推断缺值原因。",
+  })[splitDateStage(date, timeSplit)] : undefined;
   return <article className="card line-chart">
     <p className="eyebrow">IC SERIES</p>
     <div className="section-title"><h2>每日 IC 与 Rank IC</h2>{showDownload && <button className="secondary" onClick={() => saveBlobAsFile(new Blob([icSeriesCsv(runId, series)], { type: "text/csv;charset=utf-8" }), icSeriesFilename(runId))}>下载每日 IC CSV</button>}</div>
@@ -158,7 +165,8 @@ function IcSeriesChart({ runId, series, knownDates = [], showDownload = true }: 
     {aligned.dates.length > 0 && <div className="chart-date-range"><span>{aligned.dates[0]}</span><span>{aligned.dates.at(-1)}</span></div>}
     <KnownGapNotice dates={gapDates} />
     <div className="chart-legend">{aligned.lines.map(line => <span key={line.label}><i style={{ background: line.color }} />{line.label} · {number(line.lastValue)}</span>)}</div>
-    <ChartDateInspector id={`ic-date-${runId}`} name="IC 与 Rank IC" rows={inspectionRows} missingRecordNote="该日期仅见于逐日诊断，没有保存的相关性记录。" />
+    {timeSplit && <p className="chart-split-note">时间切分：研究期 {timeSplit.research.start_date} 至 {timeSplit.research.end_date}；隔离信号日 {timeSplit.embargo_signal_date}；验证期 {timeSplit.validation.start_date} 至 {timeSplit.validation.end_date}（预设切分日 {timeSplit.validation_start_date}）。本图仍为全区间原序列，隔离日点不进入任一分段摘要。</p>}
+    <ChartDateInspector id={`ic-date-${runId}`} name="IC 与 Rank IC" rows={inspectionRows} missingRecordNote="该日期仅见于逐日诊断，没有保存的相关性记录。" periodNote={periodNote} />
     <small>{icCount} 个有效 IC 截面、{rankIcCount} 个有效 Rank IC 截面；{aligned.dates.length - new Set(series.map(item => item.date)).size} 个已知日期无原记录，原记录中 IC 有 {series.length - icCount} 个、Rank IC 有 {series.length - rankIcCount} 个不可绘制值，均不填零。横向按已知结果/诊断日期等距，非自然日间隔；图例为末次可绘制值，日期核对区和 CSV 保留原数值。</small>
   </article>;
 }
@@ -180,7 +188,7 @@ function SavedSeriesCharts({ runId, result, onDownloadLongShort, onDownloadGroup
 }) {
   const knownDates = result.daily_coverage?.map(item => item.date) ?? [];
   return <section className="chart-grid" aria-label={`Run ${runId} 的逐日曲线`}>
-    <IcSeriesChart key={runId} runId={runId} series={result.ic_series} knownDates={knownDates} showDownload={showActions} />
+    <IcSeriesChart key={runId} runId={runId} series={result.ic_series} knownDates={knownDates} showDownload={showActions} timeSplit={result.time_split} />
     <NavChart key={`${runId}-long-short`} inspectorId={`long-short-date-${runId}`} eyebrow="LONG SHORT NAV" title="多空组合净值" lines={[
       { label: "毛净值", color: "#277a5b", points: result.long_short_series.map(item => ({ date: item.date, value: item.nav })) },
       { label: "成本后净值", color: "#d69043", points: result.long_short_series.map(item => ({ date: item.date, value: item.net_nav })) },

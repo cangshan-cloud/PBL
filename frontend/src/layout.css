@@ -100,6 +100,8 @@ main > header > button { flex: 0 0 auto; }
 .chart-date-values span { display: inline-flex; align-items: baseline; gap: 7px; }
 .chart-date-values strong { color: #243c30; overflow-wrap: anywhere; }
 .chart-date-inspector > small { color: #756544; }
+.chart-date-inspector > .chart-period-note { color: #345d48; }
+.chart-split-note { margin: 9px 0 0; padding: 9px 11px; border-left: 3px solid #b9c89d; background: #f5f8ee; color: #52655b; font-size: 11px; line-height: 1.65; }
 .task-actions { flex-wrap: wrap; justify-content: flex-end; }
 .repro-grid, .compact-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .repro-grid b, .repro-grid small { overflow-wrap: anywhere; }
