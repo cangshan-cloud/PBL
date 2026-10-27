@@ -52,6 +52,25 @@ def _dated_rows(value: object, label: str) -> tuple[list[dict], list[str]]:
     return value, dates
 
 
+def _verify_ic_histogram(value: object, valid_ic: list[float]) -> None:
+    """Check the ten fixed IC bins without invoking the research engine."""
+    if not isinstance(value, list) or len(value) != 10 or any(not isinstance(row, dict) for row in value):
+        raise ValueError("ic_histogram: expected ten bins")
+    counts = [0] * 10
+    for ic in valid_ic:
+        if not -1 <= ic <= 1:
+            raise ValueError("ic_series: IC outside correlation range")
+        index = min(9, max(0, int((ic + 1.0) * 5 + 1e-12)))
+        counts[index] += 1
+    for index, row in enumerate(value):
+        if set(row) != {"lower", "upper", "count"}:
+            raise ValueError(f"ic_histogram[{index}]: unexpected fields")
+        _close(row["lower"], round(-1 + index * 0.2, 1), f"ic_histogram[{index}].lower")
+        _close(row["upper"], round(-0.8 + index * 0.2, 1), f"ic_histogram[{index}].upper")
+        if _integer(row["count"], f"ic_histogram[{index}].count") != counts[index]:
+            raise ValueError(f"ic_histogram[{index}].count: differs from daily IC series")
+
+
 def verify_time_split_consistency(result: dict) -> dict[str, int]:
     """Reconcile saved split summaries with the full-range daily IC and coverage rows."""
     split = result.get("time_split")
@@ -179,6 +198,7 @@ def verify_result_consistency(bundle_path: Path) -> dict[str, int]:
         ("ic_positive_ratio", sum(value > 0 for value in valid_ic) / len(valid_ic) if valid_ic else None),
     ):
         _optional_close(result.get(field), expected, field)
+    _verify_ic_histogram(result.get("ic_histogram"), valid_ic)
     if long_short_dates != expected_group_dates:
         raise ValueError("long_short_series: dates differ from valid group dates")
     groups = result.get("group_nav")
@@ -272,7 +292,8 @@ def verify_result_consistency(bundle_path: Path) -> dict[str, int]:
         raise ValueError("coverage_ratio: expected null for zero candidates")
     summary = {"daily_dates": len(daily_dates), "ic_dates": len(ic_dates),
                "group_dates": len(expected_group_dates), "eligible_observations": eligible_total,
-               "group_return_dates_checked": group_return_dates_checked}
+               "group_return_dates_checked": group_return_dates_checked,
+               "histogram_ic_count": len(valid_ic)}
     task = bundle.get("task")
     parameters = task.get("parameters") if isinstance(task, dict) else None
     declared_cutoff = parameters.get("validation_start_date") if isinstance(parameters, dict) else None

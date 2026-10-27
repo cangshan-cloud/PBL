@@ -690,3 +690,7 @@ OrbStack 恢复后，以专用项目、独立数据库卷/网络和只读私有�
 
 只扩展现有离线命令与回归，不新增 API、数据库或队列；留存历史 Run 242 个组间收益日可核对，主服务未操作。见[只读验收](../RESEARCH_RESULT_CONSISTENCY_QA_2026-10-27.md)及 [CHG-20261027-010](../changes/2026-10-27-010-ic-group-aggregate-audit.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-27 IC 分布审计集成（开发者代执行）
+
+现有离线命令增加十档分布检查，不新增接口、队列、数据库或前端状态；留存旧 Run 通过，主服务未操作。见[只读验收](../RESEARCH_RESULT_CONSISTENCY_QA_2026-10-27.md)及 [CHG-20261027-011](../changes/2026-10-27-011-ic-histogram-audit.md)。实际执行者：Codex；队长本人未签收。
+

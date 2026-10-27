@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT / "backend"))
 from app.domain.research import Observation, evaluate
 from app.domain.time_split import evaluate_time_split
 from app.services.coverage import enrich_daily_coverage
-from tools.verify_research_result_consistency import verify_result_consistency
+from tools.verify_research_result_consistency import _verify_ic_histogram, verify_result_consistency
 
 
 class ResearchResultConsistencyTests(unittest.TestCase):
@@ -39,6 +39,12 @@ class ResearchResultConsistencyTests(unittest.TestCase):
                           {"date": "2024-01-03", "ic": None, "rank_ic": None}],
             "ic_mean": 1.0, "ic_std": None, "rank_ic_mean": 1.0, "icir": None,
             "ic_positive_ratio": 1.0,
+            "ic_histogram": [
+                {"lower": round(-1 + index * 0.2, 1),
+                 "upper": round(-0.8 + index * 0.2, 1),
+                 "count": 1 if index == 9 else 0}
+                for index in range(10)
+            ],
             "long_short_series": [{"date": "2024-01-02", "return": 0.03, "nav": 1.03,
                                    "turnover": 2.0, "cost": 0.002, "net_return": 0.028,
                                    "net_nav": 1.028}],
@@ -79,7 +85,8 @@ class ResearchResultConsistencyTests(unittest.TestCase):
     def test_consistent_result(self):
         self.assertEqual(verify_result_consistency(self.path),
                          {"daily_dates": 4, "ic_dates": 2, "group_dates": 1,
-                          "eligible_observations": 5, "group_return_dates_checked": 1})
+                          "eligible_observations": 5, "group_return_dates_checked": 1,
+                          "histogram_ic_count": 1})
 
     def test_counts_ratios_and_aggregate_tampering_with_valid_checksum(self):
         self._reject(lambda r: r["daily_coverage"][0].update(excluded_symbols=0), "counts differ")
@@ -116,6 +123,24 @@ class ResearchResultConsistencyTests(unittest.TestCase):
         self._reject(lambda r: r.update(long_short_net_total_return=0.03),
                      "long_short_net_total_return: arithmetic mismatch")
 
+    def test_ic_histogram_tampering_with_valid_checksum(self):
+        self._reject(lambda r: r["ic_histogram"][9].update(count=0),
+                     r"ic_histogram\[9\].count: differs")
+        self._reject(lambda r: r["ic_histogram"][0].update(lower=-0.9),
+                     r"ic_histogram\[0\].lower: arithmetic mismatch")
+        self._reject(lambda r: r["ic_histogram"][9].update(count=True),
+                     "expected nonnegative integer")
+        self._reject(lambda r: r["ic_histogram"].pop(), "expected ten bins")
+
+    def test_ic_histogram_includes_boundaries_and_excludes_nulls(self):
+        bins = [{"lower": round(-1 + index * 0.2, 1),
+                 "upper": round(-0.8 + index * 0.2, 1),
+                 "count": 1 if index in (0, 1, 5, 9) else 0}
+                for index in range(10)]
+        _verify_ic_histogram(bins, [-1.0, -0.8, 0.0, 1.0])
+        with self.assertRaisesRegex(ValueError, "outside correlation range"):
+            _verify_ic_histogram(bins, [1.000001])
+
     def test_zero_group_nav_skips_only_unrecoverable_daily_return(self):
         first, second = date(2024, 1, 2), date(2024, 1, 3)
         observations = [Observation(first, "A", 1, -1.0), Observation(first, "B", 2, 0.02),
@@ -139,7 +164,8 @@ class ResearchResultConsistencyTests(unittest.TestCase):
         self._write()
         self.assertEqual(verify_result_consistency(self.path),
                          {"daily_dates": 1, "ic_dates": 0, "group_dates": 0,
-                          "eligible_observations": 1, "group_return_dates_checked": 0})
+                          "eligible_observations": 1, "group_return_dates_checked": 0,
+                          "histogram_ic_count": 0})
 
     def test_checksum_still_required(self):
         text = self.path.read_text(encoding="utf-8")

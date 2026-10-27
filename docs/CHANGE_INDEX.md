@@ -258,6 +258,7 @@
 | CHG-20261027-008 | 2026-10-27 | saved-result internal audit / retained real Run check | 独立只读审计每日覆盖算术、状态/序列日期及多空成本净值递推，真实历史留存包通过 | [记录](changes/2026-10-27-008-research-result-consistency-audit.md) | `tools/verify_research_result_consistency.py`、后端反例测试、[只读验收](RESEARCH_RESULT_CONSISTENCY_QA_2026-10-27.md)、用法与 A/B/C/D 四责任包 |
 | CHG-20261027-009 | 2026-10-27 | time-split internal audit / real sample memory runs | 带切分结果从全区间逐日序列复核隔离日和两段 IC 摘要；真实 10 股双因子临时任务通过 | [记录](changes/2026-10-27-009-time-split-result-audit.md) | `tools/verify_research_result_consistency.py`、`tools/verify_real_a_share_sample.py`、后端反例测试、[验收](REAL_SAMPLE_SPLIT_CONSISTENCY_QA_2026-10-27.md)与 A/B/C/D 四责任包 |
 | CHG-20261027-010 | 2026-10-27 | IC/group aggregate audit / retained real Run check | 从保存逐日 IC 和各组净值核对全区间摘要及多空毛收益；真实历史 Run 242 日通过 | [记录](changes/2026-10-27-010-ic-group-aggregate-audit.md) | `tools/verify_research_result_consistency.py`、后端反例测试、[留存验收](RESEARCH_RESULT_CONSISTENCY_QA_2026-10-27.md)、用法与 A/B/C/D 四责任包 |
+| CHG-20261027-011 | 2026-10-27 | IC histogram audit / retained real Run check | 保存的十档 IC 分布边界和计数可与有效逐日 IC 对齐；真实历史 Run 242 个 IC 通过 | [记录](changes/2026-10-27-011-ic-histogram-audit.md) | `tools/verify_research_result_consistency.py`、反例测试、[留存验收](RESEARCH_RESULT_CONSISTENCY_QA_2026-10-27.md)、用法与 A/B/C/D 四责任包 |
 
 ## 历史基线
 
