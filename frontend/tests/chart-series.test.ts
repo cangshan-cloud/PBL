@@ -1,6 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { alignNavLines, icChartLines, interiorAllMissingDates } from "../src/chart-series.ts";
+import { alignNavLines, icChartLines, icInspectionRows, interiorAllMissingDates } from "../src/chart-series.ts";
+
+test("IC date inspection preserves saved precision and known diagnostic-only dates", () => {
+  assert.deepEqual(icInspectionRows([
+    { date: "2025-01-03", ic: null, rank_ic: 0.123456789 },
+    { date: "2025-01-02", ic: -0.5, rank_ic: null },
+  ], ["2025-01-06", "2025-01-03"]), [
+    { date: "2025-01-02", ic: -0.5, rank_ic: null, hasRecord: true },
+    { date: "2025-01-03", ic: null, rank_ic: 0.123456789, hasRecord: true },
+    { date: "2025-01-06", ic: null, rank_ic: null, hasRecord: false },
+  ]);
+  assert.deepEqual(icInspectionRows([], []), []);
+});
 
 test("IC and Rank IC use separate saved values, gaps, and last finite points", () => {
   const series = [

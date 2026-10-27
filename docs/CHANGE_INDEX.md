@@ -251,6 +251,7 @@
 | CHG-20261027-001 | 2026-10-27 | report mobile chart/layout QA / verified on Mac synthetic report | 新报告图在窄屏局部滚动，长复现信息折行；390px 整页不溢出 | [记录](changes/2026-10-27-001-report-mobile-chart-layout.md) | `backend/app/services/reports.py`、测试、[浏览器记录](REPORT_GAP_MOBILE_QA_2026-10-27.md)、口径与 A/B/C/D 四责任包 |
 | CHG-20261027-002 | 2026-10-27 | report print detail disclosure / verified on Mac synthetic PDF | 打印版明确逐日明细未包含并给出 HTML/CSV/复现包核对路径，六页合成 PDF 逐页复验 | [记录](changes/2026-10-27-002-report-print-detail-disclosure.md) | `backend/app/services/reports.py`、测试、[打印验收](REPORT_PRINT_QA_2026-10-27.md)、口径与 A/B/C/D 四责任包 |
 | CHG-20261027-003 | 2026-10-27 | IC + Rank IC web chart / Mac browser QA | 工作台与任务回看双线展示保存的逐日 IC/Rank IC，独立断线与末值 | [记录](changes/2026-10-27-003-rank-ic-web-chart.md) | `frontend/src/chart-series.ts`、`main.tsx`、构造测试、[浏览器验收](RANK_IC_WEB_CHART_QA_2026-10-27.md)、口径与 A/B/C/D 四责任包 |
+| CHG-20261027-004 | 2026-10-27 | IC date inspector / Mac browser QA | 双线图可按已知日期核对本 Run 两项保存原值，缺值不补零、换 Run 重置 | [记录](changes/2026-10-27-004-ic-date-inspector.md) | `frontend/src/chart-series.ts`、`main.tsx`、`layout.css`、测试、[浏览器验收](IC_DATE_INSPECTOR_QA_2026-10-27.md)与 A/B/C/D 四责任包 |
 
 ## 历史基线
 

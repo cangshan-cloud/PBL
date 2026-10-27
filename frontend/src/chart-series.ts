@@ -18,6 +18,17 @@ export function icChartLines(series: readonly { date: string; ic: number | null;
   ];
 }
 
+export function icInspectionRows(
+  series: readonly { date: string; ic: number | null; rank_ic: number | null }[],
+  knownDates: readonly string[] = [],
+): { date: string; ic: number | null; rank_ic: number | null; hasRecord: boolean }[] {
+  const byDate = new Map(series.map(item => [item.date, item]));
+  return [...new Set([...knownDates, ...byDate.keys()])].sort().map(date => {
+    const saved = byDate.get(date);
+    return { date, ic: saved?.ic ?? null, rank_ic: saved?.rank_ic ?? null, hasRecord: saved !== undefined };
+  });
+}
+
 export function interiorAllMissingDates(aligned: { dates: readonly string[]; lines: readonly AlignedNavLine[] }): string[] {
   const present = new Set(aligned.lines.flatMap(line => line.segments.flatMap(segment => segment.map(point => point.index))));
   if (present.size < 2) return [];

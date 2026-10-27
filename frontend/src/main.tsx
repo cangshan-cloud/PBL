@@ -15,7 +15,7 @@ import { saveBlobAsFile } from "./blob-download";
 import { icSeriesCsv, icSeriesFilename } from "./ic-series-export";
 import { longShortCsv, longShortFilename } from "./long-short-export";
 import { groupNavCsv, groupNavFilename } from "./group-nav-export";
-import { alignNavLines, icChartLines, interiorAllMissingDates, type NavLine } from "./chart-series";
+import { alignNavLines, icChartLines, icInspectionRows, interiorAllMissingDates, type NavLine } from "./chart-series";
 import { DailyCoverageTable } from "./DailyCoverageTable";
 import { filterTasks, type TaskStatusFilter } from "./task-filter";
 import { startReportPolling, startTaskPolling } from "./task-refresh";
@@ -115,13 +115,42 @@ function IcSeriesChart({ runId, series, knownDates = [], showDownload = true }: 
   const icCount = series.filter(item => item.ic != null && Number.isFinite(item.ic)).length;
   const rankIcCount = series.filter(item => item.rank_ic != null && Number.isFinite(item.rank_ic)).length;
   const aligned = alignNavLines(icChartLines(series), [...knownDates, ...series.map(item => item.date)]);
+  const inspectionRows = icInspectionRows(series, knownDates);
+  const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
+  const foundIndex = inspectionRows.findIndex(item => item.date === selectedDate);
+  const selectedIndex = foundIndex >= 0 ? foundIndex : inspectionRows.length - 1;
+  const inspected = inspectionRows[selectedIndex];
   const valid = aligned.lines.flatMap(line => line.segments.flatMap(segment => segment.map(point => point.value)));
   const low = Math.min(0, ...valid); const high = Math.max(0, ...valid);
   const span = high - low || 1; const padding = span * 0.08;
   const y = (value: number) => 180 - (value - (low - padding)) * 180 / (span + padding * 2);
   const gapDates = interiorAllMissingDates(aligned);
   const x = (index: number) => aligned.dates.length === 1 ? 300 : index * 600 / (aligned.dates.length - 1);
-  return <article className="card line-chart"><p className="eyebrow">IC SERIES</p><div className="section-title"><h2>每日 IC 与 Rank IC</h2>{showDownload && <button className="secondary" onClick={() => saveBlobAsFile(new Blob([icSeriesCsv(runId, series)], { type: "text/csv;charset=utf-8" }), icSeriesFilename(runId))}>下载每日 IC CSV</button>}</div>{valid.length ? <svg viewBox="0 0 600 180" preserveAspectRatio="none" role="img" aria-label="每日 IC 与 Rank IC，已知缺日处断开"><line x1="0" y1={y(0)} x2="600" y2={y(0)} />{aligned.lines.flatMap(line => line.segments.map((segment, index) => segment.length > 1 ? <polyline key={`${line.label}-${index}`} style={{ stroke: line.color }} points={segment.map(point => `${x(point.index)},${y(point.value)}`).join(" ")} /> : <circle key={`${line.label}-${index}`} cx={x(segment[0].index)} cy={y(segment[0].value)} r="3" style={{ fill: line.color }} />))}</svg> : <div className="empty">没有可计算的 IC 或 Rank IC。</div>}{aligned.dates.length > 0 && <div className="chart-date-range"><span>{aligned.dates[0]}</span><span>{aligned.dates.at(-1)}</span></div>}<KnownGapNotice dates={gapDates} /><div className="chart-legend">{aligned.lines.map(line => <span key={line.label}><i style={{ background: line.color }} />{line.label} · {number(line.lastValue)}</span>)}</div><small>{icCount} 个有效 IC 截面、{rankIcCount} 个有效 Rank IC 截面；{aligned.dates.length - new Set(series.map(item => item.date)).size} 个已知日期无原记录，原记录中 IC 有 {series.length - icCount} 个、Rank IC 有 {series.length - rankIcCount} 个不可绘制值，均不填零。横向按已知结果/诊断日期等距，非自然日间隔；CSV 保留原序列日期与数值。</small></article>;
+  return <article className="card line-chart">
+    <p className="eyebrow">IC SERIES</p>
+    <div className="section-title"><h2>每日 IC 与 Rank IC</h2>{showDownload && <button className="secondary" onClick={() => saveBlobAsFile(new Blob([icSeriesCsv(runId, series)], { type: "text/csv;charset=utf-8" }), icSeriesFilename(runId))}>下载每日 IC CSV</button>}</div>
+    {valid.length ? <svg viewBox="0 0 600 180" preserveAspectRatio="none" role="img" aria-label="每日 IC 与 Rank IC，已知缺日处断开">
+      <line x1="0" y1={y(0)} x2="600" y2={y(0)} />
+      {aligned.lines.flatMap(line => line.segments.map((segment, index) => segment.length > 1
+        ? <polyline key={`${line.label}-${index}`} style={{ stroke: line.color }} points={segment.map(point => `${x(point.index)},${y(point.value)}`).join(" ")} />
+        : <circle key={`${line.label}-${index}`} cx={x(segment[0].index)} cy={y(segment[0].value)} r="3" style={{ fill: line.color }} />))}
+    </svg> : <div className="empty">没有可计算的 IC 或 Rank IC。</div>}
+    {aligned.dates.length > 0 && <div className="chart-date-range"><span>{aligned.dates[0]}</span><span>{aligned.dates.at(-1)}</span></div>}
+    <KnownGapNotice dates={gapDates} />
+    <div className="chart-legend">{aligned.lines.map(line => <span key={line.label}><i style={{ background: line.color }} />{line.label} · {number(line.lastValue)}</span>)}</div>
+    {inspected && <div className="ic-date-inspector">
+      <div className="ic-date-picker">
+        <label htmlFor={`ic-date-${runId}`}>核对日期</label>
+        <button type="button" disabled={selectedIndex === 0} onClick={() => setSelectedDate(inspectionRows[selectedIndex - 1].date)} aria-label="查看前一个已知日期">前一日</button>
+        <select id={`ic-date-${runId}`} value={inspected.date} onChange={event => setSelectedDate(event.target.value)}>{inspectionRows.map(item => <option key={item.date} value={item.date}>{item.date}</option>)}</select>
+        <button type="button" disabled={selectedIndex === inspectionRows.length - 1} onClick={() => setSelectedDate(inspectionRows[selectedIndex + 1].date)} aria-label="查看后一个已知日期">后一日</button>
+      </div>
+      <div className="ic-date-values"><span>IC <strong>{inspected.ic != null && Number.isFinite(inspected.ic) ? String(inspected.ic) : "—"}</strong></span><span>Rank IC <strong>{inspected.rank_ic != null && Number.isFinite(inspected.rank_ic) ? String(inspected.rank_ic) : "—"}</strong></span></div>
+      {!inspected.hasRecord && <small>该日期仅见于逐日诊断，没有保存的相关性记录。</small>}
+      {inspected.hasRecord && inspected.ic == null && inspected.rank_ic == null && <small>该日期有原记录，但两项相关性均为空值。</small>}
+    </div>}
+    <small>{icCount} 个有效 IC 截面、{rankIcCount} 个有效 Rank IC 截面；{aligned.dates.length - new Set(series.map(item => item.date)).size} 个已知日期无原记录，原记录中 IC 有 {series.length - icCount} 个、Rank IC 有 {series.length - rankIcCount} 个不可绘制值，均不填零。横向按已知结果/诊断日期等距，非自然日间隔；图例为末次可绘制值，日期核对区和 CSV 保留原数值。</small>
+  </article>;
 }
 
 function IcDistribution({ result }: { result: Result }) {
@@ -141,7 +170,7 @@ function SavedSeriesCharts({ runId, result, onDownloadLongShort, onDownloadGroup
 }) {
   const knownDates = result.daily_coverage?.map(item => item.date) ?? [];
   return <section className="chart-grid" aria-label={`Run ${runId} 的逐日曲线`}>
-    <IcSeriesChart runId={runId} series={result.ic_series} knownDates={knownDates} showDownload={showActions} />
+    <IcSeriesChart key={runId} runId={runId} series={result.ic_series} knownDates={knownDates} showDownload={showActions} />
     <NavChart eyebrow="LONG SHORT NAV" title="多空组合净值" lines={[
       { label: "毛净值", color: "#277a5b", points: result.long_short_series.map(item => ({ date: item.date, value: item.nav })) },
       { label: "成本后净值", color: "#d69043", points: result.long_short_series.map(item => ({ date: item.date, value: item.net_nav })) },
