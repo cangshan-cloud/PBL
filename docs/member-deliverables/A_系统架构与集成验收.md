@@ -682,3 +682,7 @@ OrbStack 恢复后，以专用项目、独立数据库卷/网络和只读私有�
 
 新增离线只读命令复用复现包 SHA-256 校验，不增加接口、数据库、队列或前端状态；留存真实历史 Run 通过，主服务未操作。见[只读验收](../RESEARCH_RESULT_CONSISTENCY_QA_2026-10-27.md)及 [CHG-20261027-008](../changes/2026-10-27-008-research-result-consistency-audit.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-27 时间切分审计集成（开发者代执行）
+
+带切分的结果复用已有只读命令，不增加平台接口、队列或数据库迁移；真实小样本研究仅在临时内存库执行，主服务未操作。见[验收](../REAL_SAMPLE_SPLIT_CONSISTENCY_QA_2026-10-27.md)及 [CHG-20261027-009](../changes/2026-10-27-009-time-split-result-audit.md)。实际执行者：Codex；队长本人未签收。
+

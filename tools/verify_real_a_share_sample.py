@@ -27,6 +27,7 @@ from app.db import Base  # noqa: E402
 from app.services.comparisons import compare_runs, comparison_csv, comparison_html  # noqa: E402
 from app.services.datasets import import_csv, publish_dataset_version, validate_csv  # noqa: E402
 from app.services.runs import create_research_run, execute_research_run  # noqa: E402
+from verify_research_result_consistency import verify_time_split_consistency  # noqa: E402
 
 
 FACTORS = ("momentum_20d", "reversal_5d", "volatility_20d", "turnover_20d", "pe")
@@ -136,6 +137,11 @@ def validation_comparison_audit(session: Session, dataset_id: str, expected_chec
         "price_basis": "source_close",
         "validation_start_date": VALIDATION_START,
     }).id) for factor in ("momentum_20d", "reversal_5d")]
+    split_checks = {
+        run.experiment.factor_version.factor_key: verify_time_split_consistency(
+            next(item.content for item in run.artifacts if item.artifact_type == "metrics"))
+        for run in runs
+    }
     result = compare_runs(runs)
     full = result["matched_sample"]
     validation = result["matched_validation_sample"]
@@ -201,6 +207,7 @@ def validation_comparison_audit(session: Session, dataset_id: str, expected_chec
             "full_retention_ratio": next(point["retention_ratio"] for point in full["items"] if point["run_id"] == item["run_id"]),
             "validation_retention_ratio": next(point["retention_ratio"] for point in validation["items"] if point["run_id"] == item["run_id"]),
         } for item in result["items"]},
+        "split_internal_consistency": split_checks,
         "exports": "CSV/HTML full identities, IC values, warnings, and validation matched count verified",
     }
 

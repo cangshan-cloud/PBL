@@ -682,3 +682,7 @@ Rank IC 图线展示保存的每日秩相关，不重算 Spearman；两线独立
 ## 2026-10-27 研究序列约束复核（开发者代执行）
 
 审计把有效截面与 IC 日、有效分组日与多空/各组净值日对齐，并递推多空成本和毛/净净值。真实留存 Run 242 日通过；IC 与各组净值数值未独立重算，不作因子预测力结论。见[只读验收](../RESEARCH_RESULT_CONSISTENCY_QA_2026-10-27.md)及 [CHG-20261027-008](../changes/2026-10-27-008-research-result-consistency-audit.md)。实际执行者：Codex；队长本人未签收。
+
+## 2026-10-27 切分 IC 摘要复核（开发者代执行）
+
+动量/反转真实小样本临时 Run 均从保存全区间 IC/Rank IC 序列核回两段均值、ICIR、正比例与有效日数，验证期各 58 日；并非独立重算每日 IC 或预测力证据。见[验收](../REAL_SAMPLE_SPLIT_CONSISTENCY_QA_2026-10-27.md)及 [CHG-20261027-009](../changes/2026-10-27-009-time-split-result-audit.md)。实际执行者：Codex；队长本人未签收。

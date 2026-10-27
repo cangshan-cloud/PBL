@@ -256,6 +256,7 @@
 | CHG-20261027-006 | 2026-10-27 | IC split-date context / synthetic browser QA | 带切分 Run 的 IC 图与选日区披露研究期、隔离日、验证期；全区间曲线不冒充分段指标 | [记录](changes/2026-10-27-006-ic-split-date-context.md) | `frontend/src/chart-series.ts`、`main.tsx`、`layout.css`、测试、[浏览器验收](IC_SPLIT_DATE_CONTEXT_QA_2026-10-27.md)、口径与 A/B/C/D 四责任包 |
 | CHG-20261027-007 | 2026-10-27 | daily coverage CSV offline verifier / retained file check | 浏览器逐日诊断 CSV 可对同 Run 复现 JSON 核对，留存四文件只读验收 | [记录](changes/2026-10-27-007-daily-coverage-offline-verification.md) | `tools/verify_series_exports.py`、后端反例测试、[离线验收](DAILY_COVERAGE_EXPORT_OFFLINE_QA_2026-10-27.md)、用法与 A/B/C/D 四责任包 |
 | CHG-20261027-008 | 2026-10-27 | saved-result internal audit / retained real Run check | 独立只读审计每日覆盖算术、状态/序列日期及多空成本净值递推，真实历史留存包通过 | [记录](changes/2026-10-27-008-research-result-consistency-audit.md) | `tools/verify_research_result_consistency.py`、后端反例测试、[只读验收](RESEARCH_RESULT_CONSISTENCY_QA_2026-10-27.md)、用法与 A/B/C/D 四责任包 |
+| CHG-20261027-009 | 2026-10-27 | time-split internal audit / real sample memory runs | 带切分结果从全区间逐日序列复核隔离日和两段 IC 摘要；真实 10 股双因子临时任务通过 | [记录](changes/2026-10-27-009-time-split-result-audit.md) | `tools/verify_research_result_consistency.py`、`tools/verify_real_a_share_sample.py`、后端反例测试、[验收](REAL_SAMPLE_SPLIT_CONSISTENCY_QA_2026-10-27.md)与 A/B/C/D 四责任包 |
 
 ## 历史基线
 

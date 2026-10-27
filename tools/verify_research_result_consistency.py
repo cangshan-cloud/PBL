@@ -9,7 +9,9 @@ import argparse
 import json
 import math
 import sys
+from datetime import date
 from pathlib import Path
+from statistics import fmean, pstdev
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from tools.verify_reproducibility_export import load_verified_export
@@ -42,8 +44,73 @@ def _dated_rows(value: object, label: str) -> tuple[list[dict], list[str]]:
     return value, dates
 
 
+def verify_time_split_consistency(result: dict) -> dict[str, int]:
+    """Reconcile saved split summaries with the full-range daily IC and coverage rows."""
+    split = result.get("time_split")
+    if not isinstance(split, dict):
+        raise ValueError("time_split: missing split summary")
+    daily, _ = _dated_rows(result.get("daily_coverage"), "daily_coverage")
+    ic, _ = _dated_rows(result.get("ic_series"), "ic_series")
+    ic_by_date = {row["date"]: row for row in ic}
+    cutoff = split.get("validation_start_date")
+    if not isinstance(cutoff, str):
+        raise ValueError("time_split: missing validation start")
+    try:
+        if date.fromisoformat(cutoff).isoformat() != cutoff:
+            raise ValueError("noncanonical date")
+    except ValueError as exc:
+        raise ValueError("time_split: invalid validation start date") from exc
+    signal_dates = [row["date"] for row in daily if _integer(row.get("eligible_symbols"), "eligible_symbols") > 0]
+    if any(row["eligible_symbols"] >= 2 and row["date"] not in ic_by_date for row in daily):
+        raise ValueError("time_split: eligible cross-section has no IC point")
+    earlier = [day for day in signal_dates if day < cutoff]
+    later = [day for day in signal_dates if day >= cutoff]
+    if len(earlier) < 3 or len(later) < 2:
+        raise ValueError("time_split: insufficient signal dates")
+    embargo = earlier[-1]
+    if split.get("embargo_signal_date") != embargo:
+        raise ValueError("time_split: embargo date differs from last pre-cutoff signal")
+    if split.get("interpretation") != "retrospective_chronological_diagnostic_not_prospective_proof":
+        raise ValueError("time_split: interpretation differs from research rule")
+
+    summary = {}
+    for name, dates in (("research", earlier[:-1]), ("validation", later)):
+        saved = split.get(name)
+        if not isinstance(saved, dict):
+            raise ValueError(f"time_split.{name}: missing summary")
+        selected = set(dates)
+        if saved.get("start_date") != dates[0] or saved.get("end_date") != dates[-1]:
+            raise ValueError(f"time_split.{name}: date bounds differ")
+        count = sum(row["eligible_symbols"] for row in daily if row["date"] in selected)
+        for field, expected in (("observation_count", count), ("signal_date_count", len(dates))):
+            if _integer(saved.get(field), f"time_split.{name}.{field}") != expected:
+                raise ValueError(f"time_split.{name}.{field}: count differs")
+        points = [ic_by_date[day] for day in dates if day in ic_by_date]
+        values = [_number(point["ic"], f"{point['date']}.ic") for point in points if point["ic"] is not None]
+        ranks = [_number(point["rank_ic"], f"{point['date']}.rank_ic")
+                 for point in points if point["rank_ic"] is not None]
+        if _integer(saved.get("valid_ic_dates"), f"time_split.{name}.valid_ic_dates") != len(values):
+            raise ValueError(f"time_split.{name}.valid_ic_dates: count differs")
+        mean = fmean(values) if values else None
+        deviation = (0.0 if max(values) - min(values) <= 1e-12 else pstdev(values)) if len(values) > 1 else None
+        derived = {"ic_mean": mean, "rank_ic_mean": fmean(ranks) if ranks else None,
+                   "icir": mean / deviation if mean is not None and deviation else None,
+                   "ic_positive_ratio": sum(value > 0 for value in values) / len(values) if values else None}
+        for field, expected in derived.items():
+            actual = saved.get(field)
+            if expected is None:
+                if actual is not None:
+                    raise ValueError(f"time_split.{name}.{field}: expected null")
+            else:
+                _close(actual, expected, f"time_split.{name}.{field}")
+        summary[f"{name}_signal_dates"] = len(dates)
+        summary[f"{name}_valid_ic_dates"] = len(values)
+    return summary
+
+
 def verify_result_consistency(bundle_path: Path) -> dict[str, int]:
-    result = load_verified_export(bundle_path)["result"]
+    bundle = load_verified_export(bundle_path)
+    result = bundle["result"]
     daily, daily_dates = _dated_rows(result.get("daily_coverage"), "daily_coverage")
     ic, ic_dates = _dated_rows(result.get("ic_series"), "ic_series")
     long_short, long_short_dates = _dated_rows(result.get("long_short_series"), "long_short_series")
@@ -143,8 +210,18 @@ def verify_result_consistency(bundle_path: Path) -> dict[str, int]:
         _close(result.get("coverage_ratio"), eligible_total / candidate_total, "coverage_ratio")
     elif result.get("coverage_ratio") is not None:
         raise ValueError("coverage_ratio: expected null for zero candidates")
-    return {"daily_dates": len(daily_dates), "ic_dates": len(ic_dates),
-            "group_dates": len(expected_group_dates), "eligible_observations": eligible_total}
+    summary = {"daily_dates": len(daily_dates), "ic_dates": len(ic_dates),
+               "group_dates": len(expected_group_dates), "eligible_observations": eligible_total}
+    task = bundle.get("task")
+    parameters = task.get("parameters") if isinstance(task, dict) else None
+    declared_cutoff = parameters.get("validation_start_date") if isinstance(parameters, dict) else None
+    if "time_split" in result:
+        if not isinstance(result["time_split"], dict) or declared_cutoff != result["time_split"].get("validation_start_date"):
+            raise ValueError("time_split: cutoff differs from declared task parameter")
+        summary.update(verify_time_split_consistency(result))
+    elif declared_cutoff is not None:
+        raise ValueError("time_split: declared task cutoff has no saved split summary")
+    return summary
 
 
 def main() -> None:
