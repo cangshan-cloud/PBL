@@ -654,3 +654,7 @@ OrbStack 恢复后，以专用项目、独立数据库卷/网络和只读私有�
 
 仅生成 `/private/tmp` 合成 HTML 并用本机环回静态服务检查；服务与浏览器均已关闭。修正仅在报告 HTML/CSS 层，不新增 API、数据库或任务，不操作主服务。见[浏览器记录](../REPORT_GAP_MOBILE_QA_2026-10-27.md)及 [CHG-20261027-001](../changes/2026-10-27-001-report-mobile-chart-layout.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-27 打印报告明细边界集成（开发者代执行）
+
+仅调整新报告 HTML/CSS 打印行为，不增加服务、接口、队列或数据库变更；本机静态服务、浏览器已关闭，主栈未操作。旧归档不回写。见[打印验收](../REPORT_PRINT_QA_2026-10-27.md)及 [CHG-20261027-002](../changes/2026-10-27-002-report-print-detail-disclosure.md)。实际执行者：Codex；队长本人未签收。
+

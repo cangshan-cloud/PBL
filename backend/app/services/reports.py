@@ -210,6 +210,8 @@ def _daily_series_detail(result: dict) -> str:
         '<div class="series-table-wrap"><table><thead><tr><th>日期</th><th>IC</th><th>Rank IC</th>'
         f'<th>毛净值</th><th>成本后净值</th>{group_headings}{status_headings}</tr></thead>'
         f'<tbody>{"".join(rows)}</tbody></table></div></details>'
+        f'<p class="print-series-note">逐日序列核对表含 {len(dates)} 个已知日期；'
+        '打印版不包含逐日明细。请在同 Run HTML 报告展开查看，或核对逐日 CSV 与复现包。</p>'
     )
 
 
@@ -400,6 +402,7 @@ body{{font-family:Inter,'PingFang SC','Microsoft YaHei',sans-serif;color:#173128
 .chart-gap-notice{{margin:10px 0;padding:8px 10px;border:1px solid #e5d5af;border-radius:8px;background:#fff9eb;color:#715824;font-size:12px}}.chart-gap-notice summary{{cursor:pointer;font-weight:700}}.chart-gap-notice p{{max-height:110px;overflow:auto;overflow-wrap:anywhere;line-height:1.6}}.chart-gap-notice small{{color:#756544}}
 .chart-scroll{{overflow-x:auto}}.chart-scroll svg{{min-width:560px}}@media print{{.chart-scroll svg{{min-width:0}}}}
 .meta-grid{{grid-template-columns:repeat(2,minmax(0,1fr))}}.meta{{min-width:0;overflow-wrap:anywhere}}@media(max-width:600px){{main{{padding:24px 16px}}.grid{{grid-template-columns:repeat(2,minmax(0,1fr))}}.meta-grid{{grid-template-columns:minmax(0,1fr)}}}}
+.print-series-note{{display:none}}@media print{{.series-detail{{display:none}}.print-series-note{{display:block;padding:10px 12px;border-left:3px solid #d5a22f;background:#fff9eb;font-size:12px}}}}
 </style></head><body><main>
 <header><p class="tag">FACTORLAB · {report_kind}</p><h1>{html.escape(experiment.name)}</h1><p>报告由结构化研究结果自动生成，所有版本与参数均绑定到本次Run。价格口径：{price_basis_text}。</p></header>
 {demo_disclosure}

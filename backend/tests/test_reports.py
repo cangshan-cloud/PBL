@@ -388,6 +388,8 @@ class ReportTests(unittest.TestCase):
         }
         detail = _daily_series_detail(result)
         self.assertIn("3 个已知日期", detail)
+        self.assertIn('class="print-series-note">逐日序列核对表含 3 个已知日期', detail)
+        self.assertIn("打印版不包含逐日明细", detail)
         self.assertIn("<th>Q1 净值</th><th>Q2 净值</th>", detail)
         self.assertIn("<tr><td>2025-01-02</td><td>0.1235</td><td>—</td><td>—</td><td>—</td><td>1.0300</td><td>—</td></tr>", detail)
         self.assertIn("<tr><td>2025-01-03</td><td>—</td><td>-0.2000</td><td>1.0200</td><td>1.0100</td><td>—</td><td>—</td></tr>", detail)
@@ -416,6 +418,8 @@ class ReportTests(unittest.TestCase):
             rendered = build_report_html(run, {"coverage": 0, "group_returns": [], **result})
             self.assertIn('<details class="series-detail">', rendered)
             self.assertIn("<tr><td>2025-01-03</td><td>—</td><td>-0.2000</td>", rendered)
+            self.assertIn(".print-series-note{display:none}", rendered)
+            self.assertIn("@media print{.series-detail{display:none}.print-series-note{display:block", rendered)
 
 
 if __name__ == "__main__":

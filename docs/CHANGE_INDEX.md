@@ -249,6 +249,7 @@
 | CHG-20261026-019 | 2026-10-26 | chart internal gap disclosure / locally tested | 网页三类曲线可展开列出有效点之间的已知全线空缺日期，不猜测缺失原因 | [记录](changes/2026-10-26-019-chart-gap-disclosure.md) | `frontend/src/chart-series.ts`、`main.tsx`、样式/单测、研究口径与 A/B/C/D 四责任包 |
 | CHG-20261026-020 | 2026-10-26 | report chart gap disclosure + web browser QA | 新 HTML 报告三图同步提示内部全线空缺；网页用隔离旧 Run 和浏览器构造响应验收 | [记录](changes/2026-10-26-020-report-chart-gap-disclosure.md) | `backend/app/services/reports.py`、测试、[浏览器记录](CHART_GAP_BROWSER_QA_2026-10-26.md)、口径与 A/B/C/D 四责任包 |
 | CHG-20261027-001 | 2026-10-27 | report mobile chart/layout QA / verified on Mac synthetic report | 新报告图在窄屏局部滚动，长复现信息折行；390px 整页不溢出 | [记录](changes/2026-10-27-001-report-mobile-chart-layout.md) | `backend/app/services/reports.py`、测试、[浏览器记录](REPORT_GAP_MOBILE_QA_2026-10-27.md)、口径与 A/B/C/D 四责任包 |
+| CHG-20261027-002 | 2026-10-27 | report print detail disclosure / verified on Mac synthetic PDF | 打印版明确逐日明细未包含并给出 HTML/CSV/复现包核对路径，六页合成 PDF 逐页复验 | [记录](changes/2026-10-27-002-report-print-detail-disclosure.md) | `backend/app/services/reports.py`、测试、[打印验收](REPORT_PRINT_QA_2026-10-27.md)、口径与 A/B/C/D 四责任包 |
 
 ## 历史基线
 
