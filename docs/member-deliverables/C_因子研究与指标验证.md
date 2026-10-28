@@ -726,3 +726,7 @@ V2 同时保留结果 SHA 并将因子版本/公式、任务参数纳入整包�
 ## 2026-10-28 四因子合成独立截面验算（开发者代执行）
 
 三个完整截面从原始 CSV 独立计算四因子、MAD/Z 分数、等权合成及次日收益，与新 Run 逐股产物匹配；最大合成值差 `8.88e-16`。此为三日抽样，不代表全期独立复算或投资有效性。见 [验算证据](../HISTORICAL_COMPOSITE_INDEPENDENT_SPOTCHECK.md)与 [CHG-20261028-007](../changes/2026-10-28-007-independent-composite-run-spotcheck.md)。实际执行者：Codex；队长本人未签收。
+
+## 2026-10-28 全期每日 IC 独立验算（开发者代执行）
+
+从 72,366 条观测用独立标准库公式重算 242 日 Pearson IC、Rank IC 及 IC 均值、标准差、ICIR、正 IC 比例、Rank IC 均值；与 V2 结果最大差 `1.11e-16`。不等于全年源行情到因子值的独立计算。见 [IC 验算](../INDEPENDENT_IC_RUN_AUDIT_2026-10-28.md)与 [CHG-20261028-008](../changes/2026-10-28-008-independent-ic-run-audit.md)。实际执行者：Codex；队长本人未签收。

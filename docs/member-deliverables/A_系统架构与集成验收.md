@@ -726,3 +726,7 @@ OrbStack 恢复后，专用 QA Compose 预检通过；只重建 db/redis/api/web
 
 标准库工具只读封存 CSV 和同 Run 私有观测产物，支持显式产物 SHA-256；未改 API、Worker、数据库或主容器。三个日期逐股键及数值核对通过。见 [验算证据](../HISTORICAL_COMPOSITE_INDEPENDENT_SPOTCHECK.md)与 [CHG-20261028-007](../changes/2026-10-28-007-independent-composite-run-spotcheck.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-28 独立 IC 只读验收链（开发者代执行）
+
+新标准库验算器仅读取私有观测产物及既有 V2 复现 JSON，不改 API、Worker、数据库或主容器；可要求产物 SHA-256。见 [IC 验算](../INDEPENDENT_IC_RUN_AUDIT_2026-10-28.md)与 [CHG-20261028-008](../changes/2026-10-28-008-independent-ic-run-audit.md)。实际执行者：Codex；队长本人未签收。
+
