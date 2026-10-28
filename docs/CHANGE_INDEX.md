@@ -262,6 +262,7 @@
 | CHG-20261027-012 | 2026-10-27 | V2 reproducibility identity binding / local API test | 新复现包整包摘要覆盖 Run、参数、数据/因子和报告摘要；旧 V1 可读，新文件可要求 V2 | [记录](changes/2026-10-27-012-bound-reproducibility-bundle.md) | `backend/app/services/reproducibility.py`、`tools/verify_reproducibility_export.py`、`tools/verify_compose_stack.py`、回归、用法与 A/B/C/D 四责任包 |
 | CHG-20261028-001 | 2026-10-28 | V2 pending semantics + private replay / Mac offline | V2 无结果快照只验整包不冒充结果；私有沪深 300 当前任务严格 V2 与结果审计通过，HTTP 待补 | [记录](changes/2026-10-28-001-v2-offline-pending-and-private-replay.md) | `tools/verify_reproducibility_export.py`、`tools/run_isolated_historical_replay.py`、`backend/tests/test_reproducibility.py`、[离线验收](V2_REPRO_PRIVATE_REPLAY_2026-10-28.md)、A/B/C/D 四责任包 |
 | CHG-20261028-002 | 2026-10-28 | V2 HTTP export / isolated OrbStack QA | 旧成功历史 Run 经新版隔离 API 下载 V2 JSON/HTML，整包、结果、报告和 242 日结果审计通过 | [记录](changes/2026-10-28-002-v2-http-isolated-qa.md) | [隔离验收](V2_REPRO_HTTP_QA_2026-10-28.md)、`docs/REPRODUCIBILITY_EXPORT_CHECK.md`、A/B/C/D 四责任包（无应用代码改动） |
+| CHG-20261028-003 | 2026-10-28 | read-only HTTP V2 checker / isolated live QA | 固化 loopback 既有 Run 的严格 V2 下载、报告与任务身份核验；隔离历史 Run 复测通过 | [记录](changes/2026-10-28-003-readonly-http-repro-checker.md) | `tools/verify_http_reproducibility.py`、`backend/tests/test_http_reproducibility.py`、[工具实测](HTTP_REPRODUCIBILITY_TOOL_2026-10-28.md)、用法与 A/B/C/D 四责任包 |
 
 ## 历史基线
 

@@ -706,3 +706,7 @@ OrbStack 恢复后，以专用项目、独立数据库卷/网络和只读私有�
 
 OrbStack 恢复后，专用 QA Compose 预检通过；只重建 db/redis/api/web、读取旧 Run 的 V2 下载，验收后仅对 QA 项目 `down` 且保留其独立卷。主 `fbl` 五服务未操作，未验新任务 Celery。见 [HTTP 证据](../V2_REPRO_HTTP_QA_2026-10-28.md)与 [CHG-20261028-002](../changes/2026-10-28-002-v2-http-isolated-qa.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-28 只读 HTTP 验收工具集成（开发者代执行）
+
+新增仅允许 loopback、拒绝跳转的既有 Run V2 验收命令；只发登录 POST 与读取 GET，临时下载自动清理。隔离 Compose 复测通过，QA 已关闭，主 `fbl` 五服务仍在运行。见 [工具实测](../HTTP_REPRODUCIBILITY_TOOL_2026-10-28.md)与 [CHG-20261028-003](../changes/2026-10-28-003-readonly-http-repro-checker.md)。实际执行者：Codex；队长本人未签收。
+
