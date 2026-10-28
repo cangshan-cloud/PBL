@@ -265,6 +265,7 @@
 | CHG-20261028-003 | 2026-10-28 | read-only HTTP V2 checker / isolated live QA | 固化 loopback 既有 Run 的严格 V2 下载、报告与任务身份核验；隔离历史 Run 复测通过 | [记录](changes/2026-10-28-003-readonly-http-repro-checker.md) | `tools/verify_http_reproducibility.py`、`backend/tests/test_http_reproducibility.py`、[工具实测](HTTP_REPRODUCIBILITY_TOOL_2026-10-28.md)、用法与 A/B/C/D 四责任包 |
 | CHG-20261028-004 | 2026-10-28 | new historical Celery Run / strict V2 QA | 隔离 Worker 新任务成功，四文件严格 V2、私有包复算及 242 日结果审计通过 | [记录](changes/2026-10-28-004-v2-new-celery-historical-task.md) | `tools/verify_historical_api_journey.py`、`backend/tests/test_historical_api_journey.py`、[新任务验收](V2_HISTORICAL_CELERY_QA_2026-10-28.md)、用法与 A/B/C/D 四责任包 |
 | CHG-20261028-005 | 2026-10-28 | strict V2 downstream export checks / Mac offline | 四类离线核对命令可直接拒绝 V1；新 Celery 留存 V2 三路径通过，序列 CSV 工具构造 V2 正例通过 | [记录](changes/2026-10-28-005-strict-v2-downstream-verifiers.md) | 四个 `tools/verify_*` 离线核对器、入口透传、后端测试、[严格模式记录](STRICT_V2_DOWNSTREAM_QA_2026-10-28.md)、用法与 A/B/C/D 四责任包 |
+| CHG-20261028-006 | 2026-10-28 | new Run browser series CSV / strict V2 QA | 隔离真实浏览器下载 IC/多空/组净值/诊断四 CSV，同 Run V2 逐行严格核对通过 | [记录](changes/2026-10-28-006-v2-series-browser-qa.md) | [浏览器验收](V2_SERIES_BROWSER_QA_2026-10-28.md)、`docs/SERIES_EXPORT_VERIFICATION.md`、A/B/C/D 四责任包（无代码改动） |
 
 ## 历史基线
 

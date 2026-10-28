@@ -718,3 +718,7 @@ OrbStack 恢复后，专用 QA Compose 预检通过；只重建 db/redis/api/web
 
 四种离线命令可在核对时直接要求 V2，既有新任务/只读验收入口将严格选项下传；默认仍兼容留存 V1。无 API、数据库或队列改动，主服务未操作。见 [严格模式记录](../STRICT_V2_DOWNSTREAM_QA_2026-10-28.md)与 [CHG-20261028-005](../changes/2026-10-28-005-strict-v2-downstream-verifiers.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-28 新 Run 浏览器隔离验收（开发者代执行）
+
+专用 QA 只启 db/redis/api/web，真实浏览器读取既有新 Celery Run 并下载四份 CSV；关闭会话和 QA 容器后，主 `fbl` 五服务仍运行，独立数据库卷保留。见 [浏览器证据](../V2_SERIES_BROWSER_QA_2026-10-28.md)与 [CHG-20261028-006](../changes/2026-10-28-006-v2-series-browser-qa.md)。实际执行者：Codex；队长本人未签收。
+
