@@ -11,3 +11,5 @@ python3 tools/verify_reproducibility_export.py /path/to/reproducibility.json --r
 旧 `schema_version=1` 文件仍可不带该选项读取，只校验原有结果/可选报告摘要；旧文件没有整包身份绑定，也不会被回写。新 V2 的待执行、运行中、失败或取消任务若尚无结果，可核验整包摘要，命令输出为 `"result_verified": false`、`"bundle_verified": true`；这只说明快照文件完整，**不是研究结果通过验收**。成功任务缺结果、无结果却带结果或报告摘要均会拒绝。V1 的无结果包仍不作为有效离线导出。
 
 通过仅表示下载文件与复现包内摘要相符。摘要无密钥，攻击者若能同时重写内容和摘要仍可伪造；即使 V2 整包通过，也**不是数字签名**，不证明原始行情、因子计算、代码版本真实或未来收益。旧 V1 可兼容读取意味着不指定 `--require-v2` 时仍有版本降级空间。历史沪深 300 研究还需核对两份审计 CSV，应使用 [`HS300_BUNDLE.md`](HS300_BUNDLE.md) 中的历史四文件工具。设计与验证见 [CHG-20261027-012](changes/2026-10-27-012-bound-reproducibility-bundle.md)。
+
+2026-10-28 在隔离 OrbStack API 中，对既有成功历史 Run 实际下载 V2 JSON 与 HTML，严格 V2 整包、结果、报告摘要及保存结果内部审计均通过；只读证据见[隔离 HTTP 验收](V2_REPRO_HTTP_QA_2026-10-28.md)。该隔离栈已关闭；主 `fbl` 服务未在本轮重建，不能据此认定主网址已升级。

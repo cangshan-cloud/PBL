@@ -702,3 +702,7 @@ OrbStack 恢复后，以专用项目、独立数据库卷/网络和只读私有�
 
 本机内存 SQLite 路径生成当前私有历史任务，严格 V2 JSON/HTML 校验及同代码复算通过；新增未完成包只报整包完整、结果未验证。OrbStack socket 不存在，未作容器 HTTP 验收，也未升级主服务。见 [离线证据](../V2_REPRO_PRIVATE_REPLAY_2026-10-28.md)与 [CHG-20261028-001](../changes/2026-10-28-001-v2-offline-pending-and-private-replay.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-28 隔离 HTTP V2 集成复验（开发者代执行）
+
+OrbStack 恢复后，专用 QA Compose 预检通过；只重建 db/redis/api/web、读取旧 Run 的 V2 下载，验收后仅对 QA 项目 `down` 且保留其独立卷。主 `fbl` 五服务未操作，未验新任务 Celery。见 [HTTP 证据](../V2_REPRO_HTTP_QA_2026-10-28.md)与 [CHG-20261028-002](../changes/2026-10-28-002-v2-http-isolated-qa.md)。实际执行者：Codex；队长本人未签收。
+

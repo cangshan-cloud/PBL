@@ -261,6 +261,7 @@
 | CHG-20261027-011 | 2026-10-27 | IC histogram audit / retained real Run check | 保存的十档 IC 分布边界和计数可与有效逐日 IC 对齐；真实历史 Run 242 个 IC 通过 | [记录](changes/2026-10-27-011-ic-histogram-audit.md) | `tools/verify_research_result_consistency.py`、反例测试、[留存验收](RESEARCH_RESULT_CONSISTENCY_QA_2026-10-27.md)、用法与 A/B/C/D 四责任包 |
 | CHG-20261027-012 | 2026-10-27 | V2 reproducibility identity binding / local API test | 新复现包整包摘要覆盖 Run、参数、数据/因子和报告摘要；旧 V1 可读，新文件可要求 V2 | [记录](changes/2026-10-27-012-bound-reproducibility-bundle.md) | `backend/app/services/reproducibility.py`、`tools/verify_reproducibility_export.py`、`tools/verify_compose_stack.py`、回归、用法与 A/B/C/D 四责任包 |
 | CHG-20261028-001 | 2026-10-28 | V2 pending semantics + private replay / Mac offline | V2 无结果快照只验整包不冒充结果；私有沪深 300 当前任务严格 V2 与结果审计通过，HTTP 待补 | [记录](changes/2026-10-28-001-v2-offline-pending-and-private-replay.md) | `tools/verify_reproducibility_export.py`、`tools/run_isolated_historical_replay.py`、`backend/tests/test_reproducibility.py`、[离线验收](V2_REPRO_PRIVATE_REPLAY_2026-10-28.md)、A/B/C/D 四责任包 |
+| CHG-20261028-002 | 2026-10-28 | V2 HTTP export / isolated OrbStack QA | 旧成功历史 Run 经新版隔离 API 下载 V2 JSON/HTML，整包、结果、报告和 242 日结果审计通过 | [记录](changes/2026-10-28-002-v2-http-isolated-qa.md) | [隔离验收](V2_REPRO_HTTP_QA_2026-10-28.md)、`docs/REPRODUCIBILITY_EXPORT_CHECK.md`、A/B/C/D 四责任包（无应用代码改动） |
 
 ## 历史基线
 
