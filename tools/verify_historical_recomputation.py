@@ -18,11 +18,13 @@ sys.path.insert(0, str(ROOT / "backend"))
 from app.domain.composite import combine_factor_observations
 from app.domain.historical_research import FACTOR_WINDOWS, calculate_historical_observations, load_historical_bundle
 from app.domain.research import evaluate
+from app.domain.time_split import evaluate_time_split
 from app.services.coverage import enrich_daily_coverage
 from tools.verify_reproducibility_export import load_verified_export
 
 
-def recompute_result(manifest_path: Path, manifest_checksum: str, groups: int) -> dict:
+def recompute_result(manifest_path: Path, manifest_checksum: str, groups: int,
+                     validation_start_date: str | None = None) -> dict:
     calendar, members, bars = load_historical_bundle(manifest_path, manifest_checksum)
     components = {}
     audit = {}
@@ -37,6 +39,11 @@ def recompute_result(manifest_path: Path, manifest_checksum: str, groups: int) -
     result["composite"] = diagnostics
     result["preprocessing"] = diagnostics["component_preprocessing"]
     result["historical_audit"] = audit
+    if validation_start_date:
+        result["time_split"] = evaluate_time_split(
+            observations, validation_start_date, groups=groups,
+            winsorize=False, standardize=False, mad_scale=3.0,
+        )
     result["sample"] = {
         "price_basis": "source_close", "start_date": "2024-01-01",
         "end_date": "2024-12-31", "resolved_symbol_count": len(bars),
@@ -63,17 +70,21 @@ def verify_recomputation(export_path: Path, manifest_path: Path, *, require_v2: 
         {"key": key, "version": "1.0.0", "lookback": window, "weight": 0.25}
         for key, window in FACTOR_WINDOWS.items()
     ]
+    validation_start = parameters.get("validation_start_date")
+    expected_parameters = {
+        "mode": "historical_hs300_2024", "dataset_version_id": dataset["id"],
+        "groups": groups, "factors": list(FACTOR_WINDOWS), "lookbacks": FACTOR_WINDOWS,
+        "weighting": "equal", "price_basis": "source_close",
+        "components": expected_components, "winsorize": True,
+        "standardize": True, "mad_scale": 3.0, "transaction_cost_bps": 10.0,
+    }
+    if validation_start is not None:
+        expected_parameters["validation_start_date"] = "2024-07-01"
     if (task["status"] != "success" or task["dataset_version_id"] != dataset["id"] or
             type(groups) is not int or not 2 <= groups <= 10 or
-            parameters != {
-                "mode": "historical_hs300_2024", "dataset_version_id": dataset["id"],
-                "groups": groups, "factors": list(FACTOR_WINDOWS), "lookbacks": FACTOR_WINDOWS,
-                "weighting": "equal", "price_basis": "source_close",
-                "components": expected_components, "winsorize": True,
-                "standardize": True, "mad_scale": 3.0, "transaction_cost_bps": 10.0,
-            }):
+            parameters != expected_parameters):
         raise ValueError("unsupported historical task configuration")
-    result = recompute_result(manifest_path, dataset["checksum_sha256"], groups)
+    result = recompute_result(manifest_path, dataset["checksum_sha256"], groups, validation_start)
     saved = export["result"]
     if not _same_result(result, saved):
         changed = sorted(key for key in result.keys() | saved.keys()

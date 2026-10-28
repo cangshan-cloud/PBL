@@ -45,8 +45,11 @@ def require_private_new_output(output_dir: Path) -> Path:
     return target
 
 
-def run_isolated_replay(manifest_path: Path, output_dir: Path) -> dict[str, object]:
+def run_isolated_replay(manifest_path: Path, output_dir: Path,
+                        validation_start_date: str | None = None) -> dict[str, object]:
     target = require_private_new_output(output_dir)
+    if validation_start_date not in {None, "2024-07-01"}:
+        raise ValueError("historical validation_start_date must be 2024-07-01")
     verified = verify_historical_bundle(manifest_path)
     manifest = verified["manifest"]
     with tempfile.TemporaryDirectory(prefix="factorlab-historical-replay-") as temporary:
@@ -64,7 +67,10 @@ def run_isolated_replay(manifest_path: Path, output_dir: Path) -> dict[str, obje
                 )
                 session.add(dataset)
                 session.commit()
-                run = create_historical_run(session, {"dataset_version_id": dataset.id})
+                run = create_historical_run(session, {
+                    "dataset_version_id": dataset.id,
+                    "validation_start_date": validation_start_date,
+                })
                 settings = replace(get_settings(), data_root=Path(temporary))
                 with patch("app.services.runs.get_settings", return_value=settings):
                     completed = execute_research_run(session, run.id)
@@ -86,7 +92,8 @@ def run_isolated_replay(manifest_path: Path, output_dir: Path) -> dict[str, obje
     verify_export(export_path, report_path, require_v2=True)
     replay = verify_recomputation(export_path, manifest_path, require_v2=True)
     return {"run_id": run_id, "result_sha256": export["result_sha256"],
-            "report_sha256": export["report_sha256"], **replay}
+            "report_sha256": export["report_sha256"],
+            "time_split": export["result"].get("time_split"), **replay}
 
 
 def main() -> None:
@@ -95,11 +102,13 @@ def main() -> None:
     parser.add_argument("output_dir", type=Path)
     parser.add_argument("--acknowledge-private-output", action="store_true",
                         help="Confirm this writes derived evidence under ignored data/real")
+    parser.add_argument("--validation-start-date", choices=["2024-07-01"],
+                        help="Optional fixed historical IC split with one embargoed signal day")
     args = parser.parse_args()
     if not args.acknowledge_private_output:
         parser.error("pass --acknowledge-private-output to create private derived evidence")
     try:
-        result = run_isolated_replay(args.manifest_json, args.output_dir)
+        result = run_isolated_replay(args.manifest_json, args.output_dir, args.validation_start_date)
     except (OSError, RuntimeError, ValueError, KeyError, TypeError) as exc:
         parser.exit(1, f"隔离历史复算失败：{exc}\n")
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))

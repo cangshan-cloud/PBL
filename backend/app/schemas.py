@@ -76,6 +76,7 @@ class CompositeResearchRequest(BaseModel):
 class HistoricalResearchRequest(BaseModel):
     dataset_version_id: str
     groups: int = Field(default=5, ge=2, le=10)
+    validation_start_date: Literal["2024-07-01"] | None = None
 
 
 class ComparisonRequest(BaseModel):

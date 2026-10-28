@@ -78,6 +78,36 @@ class HistoricalRecomputationTests(unittest.TestCase):
                 verify_recomputation(self.export, self.manifest)
             loaded.assert_not_called()
 
+    def test_recomputes_fixed_historical_time_split(self):
+        self.days = [date(2024, 6, 1) + timedelta(days=index) for index in range(45)]
+        symbols = [f"sh.{index:06d}" for index in range(10)]
+        self.members = {day: set(symbols) for day in self.days[21:-1]}
+        self.bars = {
+            symbol: {day: HistoricalBar(100 + index * (1 + rank / 10), 1 + rank / 10, 100, "1", "0")
+                     for index, day in enumerate(self.days)}
+            for rank, symbol in enumerate(symbols)
+        }
+        with patch("tools.verify_historical_recomputation.load_historical_bundle",
+                   return_value=(self.days, self.members, self.bars)):
+            result = recompute_result(self.manifest, self.checksum, 5, "2024-07-01")
+            self.assertEqual(result["time_split"]["validation_start_date"], "2024-07-01")
+            self.assertEqual(result["time_split"]["embargo_signal_date"], "2024-06-30")
+            parameters = {
+                "mode": "historical_hs300_2024", "dataset_version_id": "dataset-1",
+                "groups": 5, "factors": list(FACTOR_WINDOWS), "lookbacks": FACTOR_WINDOWS,
+                "weighting": "equal", "price_basis": "source_close",
+                "components": [{"key": key, "version": "1.0.0", "lookback": window, "weight": 0.25}
+                               for key, window in FACTOR_WINDOWS.items()],
+                "winsorize": True, "standardize": True, "mad_scale": 3.0,
+                "transaction_cost_bps": 10.0, "validation_start_date": "2024-07-01",
+            }
+            self._write_export(result, parameters=parameters)
+            self.assertEqual(verify_recomputation(self.export, self.manifest)["observations"], result["coverage"])
+            parameters["validation_start_date"] = "2024-08-01"
+            self._write_export(result, parameters=parameters)
+            with self.assertRaisesRegex(ValueError, "unsupported historical task configuration"):
+                verify_recomputation(self.export, self.manifest)
+
 
 if __name__ == "__main__":
     unittest.main()

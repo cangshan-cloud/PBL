@@ -76,6 +76,10 @@ test("historical mode uses only its actual API parameters", () => {
   const hiddenOrdinaryChange = buildResearchConfiguration({ ...base, mode: "historical", factorId: "other", priceBasis: "factor_adjusted" });
   assert.deepEqual(original.parameters, { dataset_version_id: "data-1", groups: 5 });
   assert.equal(original.key, hiddenOrdinaryChange.key);
+  const split = buildResearchConfiguration({ ...base, mode: "historical", historicalSplitEnabled: true });
+  assert.deepEqual(split.parameters, { dataset_version_id: "data-1", groups: 5, validation_start_date: "2024-07-01" });
+  assert.notEqual(split.key, original.key);
+  assert.equal(validateResearchConfiguration({ ...base, mode: "historical", historicalSplitEnabled: true }), null);
 });
 
 test("mode and composite component changes produce distinct result keys", () => {

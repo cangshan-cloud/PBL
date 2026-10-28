@@ -8,6 +8,7 @@ import os
 import sys
 import tempfile
 import unittest
+from datetime import date, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -22,6 +23,7 @@ from sqlalchemy.pool import StaticPool
 from app.db import get_db
 from app.main import app
 from app.models import Artifact, DatasetVersion, Run, RunStatus, User
+from app.domain.historical_research import HistoricalBar
 from app.services.runs import claim_pending_run, create_historical_run
 
 
@@ -29,6 +31,51 @@ SAMPLE_CSV = Path(__file__).resolve().parents[2] / "data" / "sample" / "daily_pr
 
 
 class ApiJourneyTests(unittest.TestCase):
+    def test_historical_fixed_split_survives_task_report_and_conclusion(self):
+        researcher = self.auth("researcher", "research12345")
+        days = [date(2024, 6, 1) + timedelta(days=index) for index in range(45)]
+        symbols = [f"sh.{index:06d}" for index in range(10)]
+        members = {day: set(symbols) for day in days[21:-1]}
+        bars = {
+            symbol: {day: HistoricalBar(100 + index * (1 + rank / 10), 1 + rank / 10, 100, "1", "0")
+                     for index, day in enumerate(days)}
+            for rank, symbol in enumerate(symbols)
+        }
+        with Session(self.engine) as session:
+            dataset = DatasetVersion(
+                dataset_key="hs300_2024", name="split fixture", version="split-fixture",
+                checksum="0" * 64, storage_uri="/unused/manifest.json", source_filename="manifest.json",
+                quality_report={"dataset_kind": "hs300_bundle_v1", "bundle_id": "split-fixture"}, status="published",
+            )
+            session.add(dataset)
+            session.commit()
+            dataset_id = dataset.id
+        endpoint = "/api/v1/research/historical-tasks"
+        invalid = self.client.post(endpoint, headers=researcher, json={
+            "dataset_version_id": dataset_id, "validation_start_date": "2024-08-01"})
+        self.assertEqual(invalid.status_code, 422)
+        with patch("app.services.runs.load_historical_bundle", return_value=(days, members, bars)):
+            baseline = self.client.post(endpoint, headers=researcher,
+                                        json={"dataset_version_id": dataset_id, "groups": 5})
+            split = self.client.post(endpoint, headers=researcher, json={
+                "dataset_version_id": dataset_id, "groups": 5,
+                "validation_start_date": "2024-07-01"})
+        self.assertEqual(baseline.status_code, 201, baseline.text)
+        self.assertEqual(split.status_code, 201, split.text)
+        self.assertEqual(split.json()["status"], "success")
+        original, result = baseline.json()["result"], split.json()["result"]
+        self.assertEqual(original["coverage"], result["coverage"])
+        self.assertEqual(original["ic_mean"], result["ic_mean"])
+        self.assertEqual(original["long_short_net_total_return"], result["long_short_net_total_return"])
+        self.assertEqual(result["time_split"]["embargo_signal_date"], "2024-06-30")
+        run_id = split.json()["id"]
+        report = self.client.get(f"/api/v1/reports/{run_id}/html", headers=researcher)
+        self.assertEqual(report.status_code, 200, report.text)
+        self.assertIn("时间切分 IC 诊断", report.text)
+        conclusion = self.client.get(f"/api/v1/research/tasks/{run_id}/conclusion", headers=researcher)
+        self.assertEqual(conclusion.status_code, 200, conclusion.text)
+        self.assertEqual(conclusion.json()["method"]["grade_basis"], "validation_ic")
+
     def test_predeclared_time_split_survives_task_report_and_conclusion(self):
         researcher = self.auth("researcher", "research12345")
         base = {"factor": "momentum_20d", "groups": 5,

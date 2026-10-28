@@ -20,6 +20,7 @@ export type ResearchConfigurationInput = {
   sampleStart: string;
   sampleEnd: string;
   validationStart: string;
+  historicalSplitEnabled?: boolean;
   sampleSymbols: string;
 };
 
@@ -86,7 +87,8 @@ export function buildResearchConfiguration(input: ResearchConfigurationInput): {
     ...sample,
   };
   const parameters: Record<string, unknown> | null = !datasetId ? null : mode === "historical"
-    ? { dataset_version_id: datasetId, groups }
+    ? { dataset_version_id: datasetId, groups,
+        ...(input.historicalSplitEnabled ? { validation_start_date: "2024-07-01" } : {}) }
     : mode === "composite"
     ? { factors: [...input.compositeFactors], ...ordinary }
     : !input.factorId ? null

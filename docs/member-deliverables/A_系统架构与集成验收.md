@@ -734,3 +734,7 @@ OrbStack 恢复后，专用 QA Compose 预检通过；只重建 db/redis/api/web
 
 新增标准库只读工具核对私有观测产物和 V2 保存结果，不修改运行服务或持久化数据；明确限制为 10 bps 固定成本、足够分组的历史模式。见 [分组验算](../INDEPENDENT_GROUP_RUN_AUDIT_2026-10-28.md)与 [CHG-20261028-009](../changes/2026-10-28-009-independent-group-run-audit.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-28 历史固定切分全链路集成（开发者代执行）
+
+历史请求、任务参数、结果、报告、结论与离线同包复算接通固定 2024-07-01 切分；私有封存包在临时内存 SQLite 生成新 Run，严格 V2 校验通过。主 Compose 未重建，页面尚未浏览器实点。见 [验收](../HISTORICAL_FIXED_SPLIT_QA_2026-10-28.md)与 [CHG-20261028-010](../changes/2026-10-28-010-historical-fixed-split.md)。实际执行者：Codex；队长本人未签收。
+

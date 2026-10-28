@@ -225,6 +225,9 @@ def create_historical_run(session: Session, parameters: dict, created_by_id: str
         raise LookupError("dataset version not found")
     if dataset.status != "published" or (dataset.quality_report or {}).get("dataset_kind") != "hs300_bundle_v1":
         raise ValueError("historical research requires a published CSI 300 bundle")
+    validation_start = parameters.get("validation_start_date")
+    if validation_start is not None and validation_start != "2024-07-01":
+        raise ValueError("historical validation_start_date must be 2024-07-01")
     factor = ensure_composite_factor(session)
     stored = {
         "mode": "historical_hs300_2024", "dataset_version_id": dataset.id,
@@ -239,6 +242,8 @@ def create_historical_run(session: Session, parameters: dict, created_by_id: str
     }
     if not 2 <= stored["groups"] <= 10:
         raise ValueError("groups must be between 2 and 10")
+    if validation_start is not None:
+        stored["validation_start_date"] = validation_start
     experiment = Experiment(
         name="2024沪深300历史四因子研究", dataset_version_id=dataset.id,
         factor_version_id=factor.id, parameters=stored,
@@ -424,6 +429,12 @@ def execute_research_run(session: Session, run_id: str) -> Run:
             result["composite"] = diagnostics
             result["preprocessing"] = diagnostics["component_preprocessing"]
             result["historical_audit"] = audit
+            if parameters.get("validation_start_date"):
+                result["time_split"] = evaluate_time_split(
+                    observations, parameters["validation_start_date"],
+                    groups=int(parameters["groups"]), winsorize=False,
+                    standardize=False, mad_scale=3.0,
+                )
             result["sample"] = {
                 "price_basis": "source_close", "start_date": "2024-01-01",
                 "end_date": "2024-12-31", "resolved_symbol_count": len(bars),
