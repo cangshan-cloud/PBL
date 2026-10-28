@@ -100,6 +100,21 @@ class HistoricalApiJourneyTests(unittest.TestCase):
                                 admin_password="a", researcher_password="r", output_dir=output)
             self.assertFalse(output.exists())
 
+    def test_strict_v2_option_reaches_export_verifier(self):
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "evidence"
+            with patch("verify_historical_api_journey.time.sleep"), patch(
+                "verify_historical_api_journey.verify_exports", return_value={}
+            ), patch("verify_historical_api_journey.load_verified_export", return_value={
+                "task": {"id": "run-1", "status": "success", "dataset_version_id": "dataset-1",
+                         "parameters": {"groups": 5}},
+                "dataset": {"id": "dataset-1"},
+                "result": {"sample": {"historical_bundle_id": self.bundle_id}},
+            }) as load:
+                run_journey(FakeClient(existing=True), bundle_id=self.bundle_id, admin_password="a",
+                            researcher_password="r", output_dir=output, require_v2=True)
+            load.assert_called_once_with(output / "reproducibility.json", require_v2=True)
+
     def test_cli_requires_explicit_write_acknowledgment(self):
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp) / "evidence"

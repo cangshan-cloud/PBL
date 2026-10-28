@@ -20,7 +20,9 @@
 
 1. 在系统临时目录创建全新 `factorlab-historical-qa-*` 运行目录，并设置 `FACTORLAB_HISTORICAL_QA_RUNTIME_DIR` 为其绝对路径；准备本机 Git 忽略的封存包，不能把私有行情提交到仓库。
 2. 运行 `python3 tools/verify_historical_qa_compose.py --project-name factorlab-historical-qa-<唯一后缀> --runtime-dir <目录>`。仅在预检通过后，以**完全相同**的项目名和环境变量执行 `docker compose -p <项目名> -f docker-compose.yml -f docker-compose.historical-qa.yml up --build -d db redis api worker`。
-3. 设置隔离栈对应的 `FACTORLAB_HISTORICAL_ADMIN_PASSWORD` 和 `FACTORLAB_HISTORICAL_RESEARCHER_PASSWORD`，使用 `tools/verify_historical_api_journey.py --api-url http://127.0.0.1:18022/api/v1 --bundle-id hs300_2024_0375298bd2c8ac52 --output-dir <新的私有目录> --acknowledge-isolated-writes`。该命令会创建隔离数据库记录，绝不可指向主栈 8000 端口。
+3. 设置隔离栈对应的 `FACTORLAB_HISTORICAL_ADMIN_PASSWORD` 和 `FACTORLAB_HISTORICAL_RESEARCHER_PASSWORD`，使用 `tools/verify_historical_api_journey.py --api-url http://127.0.0.1:18022/api/v1 --bundle-id hs300_2024_0375298bd2c8ac52 --output-dir <新的私有目录> --acknowledge-isolated-writes --require-v2`。该命令会创建隔离数据库记录，绝不可指向主栈 8000 端口；`--require-v2` 使当前代码验收拒绝旧 V1 下载。旧留存环境可省略该选项进行兼容核对。
 4. 用 `tools/verify_historical_recomputation.py <导出目录>/reproducibility.json data/real/bundles/<包ID>/manifest.json` 做同源当前源码复算。验收结束只对精确隔离项目执行 `docker compose ... down`，**不要加 `-v`**，保留证据及专用卷以便复查。
+
+2026-10-28 按上述严格 V2 选项对**新** Celery 历史任务完成全链路实测，四文件、同代码复算及保存结果审计通过；见[新任务验收](V2_HISTORICAL_CELERY_QA_2026-10-28.md)。该记录不改变本文 2026-10-25 旧任务的原始证据。
 
 未覆盖：Windows、浏览器交互、多人并发、官方成分时点的外部独立核验、数据授权、独立因子公式审计及可成交投资收益。

@@ -63,7 +63,7 @@ def verify_journey_binding(export: dict, *, run_id: str, dataset_id: str, bundle
 
 
 def run_journey(client: ApiClient, *, bundle_id: str, admin_password: str, researcher_password: str,
-                output_dir: Path, timeout_seconds: int = 120) -> dict:
+                output_dir: Path, timeout_seconds: int = 120, require_v2: bool = False) -> dict:
     if output_dir.exists():
         raise ValueError(f"output path already exists; refusing to overwrite: {output_dir}")
     admin = client.json("/auth/login", payload={"username": "admin", "password": admin_password})["access_token"]
@@ -105,7 +105,7 @@ def run_journey(client: ApiClient, *, bundle_id: str, admin_password: str, resea
         (output_dir / name).write_bytes(content)
     counts = verify_exports(output_dir / "reproducibility.json", output_dir / "daily.csv",
                             output_dir / "unlabeled.csv", output_dir / "report.html")
-    verify_journey_binding(load_verified_export(output_dir / "reproducibility.json"),
+    verify_journey_binding(load_verified_export(output_dir / "reproducibility.json", require_v2=require_v2),
                            run_id=run["id"], dataset_id=dataset["id"], bundle_id=bundle_id)
     return {"dataset_id": dataset["id"], "run_id": run["id"], "status": run["status"], **counts}
 
@@ -117,6 +117,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output-dir", type=Path, required=True, help="New directory for the four HTTP exports")
     parser.add_argument("--acknowledge-isolated-writes", action="store_true",
                         help="Confirm this may create dataset and task records in the target stack")
+    parser.add_argument("--require-v2", action="store_true", help="Reject a new task export without V2 whole-bundle checksum")
     args = parser.parse_args(argv)
     if not args.acknowledge_isolated_writes:
         parser.error("this creates records; use only an isolated stack and pass --acknowledge-isolated-writes")
@@ -127,7 +128,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         result = run_journey(ApiClient(args.api_url), bundle_id=args.bundle_id,
                              admin_password=admin_password, researcher_password=researcher_password,
-                             output_dir=args.output_dir)
+                             output_dir=args.output_dir, require_v2=args.require_v2)
     except (OSError, RuntimeError, ValueError, KeyError, TypeError, TimeoutError) as exc:
         print(f"FAIL historical API journey: {exc}", file=sys.stderr)
         return 1

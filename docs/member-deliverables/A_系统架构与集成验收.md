@@ -710,3 +710,7 @@ OrbStack 恢复后，专用 QA Compose 预检通过；只重建 db/redis/api/web
 
 新增仅允许 loopback、拒绝跳转的既有 Run V2 验收命令；只发登录 POST 与读取 GET，临时下载自动清理。隔离 Compose 复测通过，QA 已关闭，主 `fbl` 五服务仍在运行。见 [工具实测](../HTTP_REPRODUCIBILITY_TOOL_2026-10-28.md)与 [CHG-20261028-003](../changes/2026-10-28-003-readonly-http-repro-checker.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-28 新任务 Celery/V2 集成（开发者代执行）
+
+专用 Compose 五服务预检后运行新历史任务，Worker 完成且 API 四文件严格 V2 核验通过；验收后仅 QA 项目 `down`，独立卷保留，主 `fbl` 五服务未操作。见 [新任务证据](../V2_HISTORICAL_CELERY_QA_2026-10-28.md)与 [CHG-20261028-004](../changes/2026-10-28-004-v2-new-celery-historical-task.md)。实际执行者：Codex；队长本人未签收。
+
