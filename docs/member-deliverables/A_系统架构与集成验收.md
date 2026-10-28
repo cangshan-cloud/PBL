@@ -722,3 +722,7 @@ OrbStack 恢复后，专用 QA Compose 预检通过；只重建 db/redis/api/web
 
 专用 QA 只启 db/redis/api/web，真实浏览器读取既有新 Celery Run 并下载四份 CSV；关闭会话和 QA 容器后，主 `fbl` 五服务仍运行，独立数据库卷保留。见 [浏览器证据](../V2_SERIES_BROWSER_QA_2026-10-28.md)与 [CHG-20261028-006](../changes/2026-10-28-006-v2-series-browser-qa.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-28 私有 Run 独立抽样验算集成（开发者代执行）
+
+标准库工具只读封存 CSV 和同 Run 私有观测产物，支持显式产物 SHA-256；未改 API、Worker、数据库或主容器。三个日期逐股键及数值核对通过。见 [验算证据](../HISTORICAL_COMPOSITE_INDEPENDENT_SPOTCHECK.md)与 [CHG-20261028-007](../changes/2026-10-28-007-independent-composite-run-spotcheck.md)。实际执行者：Codex；队长本人未签收。
+

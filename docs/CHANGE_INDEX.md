@@ -266,6 +266,7 @@
 | CHG-20261028-004 | 2026-10-28 | new historical Celery Run / strict V2 QA | 隔离 Worker 新任务成功，四文件严格 V2、私有包复算及 242 日结果审计通过 | [记录](changes/2026-10-28-004-v2-new-celery-historical-task.md) | `tools/verify_historical_api_journey.py`、`backend/tests/test_historical_api_journey.py`、[新任务验收](V2_HISTORICAL_CELERY_QA_2026-10-28.md)、用法与 A/B/C/D 四责任包 |
 | CHG-20261028-005 | 2026-10-28 | strict V2 downstream export checks / Mac offline | 四类离线核对命令可直接拒绝 V1；新 Celery 留存 V2 三路径通过，序列 CSV 工具构造 V2 正例通过 | [记录](changes/2026-10-28-005-strict-v2-downstream-verifiers.md) | 四个 `tools/verify_*` 离线核对器、入口透传、后端测试、[严格模式记录](STRICT_V2_DOWNSTREAM_QA_2026-10-28.md)、用法与 A/B/C/D 四责任包 |
 | CHG-20261028-006 | 2026-10-28 | new Run browser series CSV / strict V2 QA | 隔离真实浏览器下载 IC/多空/组净值/诊断四 CSV，同 Run V2 逐行严格核对通过 | [记录](changes/2026-10-28-006-v2-series-browser-qa.md) | [浏览器验收](V2_SERIES_BROWSER_QA_2026-10-28.md)、`docs/SERIES_EXPORT_VERIFICATION.md`、A/B/C/D 四责任包（无代码改动） |
+| CHG-20261028-007 | 2026-10-28 | independent composite spotcheck / Mac private Run | 三个完整成分截面由源 CSV 独立重算四因子合成，逐股与新 Celery Run 观测产物一致 | [记录](changes/2026-10-28-007-independent-composite-run-spotcheck.md) | `tools/verify_historical_composite_spotcheck.py`、`backend/tests/test_historical_composite_spotcheck.py`、[独立验算](HISTORICAL_COMPOSITE_INDEPENDENT_SPOTCHECK.md)、A/B/C/D 四责任包 |
 
 ## 历史基线
 
