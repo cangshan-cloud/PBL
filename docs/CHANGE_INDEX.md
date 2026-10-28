@@ -268,6 +268,7 @@
 | CHG-20261028-006 | 2026-10-28 | new Run browser series CSV / strict V2 QA | 隔离真实浏览器下载 IC/多空/组净值/诊断四 CSV，同 Run V2 逐行严格核对通过 | [记录](changes/2026-10-28-006-v2-series-browser-qa.md) | [浏览器验收](V2_SERIES_BROWSER_QA_2026-10-28.md)、`docs/SERIES_EXPORT_VERIFICATION.md`、A/B/C/D 四责任包（无代码改动） |
 | CHG-20261028-007 | 2026-10-28 | independent composite spotcheck / Mac private Run | 三个完整成分截面由源 CSV 独立重算四因子合成，逐股与新 Celery Run 观测产物一致 | [记录](changes/2026-10-28-007-independent-composite-run-spotcheck.md) | `tools/verify_historical_composite_spotcheck.py`、`backend/tests/test_historical_composite_spotcheck.py`、[独立验算](HISTORICAL_COMPOSITE_INDEPENDENT_SPOTCHECK.md)、A/B/C/D 四责任包 |
 | CHG-20261028-008 | 2026-10-28 | independent IC audit / Mac private Run | 72,366 条逐股观测独立计算 242 日 IC/Rank IC 与五项汇总，和 V2 保存结果逐值一致 | [记录](changes/2026-10-28-008-independent-ic-run-audit.md) | `tools/verify_independent_ic_from_observations.py`、`backend/tests/test_independent_ic_from_observations.py`、[IC 验算](INDEPENDENT_IC_RUN_AUDIT_2026-10-28.md)、A/B/C/D 四责任包 |
+| CHG-20261028-009 | 2026-10-28 | independent group audit / Mac private Run | 72,366 条观测独立计算 242 日、5 组、换手与 10 bps 多空成本，逐值与 V2 保存结果一致 | [记录](changes/2026-10-28-009-independent-group-run-audit.md) | `tools/verify_independent_groups_from_observations.py`、`backend/tests/test_independent_groups_from_observations.py`、[分组验算](INDEPENDENT_GROUP_RUN_AUDIT_2026-10-28.md)、A/B/C/D 四责任包 |
 
 ## 历史基线
 

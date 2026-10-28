@@ -730,3 +730,7 @@ OrbStack 恢复后，专用 QA Compose 预检通过；只重建 db/redis/api/web
 
 新标准库验算器仅读取私有观测产物及既有 V2 复现 JSON，不改 API、Worker、数据库或主容器；可要求产物 SHA-256。见 [IC 验算](../INDEPENDENT_IC_RUN_AUDIT_2026-10-28.md)与 [CHG-20261028-008](../changes/2026-10-28-008-independent-ic-run-audit.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-28 分组与多空独立验算集成（开发者代执行）
+
+新增标准库只读工具核对私有观测产物和 V2 保存结果，不修改运行服务或持久化数据；明确限制为 10 bps 固定成本、足够分组的历史模式。见 [分组验算](../INDEPENDENT_GROUP_RUN_AUDIT_2026-10-28.md)与 [CHG-20261028-009](../changes/2026-10-28-009-independent-group-run-audit.md)。实际执行者：Codex；队长本人未签收。
+
