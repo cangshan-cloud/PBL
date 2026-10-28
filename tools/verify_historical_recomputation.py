@@ -54,8 +54,8 @@ def _same_result(left: object, right: object) -> bool:
     return type(left) is type(right) and left == right
 
 
-def verify_recomputation(export_path: Path, manifest_path: Path) -> dict[str, int | str]:
-    export = load_verified_export(export_path)
+def verify_recomputation(export_path: Path, manifest_path: Path, *, require_v2: bool = False) -> dict[str, int | str]:
+    export = load_verified_export(export_path, require_v2=require_v2)
     task, dataset = export["task"], export["dataset"]
     parameters = task["parameters"]
     groups = parameters["groups"]
@@ -87,9 +87,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("reproducibility_json", type=Path)
     parser.add_argument("manifest_json", type=Path)
+    parser.add_argument("--require-v2", action="store_true", help="Reject legacy V1 bundles")
     args = parser.parse_args()
     try:
-        summary = verify_recomputation(args.reproducibility_json, args.manifest_json)
+        summary = verify_recomputation(args.reproducibility_json, args.manifest_json, require_v2=args.require_v2)
     except (OSError, UnicodeError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
         parser.exit(1, f"历史研究复算失败：{exc}\n")
     print(json.dumps(summary, ensure_ascii=False, sort_keys=True))

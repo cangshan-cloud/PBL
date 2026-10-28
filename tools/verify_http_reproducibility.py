@@ -96,7 +96,7 @@ def verify_http_run(client: LocalApiClient, *, run_id: str, username: str, passw
             raise ValueError("downloaded bundle does not match the completed task response")
         if not checks["result_verified"] or not checks["bundle_verified"] or not checks["report_verified"]:
             raise ValueError("completed task did not pass all V2 export checks")
-        audit = verify_result_consistency(bundle_path) if audit_result else None
+        audit = verify_result_consistency(bundle_path, require_v2=True) if audit_result else None
     return {"run_id": run_id, "schema_version": 2, "result_sha256": bundle["result_sha256"],
             "bundle_sha256": bundle["bundle_sha256"], "report_sha256": bundle["report_sha256"],
             "checks": checks, **({"audit": audit} if audit is not None else {})}

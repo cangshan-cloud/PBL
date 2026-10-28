@@ -104,7 +104,7 @@ def run_journey(client: ApiClient, *, bundle_id: str, admin_password: str, resea
             raise ValueError(f"{route}: missing attachment disposition")
         (output_dir / name).write_bytes(content)
     counts = verify_exports(output_dir / "reproducibility.json", output_dir / "daily.csv",
-                            output_dir / "unlabeled.csv", output_dir / "report.html")
+                            output_dir / "unlabeled.csv", output_dir / "report.html", require_v2=require_v2)
     verify_journey_binding(load_verified_export(output_dir / "reproducibility.json", require_v2=require_v2),
                            run_id=run["id"], dataset_id=dataset["id"], bundle_id=bundle_id)
     return {"dataset_id": dataset["id"], "run_id": run["id"], "status": run["status"], **counts}

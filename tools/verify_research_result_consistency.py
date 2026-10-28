@@ -135,8 +135,8 @@ def verify_time_split_consistency(result: dict) -> dict[str, int]:
     return summary
 
 
-def verify_result_consistency(bundle_path: Path) -> dict[str, int]:
-    bundle = load_verified_export(bundle_path)
+def verify_result_consistency(bundle_path: Path, *, require_v2: bool = False) -> dict[str, int]:
+    bundle = load_verified_export(bundle_path, require_v2=require_v2)
     result = bundle["result"]
     daily, daily_dates = _dated_rows(result.get("daily_coverage"), "daily_coverage")
     ic, ic_dates = _dated_rows(result.get("ic_series"), "ic_series")
@@ -309,9 +309,11 @@ def verify_result_consistency(bundle_path: Path) -> dict[str, int]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("reproducibility_json", type=Path)
+    parser.add_argument("--require-v2", action="store_true", help="Reject legacy V1 bundles")
     args = parser.parse_args()
     try:
-        print(json.dumps(verify_result_consistency(args.reproducibility_json), ensure_ascii=False))
+        print(json.dumps(verify_result_consistency(args.reproducibility_json,
+                                                   require_v2=args.require_v2), ensure_ascii=False))
     except (OSError, UnicodeError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
         parser.exit(1, f"research result consistency failed: {exc}\n")
 

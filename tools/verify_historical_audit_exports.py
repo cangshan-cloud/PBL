@@ -31,8 +31,8 @@ def _csv_rows(path: Path, columns: list[str]) -> list[dict[str, str]]:
 
 
 def verify_exports(bundle_path: Path, daily_path: Path, unlabeled_path: Path,
-                   report_path: Path | None = None) -> dict[str, int | bool]:
-    bundle = load_verified_export(bundle_path, report_path)
+                   report_path: Path | None = None, *, require_v2: bool = False) -> dict[str, int | bool]:
+    bundle = load_verified_export(bundle_path, report_path, require_v2=require_v2)
     result = bundle["result"]
     audit = result.get("historical_audit")
     if not isinstance(audit, dict) or not audit:
@@ -82,9 +82,11 @@ def main() -> None:
     parser.add_argument("daily_csv", type=Path)
     parser.add_argument("unlabeled_csv", type=Path)
     parser.add_argument("--report-html", type=Path, help="Optional downloaded HTML report to verify against report_sha256")
+    parser.add_argument("--require-v2", action="store_true", help="Reject legacy V1 bundles")
     args = parser.parse_args()
     try:
-        result = verify_exports(args.reproducibility_json, args.daily_csv, args.unlabeled_csv, args.report_html)
+        result = verify_exports(args.reproducibility_json, args.daily_csv, args.unlabeled_csv,
+                                args.report_html, require_v2=args.require_v2)
     except (OSError, UnicodeError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
         parser.exit(1, f"审计导出核验失败：{exc}\n")
     print(f"审计导出核验通过：{result['factors']} 个因子，{result['daily_rows']} 行逐日审计，"

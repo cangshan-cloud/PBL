@@ -67,10 +67,10 @@ def _verify(path: Path, fields: tuple[str, ...], expected: list[dict[str, object
 def verify_series_exports(bundle_path: Path, ic_path: Path | None = None,
                           long_short_path: Path | None = None,
                           group_nav_path: Path | None = None,
-                          daily_coverage_path: Path | None = None) -> dict[str, int]:
+                          daily_coverage_path: Path | None = None, *, require_v2: bool = False) -> dict[str, int]:
     if all(path is None for path in (ic_path, long_short_path, group_nav_path, daily_coverage_path)):
         raise ValueError("provide at least one series CSV")
-    bundle = load_verified_export(bundle_path)
+    bundle = load_verified_export(bundle_path, require_v2=require_v2)
     task = bundle.get("task")
     run_id = task.get("id") if isinstance(task, dict) else None
     if not isinstance(run_id, str) or not run_id:
@@ -128,11 +128,12 @@ def main() -> None:
     parser.add_argument("--long-short-csv", type=Path)
     parser.add_argument("--group-nav-csv", type=Path)
     parser.add_argument("--daily-coverage-csv", type=Path)
+    parser.add_argument("--require-v2", action="store_true", help="Reject legacy V1 bundles")
     args = parser.parse_args()
     try:
         print(json.dumps(verify_series_exports(args.reproducibility_json, args.ic_csv,
                                                args.long_short_csv, args.group_nav_csv,
-                                               args.daily_coverage_csv), ensure_ascii=False))
+                                               args.daily_coverage_csv, require_v2=args.require_v2), ensure_ascii=False))
     except (OSError, UnicodeError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
         parser.exit(1, f"series export verification failed: {exc}\n")
 

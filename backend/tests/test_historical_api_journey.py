@@ -63,7 +63,7 @@ class HistoricalApiJourneyTests(unittest.TestCase):
             self.assertEqual((output / "report.html").read_bytes(), b"/reports/run-1/download")
             self.assertEqual(len(list(output.iterdir())), 4)
             verify.assert_called_once_with(output / "reproducibility.json", output / "daily.csv",
-                                           output / "unlabeled.csv", output / "report.html")
+                                           output / "unlabeled.csv", output / "report.html", require_v2=False)
             self.assertIn(("/datasets/register-hs300-bundle", "admin", {"bundle_id": self.bundle_id}), client.calls)
             self.assertIn(("/datasets/dataset-1/publish", "admin", {}), client.calls)
             self.assertIn(("/research/historical-tasks", "researcher",
@@ -105,7 +105,7 @@ class HistoricalApiJourneyTests(unittest.TestCase):
             output = Path(temp) / "evidence"
             with patch("verify_historical_api_journey.time.sleep"), patch(
                 "verify_historical_api_journey.verify_exports", return_value={}
-            ), patch("verify_historical_api_journey.load_verified_export", return_value={
+            ) as verify, patch("verify_historical_api_journey.load_verified_export", return_value={
                 "task": {"id": "run-1", "status": "success", "dataset_version_id": "dataset-1",
                          "parameters": {"groups": 5}},
                 "dataset": {"id": "dataset-1"},
@@ -114,6 +114,8 @@ class HistoricalApiJourneyTests(unittest.TestCase):
                 run_journey(FakeClient(existing=True), bundle_id=self.bundle_id, admin_password="a",
                             researcher_password="r", output_dir=output, require_v2=True)
             load.assert_called_once_with(output / "reproducibility.json", require_v2=True)
+            verify.assert_called_once_with(output / "reproducibility.json", output / "daily.csv",
+                                           output / "unlabeled.csv", output / "report.html", require_v2=True)
 
     def test_cli_requires_explicit_write_acknowledgment(self):
         with tempfile.TemporaryDirectory() as temp:

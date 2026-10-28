@@ -83,6 +83,15 @@ class SeriesExportVerificationTests(unittest.TestCase):
         self.assertEqual(verify_series_exports(self.bundle, daily_coverage_path=self.daily_coverage),
                          {"daily_coverage_rows": 2})
 
+    def test_v2_bundle_passes_strict_series_check(self):
+        bundle = json.loads(self.bundle.read_text(encoding="utf-8"))
+        bundle["schema_version"] = 2
+        canonical = json.dumps(bundle, ensure_ascii=False, sort_keys=True,
+                               separators=(",", ":"), allow_nan=False)
+        bundle["bundle_sha256"] = hashlib.sha256(canonical.encode()).hexdigest()
+        self.bundle.write_text(json.dumps(bundle), encoding="utf-8")
+        self.assertEqual(verify_series_exports(self.bundle, self.ic, require_v2=True), {"ic_rows": 2})
+
     def test_daily_coverage_wrong_run_missing_row_status_ratio_and_columns_are_rejected(self):
         original = self.daily_coverage.read_bytes()
         self.daily_coverage.write_bytes(original.replace(self.run_id.encode(), b"wrong-run", 1))

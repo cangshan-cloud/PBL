@@ -712,3 +712,7 @@ CLI 对旧浏览器留存导出返回预期不一致，合成单测覆盖当前�
 ## 2026-10-28 新任务四文件下载验收（开发者代执行）
 
 新 Celery Run 的 V2 JSON、逐日审计 CSV、无标签信号 CSV 和 HTML 报告经隔离 API 下载并核对；严格 V2 结果/整包/报告摘要通过。尚未由真实浏览器点击下载或由队长人工验收。见 [新任务证据](../V2_HISTORICAL_CELERY_QA_2026-10-28.md)与 [CHG-20261028-004](../changes/2026-10-28-004-v2-new-celery-historical-task.md)。实际执行者：Codex；队长本人未签收。
+
+## 2026-10-28 每日序列严格 V2 回归（开发者代执行）
+
+每日序列 CSV 工具以构造 V2 包通过严格模式正例，V1 包在读取模拟缺失 CSV 前被拒；新 Celery Run 未作真实浏览器序列下载，故不能宣称该文件已验收。见 [严格模式记录](../STRICT_V2_DOWNSTREAM_QA_2026-10-28.md)与 [CHG-20261028-005](../changes/2026-10-28-005-strict-v2-downstream-verifiers.md)。实际执行者：Codex；队长本人未签收。

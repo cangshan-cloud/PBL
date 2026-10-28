@@ -17,3 +17,5 @@ python3 tools/verify_reproducibility_export.py /path/to/reproducibility.json --r
 后续同类隔离 HTTP 验收可直接运行[只读检查工具](HTTP_REPRODUCIBILITY_TOOL_2026-10-28.md)：指定 loopback API 和已成功的 Run ID，密码从环境变量读取，严格检查 V2 与任务身份，可选结果内部审计；它不创建新任务或持久化下载文件。
 
 新任务的 Celery 执行、API 四文件下载与严格 V2 复算也已在隔离环境通过，见[新历史任务验收](V2_HISTORICAL_CELERY_QA_2026-10-28.md)。此证据仍不能替代主服务升级或人工浏览器验收。
+
+历史审计 CSV、历史复算、每日序列 CSV 与保存结果内部审计命令现也分别支持 `--require-v2`，可在各自核对时直接防止 V1 意外降级；实际私有 V2 正例和 V1 反例见[下游严格模式记录](STRICT_V2_DOWNSTREAM_QA_2026-10-28.md)。
