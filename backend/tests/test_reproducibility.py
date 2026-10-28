@@ -126,6 +126,25 @@ class ReproducibilityTests(unittest.TestCase):
             self.assertIsNone(bundle["report_sha256"])
             self.assertEqual(bundle["schema_version"], 2)
             self.assertEqual(len(bundle["bundle_sha256"]), 64)
+            with tempfile.TemporaryDirectory() as directory:
+                bundle_path = Path(directory) / "pending.json"
+                bundle_path.write_bytes(response.body)
+                self.assertEqual(verify_export(bundle_path, require_v2=True),
+                                 {"result_verified": False, "bundle_verified": True})
+                for changed in (
+                    {"task": {**bundle["task"], "status": "success"}},
+                    {"result_sha256": "0" * 64},
+                    {"report_sha256": "0" * 64},
+                ):
+                    with self.subTest(changed=list(changed)):
+                        altered = {**bundle, **changed}
+                        unsigned = {key: value for key, value in altered.items() if key != "bundle_sha256"}
+                        canonical = json.dumps(unsigned, ensure_ascii=False, sort_keys=True,
+                                               separators=(",", ":"), allow_nan=False)
+                        altered["bundle_sha256"] = hashlib.sha256(canonical.encode()).hexdigest()
+                        bundle_path.write_text(json.dumps(altered), encoding="utf-8")
+                        with self.assertRaisesRegex(ValueError, "incomplete reproducibility bundle"):
+                            verify_export(bundle_path, require_v2=True)
 
 
 if __name__ == "__main__":

@@ -83,7 +83,7 @@ def run_isolated_replay(manifest_path: Path, output_dir: Path) -> dict[str, obje
     export_path.write_text(json.dumps(export, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8")
     report_path = target / "report.html"
     report_path.write_bytes(report_bytes)
-    verify_export(export_path, report_path)
+    verify_export(export_path, report_path, require_v2=True)
     replay = verify_recomputation(export_path, manifest_path)
     return {"run_id": run_id, "result_sha256": export["result_sha256"],
             "report_sha256": export["report_sha256"], **replay}

@@ -32,11 +32,18 @@ def load_verified_export(bundle_path: Path, report_path: Path | None = None, *, 
         raise ValueError("reproducibility bundle is not schema v2")
     result = bundle.get("result")
     digest = bundle.get("result_sha256")
-    if not isinstance(result, dict) or not isinstance(digest, str) or not SHA256.fullmatch(digest):
-        raise ValueError("reproducibility bundle has no valid result checksum")
-    canonical = json.dumps(result, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
-    if hashlib.sha256(canonical.encode("utf-8")).hexdigest() != digest:
-        raise ValueError("reproducibility result checksum mismatch")
+    if result is None and bundle["schema_version"] == 2:
+        task = bundle.get("task")
+        if (not isinstance(task, dict) or not isinstance(task.get("status"), str)
+                or task["status"] not in {"pending", "running", "failed", "cancelled"}
+                or digest is not None or bundle.get("report_sha256") is not None):
+            raise ValueError("incomplete reproducibility bundle has inconsistent task status or checksums")
+    else:
+        if not isinstance(result, dict) or not isinstance(digest, str) or not SHA256.fullmatch(digest):
+            raise ValueError("reproducibility bundle has no valid result checksum")
+        canonical = json.dumps(result, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
+        if hashlib.sha256(canonical.encode("utf-8")).hexdigest() != digest:
+            raise ValueError("reproducibility result checksum mismatch")
     if bundle["schema_version"] == 2:
         bundle_digest = bundle.get("bundle_sha256")
         if not isinstance(bundle_digest, str) or not SHA256.fullmatch(bundle_digest):
@@ -57,7 +64,7 @@ def load_verified_export(bundle_path: Path, report_path: Path | None = None, *, 
 
 def verify_export(bundle_path: Path, report_path: Path | None = None, *, require_v2: bool = False) -> dict[str, str | bool]:
     bundle = load_verified_export(bundle_path, report_path, require_v2=require_v2)
-    summary: dict[str, str | bool] = {"result_verified": True}
+    summary: dict[str, str | bool] = {"result_verified": bundle["result"] is not None}
     if bundle["schema_version"] == 2:
         summary["bundle_verified"] = True
     if report_path is not None:

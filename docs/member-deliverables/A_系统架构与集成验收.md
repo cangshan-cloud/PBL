@@ -698,3 +698,7 @@ OrbStack 恢复后，以专用项目、独立数据库卷/网络和只读私有�
 
 新导出增加整包摘要并提升格式版本，不新增接口、数据库或任务；离线与 Compose 验收兼容 V1/V2，严格选项可只收 V2。主服务未更新，隔离容器未重新下载。见 [CHG-20261027-012](../changes/2026-10-27-012-bound-reproducibility-bundle.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-28 V2 隔离复算集成（开发者代执行）
+
+本机内存 SQLite 路径生成当前私有历史任务，严格 V2 JSON/HTML 校验及同代码复算通过；新增未完成包只报整包完整、结果未验证。OrbStack socket 不存在，未作容器 HTTP 验收，也未升级主服务。见 [离线证据](../V2_REPRO_PRIVATE_REPLAY_2026-10-28.md)与 [CHG-20261028-001](../changes/2026-10-28-001-v2-offline-pending-and-private-replay.md)。实际执行者：Codex；队长本人未签收。
+
