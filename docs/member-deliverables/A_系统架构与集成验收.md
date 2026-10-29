@@ -746,3 +746,7 @@ OrbStack 恢复后，专用 QA Compose 预检通过；只重建 db/redis/api/web
 
 合成诊断新增 `component_ic`，经既有结构化结果流进入工作台、V2 复现包和新 HTML 报告，不增数据库字段或新服务。私有历史包内存新 Run 严格 V2 与同包复算通过；主容器未部署本轮代码。见 [样本记录](../HISTORICAL_COMPONENT_IC_QA_2026-10-29.md)与 [CHG-20261029-002](../changes/2026-10-29-002-component-common-sample-ic.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-29 成分 IC 隔离异步链路（开发者代执行）
+
+隔离五服务重建并经实际 Worker 完成新历史 Run，任务、工作台、归档报告及 HTTP V2 结果绑定同一 Run；验收后只关闭 QA 项目，主 `fbl` 仍 `running(5)`。见 [浏览器证据](../HISTORICAL_COMPONENT_IC_BROWSER_QA_2026-10-29.md)与 [CHG-20261029-003](../changes/2026-10-29-003-component-ic-browser-qa.md)。实际执行者：Codex；队长本人未签收。
+
