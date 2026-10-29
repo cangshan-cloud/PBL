@@ -762,3 +762,7 @@ OrbStack 恢复后，专用 QA Compose 预检通过；只重建 db/redis/api/web
 
 新 Run 在既有 `composite` 结果内保存逐日诊断，经现有任务、V2 复现与客户端导出链路传递；不增服务或数据库字段。隔离 Worker 新 Run 与 HTTP V2 通过，关闭 QA 栈后主 `fbl` 仍 `running(5)`。见 [逐日验收](../HISTORICAL_COMPONENT_IC_DAILY_QA_2026-10-29.md)与 [CHG-20261029-006](../changes/2026-10-29-006-component-daily-ic.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-29 成分逐日曲线复用（开发者代执行）
+
+前端复用已有 IC 曲线和日期核对组件读取保存的 `component_ic.daily`，未增加后端服务、接口或数据库字段。隔离五服务验证后关闭 QA 栈，主 `fbl` 仍 `running(5)`。见 [曲线验收](../HISTORICAL_COMPONENT_IC_CHART_QA_2026-10-29.md)与 [CHG-20261029-007](../changes/2026-10-29-007-component-daily-chart.md)。实际执行者：Codex；队长本人未签收。
+
