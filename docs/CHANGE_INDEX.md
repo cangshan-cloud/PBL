@@ -270,6 +270,7 @@
 | CHG-20261028-008 | 2026-10-28 | independent IC audit / Mac private Run | 72,366 条逐股观测独立计算 242 日 IC/Rank IC 与五项汇总，和 V2 保存结果逐值一致 | [记录](changes/2026-10-28-008-independent-ic-run-audit.md) | `tools/verify_independent_ic_from_observations.py`、`backend/tests/test_independent_ic_from_observations.py`、[IC 验算](INDEPENDENT_IC_RUN_AUDIT_2026-10-28.md)、A/B/C/D 四责任包 |
 | CHG-20261028-009 | 2026-10-28 | independent group audit / Mac private Run | 72,366 条观测独立计算 242 日、5 组、换手与 10 bps 多空成本，逐值与 V2 保存结果一致 | [记录](changes/2026-10-28-009-independent-group-run-audit.md) | `tools/verify_independent_groups_from_observations.py`、`backend/tests/test_independent_groups_from_observations.py`、[分组验算](INDEPENDENT_GROUP_RUN_AUDIT_2026-10-28.md)、A/B/C/D 四责任包 |
 | CHG-20261028-010 | 2026-10-28 | historical time split / Mac private Run | 历史 2024 模式可选固定 7 月验证期；隔离边界日，新 Run、V2 报告和复算通过 | [记录](changes/2026-10-28-010-historical-fixed-split.md) | `backend/app/schemas.py`、`backend/app/services/runs.py`、`tools/verify_historical_recomputation.py`、`tools/run_isolated_historical_replay.py`、`frontend/src/research-config.ts`、`frontend/src/main.tsx`、`frontend/src/layout.css`、测试、[验收](HISTORICAL_FIXED_SPLIT_QA_2026-10-28.md)、A/B/C/D 四责任包 |
+| CHG-20261029-001 | 2026-10-29 | historical split browser + Celery QA / isolated Mac stack | 新固定切分 Run 浏览器实点、规则结论、报告、HTTP V2 与窄屏验收通过 | [记录](changes/2026-10-29-001-historical-split-browser-qa.md) | [浏览器验收](HISTORICAL_SPLIT_BROWSER_QA_2026-10-29.md)、`docs/HISTORICAL_FIXED_SPLIT_QA_2026-10-28.md`、验收矩阵、A/B/C/D 四责任包（无应用代码改动） |
 
 ## 历史基线
 

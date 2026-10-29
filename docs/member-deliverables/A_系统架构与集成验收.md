@@ -738,3 +738,7 @@ OrbStack 恢复后，专用 QA Compose 预检通过；只重建 db/redis/api/web
 
 历史请求、任务参数、结果、报告、结论与离线同包复算接通固定 2024-07-01 切分；私有封存包在临时内存 SQLite 生成新 Run，严格 V2 校验通过。主 Compose 未重建，页面尚未浏览器实点。见 [验收](../HISTORICAL_FIXED_SPLIT_QA_2026-10-28.md)与 [CHG-20261028-010](../changes/2026-10-28-010-historical-fixed-split.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-29 固定切分隔离五服务真实验收（开发者代执行）
+
+通过端口/卷预检后重建隔离 Web、API、Worker、DB、Redis；浏览器新 Run 成功，HTTP V2 三项校验通过。仅 QA 项目 `down` 且保留卷，主 `fbl` 仍 running(5)。见 [浏览器证据](../HISTORICAL_SPLIT_BROWSER_QA_2026-10-29.md)与 [CHG-20261029-001](../changes/2026-10-29-001-historical-split-browser-qa.md)。实际执行者：Codex；队长本人未签收。
+
