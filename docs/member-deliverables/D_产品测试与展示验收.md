@@ -752,3 +752,7 @@ CLI 对旧浏览器留存导出返回预期不一致，合成单测覆盖当前�
 ## 2026-10-29 新旧 Run 任务详情浏览器验收（开发者代执行）
 
 任务中心检索新 Run `9bbb1f11` 可见四行成分 IC；检索旧 Run `1af438dd` 可见“未保存”提示。375 px 页面无整页横向溢出，新表只在容器内滚动，控制台 0 error/0 warning；前端 86 项测试与构建通过。见 [回看证据](../HISTORICAL_COMPONENT_IC_ARCHIVE_QA_2026-10-29.md)与 [CHG-20261029-004](../changes/2026-10-29-004-component-ic-task-archive.md)。实际执行者：Codex；队长本人未签收。
+
+## 2026-10-29 成分 IC CSV 下载验收（开发者代执行）
+
+浏览器点击新 Run 下载按钮获得 `component-ic-9bbb1f11.csv`，实查四行完整 Run ID 和未截断小数；旧 Run 无按钮。控制台 0 error/0 warning，前端 88 项测试及生产构建通过。见 [下载证据](../HISTORICAL_COMPONENT_IC_CSV_QA_2026-10-29.md)与 [CHG-20261029-005](../changes/2026-10-29-005-component-ic-csv-export.md)。实际执行者：Codex；队长本人未签收。

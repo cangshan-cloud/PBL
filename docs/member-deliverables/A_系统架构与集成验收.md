@@ -754,3 +754,7 @@ OrbStack 恢复后，专用 QA Compose 预检通过；只重建 db/redis/api/web
 
 复用一份前端组件展示当前工作台和任务中心已保存结果，未新增服务、接口或数据库字段。隔离五服务浏览器验收新旧 Run 后关闭 QA 栈，主 `fbl` 仍 `running(5)`。见 [回看证据](../HISTORICAL_COMPONENT_IC_ARCHIVE_QA_2026-10-29.md)与 [CHG-20261029-004](../changes/2026-10-29-004-component-ic-task-archive.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-29 成分 IC CSV 归档链路（开发者代执行）
+
+任务详情将已保存的成分 IC 原值直接生成客户端 CSV，完整 Run ID 随行写入；不增接口、服务或数据库字段。隔离浏览器实际下载并核对文件，QA 栈关闭后主 `fbl` 仍 `running(5)`。见 [下载证据](../HISTORICAL_COMPONENT_IC_CSV_QA_2026-10-29.md)与 [CHG-20261029-005](../changes/2026-10-29-005-component-ic-csv-export.md)。实际执行者：Codex；队长本人未签收。
+
