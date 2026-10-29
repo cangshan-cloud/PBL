@@ -750,3 +750,7 @@ OrbStack 恢复后，专用 QA Compose 预检通过；只重建 db/redis/api/web
 
 隔离五服务重建并经实际 Worker 完成新历史 Run，任务、工作台、归档报告及 HTTP V2 结果绑定同一 Run；验收后只关闭 QA 项目，主 `fbl` 仍 `running(5)`。见 [浏览器证据](../HISTORICAL_COMPONENT_IC_BROWSER_QA_2026-10-29.md)与 [CHG-20261029-003](../changes/2026-10-29-003-component-ic-browser-qa.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-29 成分 IC 归档回看集成（开发者代执行）
+
+复用一份前端组件展示当前工作台和任务中心已保存结果，未新增服务、接口或数据库字段。隔离五服务浏览器验收新旧 Run 后关闭 QA 栈，主 `fbl` 仍 `running(5)`。见 [回看证据](../HISTORICAL_COMPONENT_IC_ARCHIVE_QA_2026-10-29.md)与 [CHG-20261029-004](../changes/2026-10-29-004-component-ic-task-archive.md)。实际执行者：Codex；队长本人未签收。
+

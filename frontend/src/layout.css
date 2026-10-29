@@ -78,6 +78,9 @@ main > header > button { flex: 0 0 auto; }
 .task-detail > .section-title { align-items: flex-start; flex-wrap: wrap; }
 .task-detail > .section-title > div:first-child { min-width: 0; }
 .task-detail > .section-title h2 { overflow-wrap: anywhere; }
+.task-component-ic { margin: 22px 0; padding: 4px 0 20px; border-top: 1px solid #e6ebe2; border-bottom: 1px solid #e6ebe2; }
+.task-component-ic > p { color: #68776e; font-size: 12px; line-height: 1.6; }
+.task-component-ic > .preview-scroll { max-width: 100%; }
 .task-actions.task-series-export { justify-content: flex-start; margin: 12px 0 18px; }
 .task-series-export small { color: #68776e; font-size: 11px; }
 .task-series-charts { margin: 8px 0 20px; border-top: 1px solid #e6ebe2; border-bottom: 1px solid #e6ebe2; padding: 12px 0; }

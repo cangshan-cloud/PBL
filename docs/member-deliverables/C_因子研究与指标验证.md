@@ -750,3 +750,7 @@ V2 同时保留结果 SHA 并将因子版本/公式、任务参数纳入整包�
 ## 2026-10-29 成分 IC 页面与归档一致性（开发者代执行）
 
 隔离 Worker 新 Run 的工作台和同 Run 报告均披露四项 IC/Rank IC；页面四位小数与前轮全精度研究结果一致，各成分有效日期均 242/242。严格 V2 结果与报告校验通过。见 [浏览器证据](../HISTORICAL_COMPONENT_IC_BROWSER_QA_2026-10-29.md)与 [CHG-20261029-003](../changes/2026-10-29-003-component-ic-browser-qa.md)。实际执行者：Codex；队长本人未签收。
+
+## 2026-10-29 归档诊断口径复核（开发者代执行）
+
+任务中心的新 Run 表与工作台、归档报告使用同一保存字段，四项 IC/Rank IC 和 242/242 日期一致；旧 Run 缺字段被明确标注，不能解释为零或无效。未改变任何因子计算结果。见 [回看证据](../HISTORICAL_COMPONENT_IC_ARCHIVE_QA_2026-10-29.md)与 [CHG-20261029-004](../changes/2026-10-29-004-component-ic-task-archive.md)。实际执行者：Codex；队长本人未签收。

@@ -748,3 +748,7 @@ CLI 对旧浏览器留存导出返回预期不一致，合成单测覆盖当前�
 ## 2026-10-29 成分表真实浏览器验收（开发者代执行）
 
 浏览器提交新历史 Run，工作台显示四行成分 IC 表，任务中心跳转的同 Run 报告包含相同内容。375 px 宽度下表格容器内部滚动、整页无横向溢出，控制台 0 error/0 warning。旧归档缺字段提示未由本轮浏览器实测，队长本人也未亲测。见 [浏览器证据](../HISTORICAL_COMPONENT_IC_BROWSER_QA_2026-10-29.md)与 [CHG-20261029-003](../changes/2026-10-29-003-component-ic-browser-qa.md)。实际执行者：Codex；队长本人未签收。
+
+## 2026-10-29 新旧 Run 任务详情浏览器验收（开发者代执行）
+
+任务中心检索新 Run `9bbb1f11` 可见四行成分 IC；检索旧 Run `1af438dd` 可见“未保存”提示。375 px 页面无整页横向溢出，新表只在容器内滚动，控制台 0 error/0 warning；前端 86 项测试与构建通过。见 [回看证据](../HISTORICAL_COMPONENT_IC_ARCHIVE_QA_2026-10-29.md)与 [CHG-20261029-004](../changes/2026-10-29-004-component-ic-task-archive.md)。实际执行者：Codex；队长本人未签收。
