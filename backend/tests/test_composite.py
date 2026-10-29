@@ -42,6 +42,10 @@ class CompositeFactorTests(unittest.TestCase):
             self.assertEqual((row["factor"], row["valid_ic_dates"], row["signal_date_count"]), (factor, 1, 1))
             self.assertAlmostEqual(row["ic_mean"], expected)
             self.assertAlmostEqual(row["rank_ic_mean"], expected)
+            self.assertEqual(len(row["daily"]), 1)
+            self.assertEqual((row["daily"][0]["date"], row["daily"][0]["observations"]), ("2025-01-01", 2))
+            self.assertAlmostEqual(row["daily"][0]["ic"], expected)
+            self.assertAlmostEqual(row["daily"][0]["rank_ic"], expected)
 
     def test_component_ic_excludes_noncommon_keys_and_reports_constant_days(self):
         day1, day2 = date(2025, 1, 1), date(2025, 1, 2)
@@ -60,10 +64,13 @@ class CompositeFactorTests(unittest.TestCase):
                          ("first", 1, 2))
         self.assertAlmostEqual(first_ic["ic_mean"], 1.0)
         self.assertAlmostEqual(first_ic["rank_ic_mean"], 1.0)
+        self.assertEqual(first_ic["daily"][0]["observations"], 2)
+        self.assertEqual(first_ic["daily"][1], {"date": "2025-01-02", "ic": None, "rank_ic": None, "observations": 2})
         self.assertEqual((second_ic["factor"], second_ic["valid_ic_dates"], second_ic["signal_date_count"]),
                          ("second", 2, 2))
         self.assertAlmostEqual(second_ic["ic_mean"], 0.0)
         self.assertAlmostEqual(second_ic["rank_ic_mean"], 0.0)
+        self.assertEqual([row["date"] for row in second_ic["daily"]], ["2025-01-01", "2025-01-02"])
 
     def test_rejects_invalid_components_and_weights(self):
         item = Observation(date(2025, 1, 1), "A", 1, 0.01)
@@ -136,6 +143,7 @@ class CompositeFactorTests(unittest.TestCase):
                 self.assertEqual(metrics["composite"]["common_coverage"], 1980)
                 self.assertEqual(len(metrics["composite"]["correlation_matrix"]), 4)
                 self.assertEqual(len(metrics["composite"]["component_ic"]), 2)
+                self.assertEqual(len(metrics["composite"]["component_ic"][0]["daily"]), metrics["composite"]["component_ic"][0]["signal_date_count"])
                 report = next(item for item in completed.artifacts if item.artifact_type == "report_html")
                 report_text = Path(report.storage_uri).read_text(encoding="utf-8")
                 self.assertIn("MULTI FACTOR REPORT", report_text)

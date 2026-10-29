@@ -756,3 +756,7 @@ CLI 对旧浏览器留存导出返回预期不一致，合成单测覆盖当前�
 ## 2026-10-29 成分 IC CSV 下载验收（开发者代执行）
 
 浏览器点击新 Run 下载按钮获得 `component-ic-9bbb1f11.csv`，实查四行完整 Run ID 和未截断小数；旧 Run 无按钮。控制台 0 error/0 warning，前端 88 项测试及生产构建通过。见 [下载证据](../HISTORICAL_COMPONENT_IC_CSV_QA_2026-10-29.md)与 [CHG-20261029-005](../changes/2026-10-29-005-component-ic-csv-export.md)。实际执行者：Codex；队长本人未签收。
+
+## 2026-10-29 成分逐日 CSV 浏览器验收（开发者代执行）
+
+隔离浏览器新 Run `2e898f44` 实际下载 968 行逐日 CSV，四因子各 242 日；旧版摘要 Run `9bbb1f11` 仅保留摘要下载而不显示逐日按钮。控制台 0 error/0 warning；前端 89 项测试及构建通过，队长尚未人工实测。见 [逐日验收](../HISTORICAL_COMPONENT_IC_DAILY_QA_2026-10-29.md)与 [CHG-20261029-006](../changes/2026-10-29-006-component-daily-ic.md)。实际执行者：Codex；队长本人未签收。

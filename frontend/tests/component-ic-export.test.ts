@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { componentIcCsv, componentIcFilename } from "../src/component-ic-export.ts";
+import { componentIcCsv, componentIcDailyCsv, componentIcDailyFilename, componentIcFilename } from "../src/component-ic-export.ts";
 
 test("component IC CSV binds full Run and preserves raw signed values, counts and nulls", () => {
   const runId = "9bbb1f11-548d-423c-a56c-ced6eb70d545";
@@ -24,4 +24,21 @@ test("component IC CSV protects spreadsheet cells supplied as text", () => {
   assert.match(csv, /'=RUN\(\)/);
   assert.match(csv, /"'\+SUM\(1\),""quoted"""/);
   assert.match(csv, /,-0\.5,,1,1,1\r\n/);
+});
+
+test("daily component IC CSV preserves dates, nulls, common sample counts and full Run identity", () => {
+  const runId = "9bbb1f11-548d-423c-a56c-ced6eb70d545";
+  const csv = componentIcDailyCsv(runId, [
+    { factor: "momentum_20d", ic_mean: 0.1, rank_ic_mean: 0.2, valid_ic_dates: 1, signal_date_count: 2, daily: [
+      { date: "2024-01-02", ic: 0.123456789, rank_ic: -0.2, observations: 300 },
+      { date: "2024-01-03", ic: null, rank_ic: null, observations: 299 },
+    ] },
+    { factor: "old", ic_mean: 0.1, rank_ic_mean: null, valid_ic_dates: 1, signal_date_count: 1 },
+  ]);
+  assert.equal(componentIcDailyFilename(runId), "component-ic-daily-9bbb1f11.csv");
+  assert.deepEqual(csv.slice(1).trimEnd().split("\r\n"), [
+    "run_id,factor,date,ic,rank_ic,observations",
+    `${runId},momentum_20d,2024-01-02,0.123456789,-0.2,300`,
+    `${runId},momentum_20d,2024-01-03,,,299`,
+  ]);
 });

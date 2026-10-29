@@ -275,6 +275,7 @@
 | CHG-20261029-003 | 2026-10-29 | component IC browser + Celery QA / isolated Mac stack | 新历史 Run 的成分 IC 表、同 Run 归档报告、严格 HTTP V2 和 375 px 布局验收通过 | [记录](changes/2026-10-29-003-component-ic-browser-qa.md) | [浏览器验收](HISTORICAL_COMPONENT_IC_BROWSER_QA_2026-10-29.md)、前轮样本验收、A/B/C/D 四责任包（无应用代码改动） |
 | CHG-20261029-004 | 2026-10-29 | component IC archive view / isolated Mac browser | 任务中心按保存 Run 回看成分 IC，新 Run 四行、旧 Run 未保存提示均已浏览器验收 | [记录](changes/2026-10-29-004-component-ic-task-archive.md) | `frontend/src/ComponentIcTable.tsx`、`frontend/src/main.tsx`、`frontend/src/layout.css`、[回看验收](HISTORICAL_COMPONENT_IC_ARCHIVE_QA_2026-10-29.md)、A/B/C/D 四责任包 |
 | CHG-20261029-005 | 2026-10-29 | component IC CSV export / isolated Mac browser | 任务中心新 Run 下载全精度成分 IC CSV，旧 Run 不提供空下载；真实文件核对通过 | [记录](changes/2026-10-29-005-component-ic-csv-export.md) | `frontend/src/component-ic-export.ts`、`frontend/src/main.tsx`、测试、[下载验收](HISTORICAL_COMPONENT_IC_CSV_QA_2026-10-29.md)、A/B/C/D 四责任包 |
+| CHG-20261029-006 | 2026-10-29 | component daily IC / private replay + isolated Mac browser | 新 Run 留存四成分逐日 IC/Rank IC 与样本数；独立审计、真实 968 行 CSV、HTTP V2 均通过 | [记录](changes/2026-10-29-006-component-daily-ic.md) | `backend/app/domain/composite.py`、`tools/verify_research_result_consistency.py`、`frontend/src/component-ic-export.ts`、`frontend/src/main.tsx`、测试、[逐日验收](HISTORICAL_COMPONENT_IC_DAILY_QA_2026-10-29.md)、A/B/C/D 四责任包 |
 
 ## 历史基线
 

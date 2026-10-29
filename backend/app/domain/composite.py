@@ -77,11 +77,13 @@ def combine_factor_observations(
     for factor_key in factor_keys:
         ic_values: list[float] = []
         rank_ic_values: list[float] = []
-        for keys in aligned_by_date.values():
+        daily: list[dict] = []
+        for trade_date, keys in aligned_by_date.items():
             factors = [indexed[factor_key][key].factor for key in keys]
             returns = [indexed[factor_key][key].forward_return for key in keys]
             ic = pearson(factors, returns)
             rank_ic = pearson(_rank(factors), _rank(returns)) if len(keys) >= 2 else None
+            daily.append({"date": trade_date.isoformat(), "ic": ic, "rank_ic": rank_ic, "observations": len(keys)})
             if ic is not None:
                 ic_values.append(ic)
             if rank_ic is not None:
@@ -92,6 +94,7 @@ def combine_factor_observations(
             "rank_ic_mean": fmean(rank_ic_values) if rank_ic_values else None,
             "valid_ic_dates": len(ic_values),
             "signal_date_count": len(aligned_by_date),
+            "daily": daily,
         })
     for left in factor_keys:
         for right in factor_keys:

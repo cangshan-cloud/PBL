@@ -4,6 +4,7 @@ export type ComponentIcRow = {
   rank_ic_mean: number | null;
   valid_ic_dates: number;
   signal_date_count: number;
+  daily?: { date: string; ic: number | null; rank_ic: number | null; observations: number }[];
 };
 
 type Props = {

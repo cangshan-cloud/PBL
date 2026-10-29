@@ -17,3 +17,19 @@ export function componentIcCsv(runId: string, commonCoverage: number, rows: read
 export function componentIcFilename(runId: string): string {
   return `component-ic-${runId.slice(0, 8)}.csv`;
 }
+
+export function componentIcDailyCsv(runId: string, rows: readonly ComponentIcRow[]): string {
+  const lines = rows.flatMap(row => (row.daily ?? []).map(day => [
+    runId,
+    row.factor,
+    day.date,
+    day.ic,
+    day.rank_ic,
+    day.observations,
+  ].map(csvCell).join(",")));
+  return `\uFEFFrun_id,factor,date,ic,rank_ic,observations\r\n${lines.join("\r\n")}${lines.length ? "\r\n" : ""}`;
+}
+
+export function componentIcDailyFilename(runId: string): string {
+  return `component-ic-daily-${runId.slice(0, 8)}.csv`;
+}

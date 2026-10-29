@@ -71,6 +71,48 @@ def _verify_ic_histogram(value: object, valid_ic: list[float]) -> None:
             raise ValueError(f"ic_histogram[{index}].count: differs from daily IC series")
 
 
+def _verify_component_ic_daily(result: dict, coverage_rows: list[dict]) -> dict[str, int]:
+    composite = result.get("composite")
+    if not isinstance(composite, dict) or not isinstance(composite.get("component_ic"), list):
+        return {}
+    components = composite["component_ic"]
+    if not components or not any(isinstance(row, dict) and "daily" in row for row in components):
+        return {}
+    expected = {row["date"]: _integer(row.get("eligible_symbols"), f"{row['date']}.eligible_symbols")
+                for row in coverage_rows if row.get("eligible_symbols", 0) > 0}
+    factors: set[str] = set()
+    for component in components:
+        if not isinstance(component, dict) or not isinstance(component.get("factor"), str) or not component["factor"]:
+            raise ValueError("component_ic: invalid factor")
+        factor = component["factor"]
+        if factor in factors:
+            raise ValueError("component_ic: duplicate factor")
+        factors.add(factor)
+        daily, dates = _dated_rows(component.get("daily"), f"component_ic.{factor}.daily")
+        if dates != list(expected):
+            raise ValueError(f"component_ic.{factor}.daily: dates differ from common signal dates")
+        values: list[float] = []
+        ranks: list[float] = []
+        for point in daily:
+            day = point["date"]
+            if _integer(point.get("observations"), f"component_ic.{factor}.{day}.observations") != expected[day]:
+                raise ValueError(f"component_ic.{factor}.{day}.observations: differs from common coverage")
+            for field, target in (("ic", values), ("rank_ic", ranks)):
+                value = point.get(field)
+                if value is not None:
+                    measured = _number(value, f"component_ic.{factor}.{day}.{field}")
+                    if not -1 <= measured <= 1 or expected[day] < 2:
+                        raise ValueError(f"component_ic.{factor}.{day}.{field}: invalid correlation")
+                    target.append(measured)
+        if _integer(component.get("signal_date_count"), f"component_ic.{factor}.signal_date_count") != len(daily):
+            raise ValueError(f"component_ic.{factor}.signal_date_count: differs from daily series")
+        if _integer(component.get("valid_ic_dates"), f"component_ic.{factor}.valid_ic_dates") != len(values):
+            raise ValueError(f"component_ic.{factor}.valid_ic_dates: differs from daily series")
+        _optional_close(component.get("ic_mean"), fmean(values) if values else None, f"component_ic.{factor}.ic_mean")
+        _optional_close(component.get("rank_ic_mean"), fmean(ranks) if ranks else None, f"component_ic.{factor}.rank_ic_mean")
+    return {"component_ic_factors": len(factors), "component_ic_dates": len(expected)}
+
+
 def verify_time_split_consistency(result: dict) -> dict[str, int]:
     """Reconcile saved split summaries with the full-range daily IC and coverage rows."""
     split = result.get("time_split")
@@ -294,6 +336,7 @@ def verify_result_consistency(bundle_path: Path, *, require_v2: bool = False) ->
                "group_dates": len(expected_group_dates), "eligible_observations": eligible_total,
                "group_return_dates_checked": group_return_dates_checked,
                "histogram_ic_count": len(valid_ic)}
+    summary.update(_verify_component_ic_daily(result, daily))
     task = bundle.get("task")
     parameters = task.get("parameters") if isinstance(task, dict) else None
     declared_cutoff = parameters.get("validation_start_date") if isinstance(parameters, dict) else None

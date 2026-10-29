@@ -167,6 +167,29 @@ class ResearchResultConsistencyTests(unittest.TestCase):
                           "eligible_observations": 1, "group_return_dates_checked": 0,
                           "histogram_ic_count": 0})
 
+    def test_component_daily_series_reconciles_saved_summary_and_common_coverage(self):
+        daily = [
+            {"date": "2024-01-02", "ic": 1.0, "rank_ic": 1.0, "observations": 2},
+            {"date": "2024-01-03", "ic": None, "rank_ic": None, "observations": 2},
+            {"date": "2024-01-04", "ic": None, "rank_ic": None, "observations": 1},
+        ]
+        self.result["composite"] = {"component_ic": [
+            {"factor": factor, "ic_mean": 1.0, "rank_ic_mean": 1.0,
+             "valid_ic_dates": 1, "signal_date_count": 3, "daily": copy.deepcopy(daily)}
+            for factor in ("first", "second")
+        ]}
+        self._write()
+        summary = verify_result_consistency(self.path)
+        self.assertEqual((summary["component_ic_factors"], summary["component_ic_dates"]), (2, 3))
+        self._reject(lambda r: r["composite"]["component_ic"][0]["daily"][0].update(observations=3),
+                     "differs from common coverage")
+        self._reject(lambda r: r["composite"]["component_ic"][0].update(ic_mean=0.5),
+                     "arithmetic mismatch")
+        self._reject(lambda r: r["composite"]["component_ic"][1]["daily"].pop(),
+                     "dates differ from common signal dates")
+        self._reject(lambda r: r["composite"]["component_ic"][0]["daily"][1].update(ic=0.5),
+                     "valid_ic_dates: differs from daily series")
+
     def test_checksum_still_required(self):
         text = self.path.read_text(encoding="utf-8")
         self.path.write_text(text.replace('"coverage": 5', '"coverage": 6'), encoding="utf-8")
