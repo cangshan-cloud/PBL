@@ -164,11 +164,15 @@ class ReportTests(unittest.TestCase):
             ]}
             rendered = build_report_html(run, {"coverage": 2, "group_returns": [], "composite": {
                 "common_coverage": 2,
+                "component_ic": [{"factor": "<script>x</script>", "ic_mean": 0.1,
+                                  "rank_ic_mean": 0.2, "valid_ic_dates": 1, "signal_date_count": 2}],
                 "correlation_matrix": [{"left": "<script>x</script>", "right": "safe", "correlation": None}],
             }})
             self.assertIn("&lt;script&gt;x&lt;/script&gt;", rendered)
             self.assertNotIn("<script>x</script>", rendered)
             self.assertIn("<td>—</td>", rendered)
+            self.assertIn("成分因子同样本 IC", rendered)
+            self.assertIn("1/2", rendered)
 
     def test_report_preview_and_download_verify_checksum(self):
         path = Path(self.temp_dir.name) / "report.html"

@@ -318,6 +318,18 @@ def build_report_html(run: Run, result: dict) -> str:
             for item in composite.get("correlation_matrix", [])
         }
         factor_keys = [str(item["key"]) for item in components]
+        component_ic_rows = "".join(
+            f"<tr><td>{html.escape(str(item['factor']))}</td><td>{_fmt(item.get('ic_mean'))}</td>"
+            f"<td>{_fmt(item.get('rank_ic_mean'))}</td>"
+            f"<td>{int(item['valid_ic_dates'])}/{int(item['signal_date_count'])}</td></tr>"
+            for item in composite.get("component_ic", [])
+        )
+        component_ic_table = (
+            "<h3>成分因子同样本 IC</h3><p>各成分先按自身原始可用截面预处理，再仅取所有成分共同有效的证券与日期计算逐日 IC，"
+            "再对有效日期取算术平均。该统计不表示独立贡献、因果关系或未来收益。</p>"
+            "<table><thead><tr><th>因子</th><th>IC 均值</th><th>Rank IC 均值</th><th>有效 IC 日</th></tr></thead>"
+            f"<tbody>{component_ic_rows}</tbody></table>"
+        ) if component_ic_rows else ""
         correlation_table = ""
         if factor_keys and correlation_values:
             headings = "".join(f"<th>{html.escape(key)}</th>" for key in factor_keys)
@@ -335,6 +347,7 @@ def build_report_html(run: Run, result: dict) -> str:
         component_rows = (
             "<h2>三、组合成分</h2><table><thead><tr><th>因子标识</th><th>版本</th><th>窗口</th><th>权重</th></tr></thead>"
             f"<tbody>{component_rows}</tbody></table><p>共同样本覆盖量：{int(composite.get('common_coverage', 0))}。成分缺失值不填零，统一取交集。</p>"
+            f"{component_ic_table}"
             f"{correlation_table}"
         )
     historical = result.get("historical_audit")

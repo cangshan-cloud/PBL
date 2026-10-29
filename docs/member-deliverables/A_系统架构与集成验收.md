@@ -742,3 +742,7 @@ OrbStack 恢复后，专用 QA Compose 预检通过；只重建 db/redis/api/web
 
 通过端口/卷预检后重建隔离 Web、API、Worker、DB、Redis；浏览器新 Run 成功，HTTP V2 三项校验通过。仅 QA 项目 `down` 且保留卷，主 `fbl` 仍 running(5)。见 [浏览器证据](../HISTORICAL_SPLIT_BROWSER_QA_2026-10-29.md)与 [CHG-20261029-001](../changes/2026-10-29-001-historical-split-browser-qa.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-10-29 成分同样本 IC 结果集成（开发者代执行）
+
+合成诊断新增 `component_ic`，经既有结构化结果流进入工作台、V2 复现包和新 HTML 报告，不增数据库字段或新服务。私有历史包内存新 Run 严格 V2 与同包复算通过；主容器未部署本轮代码。见 [样本记录](../HISTORICAL_COMPONENT_IC_QA_2026-10-29.md)与 [CHG-20261029-002](../changes/2026-10-29-002-component-common-sample-ic.md)。实际执行者：Codex；队长本人未签收。
+

@@ -38,6 +38,32 @@ class CompositeFactorTests(unittest.TestCase):
         self.assertEqual(diagnostics["common_coverage"], 2)
         self.assertEqual(diagnostics["weights"], {"first": 0.5, "second": 0.5})
         self.assertAlmostEqual(combined[0].factor, 2.0)
+        for row, factor, expected in zip(diagnostics["component_ic"], ("first", "second"), (1.0, -1.0)):
+            self.assertEqual((row["factor"], row["valid_ic_dates"], row["signal_date_count"]), (factor, 1, 1))
+            self.assertAlmostEqual(row["ic_mean"], expected)
+            self.assertAlmostEqual(row["rank_ic_mean"], expected)
+
+    def test_component_ic_excludes_noncommon_keys_and_reports_constant_days(self):
+        day1, day2 = date(2025, 1, 1), date(2025, 1, 2)
+        first = [Observation(day1, "A", 1, .01), Observation(day1, "B", 2, .02),
+                 Observation(day1, "C", 3, .03), Observation(day2, "A", 1, .01),
+                 Observation(day2, "B", 1, .02)]
+        second = [Observation(day1, "A", 3, .01), Observation(day1, "B", 2, .02),
+                  Observation(day2, "A", 2, .01), Observation(day2, "B", 3, .02)]
+        _, diagnostics = combine_factor_observations(
+            {"first": first, "second": second}, {"first": 1, "second": 1},
+            winsorize=False, standardize=False,
+        )
+        self.assertEqual(diagnostics["common_coverage"], 4)
+        first_ic, second_ic = diagnostics["component_ic"]
+        self.assertEqual((first_ic["factor"], first_ic["valid_ic_dates"], first_ic["signal_date_count"]),
+                         ("first", 1, 2))
+        self.assertAlmostEqual(first_ic["ic_mean"], 1.0)
+        self.assertAlmostEqual(first_ic["rank_ic_mean"], 1.0)
+        self.assertEqual((second_ic["factor"], second_ic["valid_ic_dates"], second_ic["signal_date_count"]),
+                         ("second", 2, 2))
+        self.assertAlmostEqual(second_ic["ic_mean"], 0.0)
+        self.assertAlmostEqual(second_ic["rank_ic_mean"], 0.0)
 
     def test_rejects_invalid_components_and_weights(self):
         item = Observation(date(2025, 1, 1), "A", 1, 0.01)
@@ -109,11 +135,13 @@ class CompositeFactorTests(unittest.TestCase):
                 metrics = next(item.content for item in completed.artifacts if item.artifact_type == "metrics")
                 self.assertEqual(metrics["composite"]["common_coverage"], 1980)
                 self.assertEqual(len(metrics["composite"]["correlation_matrix"]), 4)
+                self.assertEqual(len(metrics["composite"]["component_ic"]), 2)
                 report = next(item for item in completed.artifacts if item.artifact_type == "report_html")
                 report_text = Path(report.storage_uri).read_text(encoding="utf-8")
                 self.assertIn("MULTI FACTOR REPORT", report_text)
                 self.assertIn("组合成分", report_text)
                 self.assertIn("因子相关矩阵", report_text)
+                self.assertIn("成分因子同样本 IC", report_text)
                 self.assertIn("逐日计算截面 Pearson 相关系数", report_text)
                 self.assertIn("<td>1.0000</td>", report_text)
         finally:

@@ -6,7 +6,7 @@ import math
 from collections import defaultdict
 from statistics import fmean
 
-from app.domain.research import Observation, pearson, preprocess_observations
+from app.domain.research import Observation, _rank, pearson, preprocess_observations
 
 
 def combine_factor_observations(
@@ -70,6 +70,29 @@ def combine_factor_observations(
         combined.append(Observation(source.trade_date, source.symbol, factor_value, source.forward_return))
 
     matrix: list[dict] = []
+    aligned_by_date: dict[object, list[tuple[object, str]]] = defaultdict(list)
+    for trade_date, symbol in ordered_keys:
+        aligned_by_date[trade_date].append((trade_date, symbol))
+    component_ic: list[dict] = []
+    for factor_key in factor_keys:
+        ic_values: list[float] = []
+        rank_ic_values: list[float] = []
+        for keys in aligned_by_date.values():
+            factors = [indexed[factor_key][key].factor for key in keys]
+            returns = [indexed[factor_key][key].forward_return for key in keys]
+            ic = pearson(factors, returns)
+            rank_ic = pearson(_rank(factors), _rank(returns)) if len(keys) >= 2 else None
+            if ic is not None:
+                ic_values.append(ic)
+            if rank_ic is not None:
+                rank_ic_values.append(rank_ic)
+        component_ic.append({
+            "factor": factor_key,
+            "ic_mean": fmean(ic_values) if ic_values else None,
+            "rank_ic_mean": fmean(rank_ic_values) if rank_ic_values else None,
+            "valid_ic_dates": len(ic_values),
+            "signal_date_count": len(aligned_by_date),
+        })
     for left in factor_keys:
         for right in factor_keys:
             daily_pairs: dict[object, list[tuple[float, float]]] = defaultdict(list)
@@ -87,6 +110,7 @@ def combine_factor_observations(
         "weights": normalized_weights,
         "component_coverage": {key: len(values) for key, values in components.items()},
         "common_coverage": len(combined),
+        "component_ic": component_ic,
         "correlation_matrix": matrix,
         "component_preprocessing": {
             "winsorize": winsorize,
