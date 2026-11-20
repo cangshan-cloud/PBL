@@ -8,6 +8,7 @@
 
 | ID | 日期 | 类型／状态 | 内容 | 记录 | 对应位置 |
 | --- | --- | --- | --- | --- | --- |
+| CHG-20261120-001 | 2026-11-20 | team module division / documented | 四人分工由岗位式责任包改为 M1—M4 具体功能模块，统一报告章节、代码边界、接口与验收闭环 | [记录](changes/2026-11-20-001-team-functional-module-division.md) | `docs/TEAM_MODULE_DIVISION_2026-11-20.md`、`docs/TEAM_PLAN.md`、`docs/FIRST_MENTOR_REPORT.md`、A/B/C/D 四份模块验收材料（无应用代码改动） |
 | CHG-20261012-001 | 2026-10-12 | governance / implemented | 建立变更、决策记录与总索引；扩展讨论保持未决 | [记录](changes/2026-10-12-001-change-governance.md) | `docs/CHANGE_INDEX.md`、`docs/changes/TEMPLATE.md`、`README.md` |
 | DEC-20261012-001 | 2026-10-12 | decision-only / accepted | 扩展范围第一轮五项决定已获队长确认；具体扩展方案待后续轮次 | [记录](changes/2026-10-12-002-extension-frontier.md) | `docs/EXTENSION_OPTIONS.md`、`docs/PRD.md`、`docs/REAL_A_SHARE_SAMPLE.md`（只读依据） |
 | DEC-20261012-002 | 2026-10-12 | decision-only / accepted | 真实数据私域使用、三道时间闸门、研究主张证据标准 | [记录](changes/2026-10-12-003-extension-choice.md) | `tools/fetch_real_a_share_sample.py`、`backend/app/services/runs.py`（只读依据） |
