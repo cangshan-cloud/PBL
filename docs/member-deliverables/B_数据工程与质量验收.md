@@ -769,3 +769,7 @@ IC 验算输入按 SHA-256 固定私有观测文件，拒绝重复证券日期�
 ## 2026-10-29 成分曲线数据回看边界（开发者代执行）
 
 页面只读取 Run 已保存的逐日 IC/Rank IC 和当日共同样本数；浏览器核对 2024-01-02 为 300 条、2024-12-31 为 299 条。旧摘要 Run 无逐日曲线，不补算缺失历史数据。见 [曲线验收](../HISTORICAL_COMPONENT_IC_CHART_QA_2026-10-29.md)与 [CHG-20261029-007](../changes/2026-10-29-007-component-daily-chart.md)。实际执行者：Codex；队长本人未签收。
+
+## 2026-11-21 M2 独立 PBL 作业包（文档代生成）
+
+按最新功能分工，B 的个人题目统一聚焦“M2 数据集管理与质量控制模块”，覆盖数据导入、不可变版本、SHA-256、质量门禁、覆盖摘要与发布边界。四份成品为：[PBL1 作业1](../../outputs/pbl-assignments-2026-11-20/final/B_数据集管理与质量控制_PBL1_作业1.docx)、[PBL1 作业2](../../outputs/pbl-assignments-2026-11-20/final/B_数据集管理与质量控制_PBL1_作业2.docx)、[PBL2 作业1](../../outputs/pbl-assignments-2026-11-20/final/B_数据集管理与质量控制_PBL2_作业1.docx)、[PBL2 作业2](../../outputs/pbl-assignments-2026-11-20/final/B_数据集管理与质量控制_PBL2_作业2.docx)。题目、提交物和事实边界见[总索引](../PBL_INDIVIDUAL_ASSIGNMENTS_2026-11-21.md)及 [CHG-20261121-001](../changes/2026-11-21-001-four-member-pbl-assignment-pack.md)。姓名等信息仍为占位符；实际生成与排版核验者为 Codex，按约定不要求成员另行签收。

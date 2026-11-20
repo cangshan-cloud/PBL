@@ -770,3 +770,7 @@ OrbStack 恢复后，专用 QA Compose 预检通过；只重建 db/redis/api/web
 
 前端复用已有 IC 曲线和日期核对组件读取保存的 `component_ic.daily`，未增加后端服务、接口或数据库字段。隔离五服务验证后关闭 QA 栈，主 `fbl` 仍 `running(5)`。见 [曲线验收](../HISTORICAL_COMPONENT_IC_CHART_QA_2026-10-29.md)与 [CHG-20261029-007](../changes/2026-10-29-007-component-daily-chart.md)。实际执行者：Codex；队长本人未签收。
 
+## 2026-11-21 M1 独立 PBL 作业包（文档代生成）
+
+按最新功能分工，A 的个人题目统一聚焦“M1 平台基础与任务运行模块”，覆盖身份权限、Run 状态、异步 Worker、持久化、报告索引与部署边界。四份成品为：[PBL1 作业1](../../outputs/pbl-assignments-2026-11-20/final/A_平台基础与任务运行_PBL1_作业1.docx)、[PBL1 作业2](../../outputs/pbl-assignments-2026-11-20/final/A_平台基础与任务运行_PBL1_作业2.docx)、[PBL2 作业1](../../outputs/pbl-assignments-2026-11-20/final/A_平台基础与任务运行_PBL2_作业1.docx)、[PBL2 作业2](../../outputs/pbl-assignments-2026-11-20/final/A_平台基础与任务运行_PBL2_作业2.docx)。题目、提交物和事实边界见[总索引](../PBL_INDIVIDUAL_ASSIGNMENTS_2026-11-21.md)及 [CHG-20261121-001](../changes/2026-11-21-001-four-member-pbl-assignment-pack.md)。姓名等信息仍为占位符；实际生成与排版核验者为 Codex，按约定不要求成员另行签收。
+

@@ -771,3 +771,7 @@ V2 同时保留结果 SHA 并将因子版本/公式、任务参数纳入整包�
 ## 2026-10-29 成分曲线逐点研究核对（开发者代执行）
 
 在任务中心切换动量和平均换手率两项曲线，逐点读取 2024-01-02/12-31 的 IC、Rank IC 和样本数，与前轮逐日 CSV 原值一致。曲线按已知结果日期等距，仅说明回溯时间变化，不证明独立增益。见 [曲线验收](../HISTORICAL_COMPONENT_IC_CHART_QA_2026-10-29.md)与 [CHG-20261029-007](../changes/2026-10-29-007-component-daily-chart.md)。实际执行者：Codex；队长本人未签收。
+
+## 2026-11-21 M3 独立 PBL 作业包（文档代生成）
+
+按最新功能分工，C 的个人题目统一聚焦“M3 因子计算与研究检验模块”，覆盖因子预处理、信号/收益错位、IC/Rank IC、分组、多空成本、时间切分和成分诊断。四份成品为：[PBL1 作业1](../../outputs/pbl-assignments-2026-11-20/final/C_因子计算与研究检验_PBL1_作业1.docx)、[PBL1 作业2](../../outputs/pbl-assignments-2026-11-20/final/C_因子计算与研究检验_PBL1_作业2.docx)、[PBL2 作业1](../../outputs/pbl-assignments-2026-11-20/final/C_因子计算与研究检验_PBL2_作业1.docx)、[PBL2 作业2](../../outputs/pbl-assignments-2026-11-20/final/C_因子计算与研究检验_PBL2_作业2.docx)。题目、提交物和事实边界见[总索引](../PBL_INDIVIDUAL_ASSIGNMENTS_2026-11-21.md)及 [CHG-20261121-001](../changes/2026-11-21-001-four-member-pbl-assignment-pack.md)。姓名等信息仍为占位符；实际生成与排版核验者为 Codex，按约定不要求成员另行签收。

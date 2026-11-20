@@ -768,3 +768,7 @@ CLI 对旧浏览器留存导出返回预期不一致，合成单测覆盖当前�
 ## 2026-10-29 成分逐日曲线浏览器验收（开发者代执行）
 
 任务中心展开新 Run 曲线、切换因子并选择年初日期，原值和 300/299 条当日样本数随之正确更新；旧摘要 Run 无入口。375 px 截图视觉检查和整页宽度通过，控制台 0 error/0 warning；前端 89 项测试与构建通过。见 [曲线验收](../HISTORICAL_COMPONENT_IC_CHART_QA_2026-10-29.md)与 [CHG-20261029-007](../changes/2026-10-29-007-component-daily-chart.md)。实际执行者：Codex；队长本人未签收。
+
+## 2026-11-21 M4 独立 PBL 作业包（文档代生成）
+
+按最新功能分工，D 的个人题目统一聚焦“M4 研究工作台与报告交付模块”，覆盖研究配置、任务回看、逐日图表/原值核对、报告预览、多格式导出和完整 Run 身份。四份成品为：[PBL1 作业1](../../outputs/pbl-assignments-2026-11-20/final/D_研究工作台与报告交付_PBL1_作业1.docx)、[PBL1 作业2](../../outputs/pbl-assignments-2026-11-20/final/D_研究工作台与报告交付_PBL1_作业2.docx)、[PBL2 作业1](../../outputs/pbl-assignments-2026-11-20/final/D_研究工作台与报告交付_PBL2_作业1.docx)、[PBL2 作业2](../../outputs/pbl-assignments-2026-11-20/final/D_研究工作台与报告交付_PBL2_作业2.docx)。题目、提交物和事实边界见[总索引](../PBL_INDIVIDUAL_ASSIGNMENTS_2026-11-21.md)及 [CHG-20261121-001](../changes/2026-11-21-001-four-member-pbl-assignment-pack.md)。姓名等信息仍为占位符；实际生成与排版核验者为 Codex，按约定不要求成员另行签收。

@@ -8,8 +8,8 @@
 
 | 成员 | 功能模块 | 用户可见入口或系统边界 | 核心功能 | 主要代码位置 | 独立文档与验收输出 | 占比 |
 | --- | --- | --- | --- | --- | --- | --- |
-| A【队长/待填姓名】 | M1 平台基础与任务运行模块 | 登录与权限、API、任务生命周期、异步 Worker、部署环境 | 用户角色与访问控制；实验/Run 状态；Celery 调度与日志；数据库迁移；Docker Compose；模块集成与发布 | `backend/app/api/`、`backend/app/models.py`、`backend/app/tasks.py`、`backend/alembic/`、`docker-compose.yml` | 平台架构图、权限矩阵、任务状态说明、接口与迁移清单、部署/恢复记录、集成测试 | 25% |
-| B【成员/待填姓名】 | M2 数据集管理与质量控制模块 | 数据集页面、数据版本、样例/历史数据包、质量诊断 | 数据格式与字段字典；版本注册；CSV 导入；完整性与质量规则；来源、复权、日期和覆盖率说明；异常样本 | `backend/app/services/datasets.py`、`backend/app/domain/data.py`、`data/`、`tools/generate_*`、数据检查工具 | 数据字典、版本清单、质量规则、异常样例、来源与许可说明、导入/封存验收 | 25% |
+| A【队长/待填姓名】 | M1 平台基础与任务运行模块 | 登录与权限、API、任务生命周期、异步 Worker、部署环境 | 用户角色与访问控制；实验/Run 状态；Celery 调度与日志；数据库迁移；Docker Compose；模块集成与发布 | `backend/app/main.py`、`backend/app/auth.py`、`backend/app/models.py`、`backend/app/services/runs.py`、`backend/app/tasks.py`、`backend/alembic/`、`docker-compose.yml` | 平台架构图、权限矩阵、任务状态说明、接口与迁移清单、部署/恢复记录、集成测试 | 25% |
+| B【成员/待填姓名】 | M2 数据集管理与质量控制模块 | 数据集页面、数据版本、样例/历史数据包、质量诊断 | 数据格式与字段字典；版本注册；CSV 导入；完整性与质量规则；来源、复权、日期和覆盖率说明；异常样本 | `backend/app/services/datasets.py`、`backend/app/services/cn_csv_adapter.py`、`backend/app/services/historical_bundle.py`、`backend/app/domain/prices.py`、`data/`、数据采集与检查工具 | 数据字典、版本清单、质量规则、异常样例、来源与许可说明、导入/封存验收 | 25% |
 | C【成员/待填姓名】 | M3 因子计算与研究检验模块 | 因子库、研究配置、计算结果中的指标与诊断 | 六个单因子；多因子合成；去极值/标准化；IC/Rank IC；分组与多空收益；换手和成本；时间切分；结果独立复核 | `backend/app/domain/factors.py`、`backend/app/domain/research.py`、`backend/app/domain/composite.py`、研究核对工具 | 因子卡片、公式与口径、黄金样例、平台值/独立值差异表、局限与风险说明 | 25% |
 | D【成员/待填姓名】 | M4 研究工作台与报告交付模块 | 研究工作台、任务中心、实验对比、报告中心及下载入口 | 参数表单；任务进度和日志展示；图表/表格与日期核对；结果对比；HTML 报告；CSV/JSON 导出；使用说明 | `frontend/src/`、`backend/app/services/reports.py`、前端测试、浏览器验收工具 | 页面说明、业务流程、功能/权限用例、报告样例、导出核对、缺陷与复测、用户手册 | 25% |
 
