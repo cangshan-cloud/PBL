@@ -8,6 +8,7 @@
 
 | ID | 日期 | 类型／状态 | 内容 | 记录 | 对应位置 |
 | --- | --- | --- | --- | --- | --- |
+| CHG-20261121-002 | 2026-11-21 | document package / generated + rendered | 按 M1—M4 模块完成四人各两份 PBL 中期 Word 报告，共 8 份；保留模板提纲与评分表，补个人进展、设计图、验收表和真实代码节选 | [记录](changes/2026-11-21-002-four-member-pbl-midterm-reports.md) | `tools/build_pbl_midterm_reports.py`、`tools/check_pbl_midterm_reports.py`、`docs/PBL_MIDTERM_REPORTS_2026-11-21.md`、`outputs/pbl-midterm-reports-2026-11-21/`、A/B/C/D 四份模块验收材料（无应用代码改动） |
 | CHG-20261121-001 | 2026-11-21 | document package / generated + rendered | 按 M1—M4 模块完成四人各四份 PBL 独立 Word 作业，共 16 份；补题目总索引、图表、伪代码、验收内容并修正分工代码路径 | [记录](changes/2026-11-21-001-four-member-pbl-assignment-pack.md) | `tools/build_pbl_assignment_docs.py`、`docs/PBL_INDIVIDUAL_ASSIGNMENTS_2026-11-21.md`、`outputs/pbl-assignments-2026-11-20/`、A/B/C/D 四份模块验收材料（无应用代码改动） |
 | CHG-20261120-001 | 2026-11-20 | team module division / documented | 四人分工由岗位式责任包改为 M1—M4 具体功能模块，统一报告章节、代码边界、接口与验收闭环 | [记录](changes/2026-11-20-001-team-functional-module-division.md) | `docs/TEAM_MODULE_DIVISION_2026-11-20.md`、`docs/TEAM_PLAN.md`、`docs/FIRST_MENTOR_REPORT.md`、A/B/C/D 四份模块验收材料（无应用代码改动） |
 | CHG-20261012-001 | 2026-10-12 | governance / implemented | 建立变更、决策记录与总索引；扩展讨论保持未决 | [记录](changes/2026-10-12-001-change-governance.md) | `docs/CHANGE_INDEX.md`、`docs/changes/TEMPLATE.md`、`README.md` |

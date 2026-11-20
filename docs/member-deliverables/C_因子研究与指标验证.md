@@ -775,3 +775,7 @@ V2 同时保留结果 SHA 并将因子版本/公式、任务参数纳入整包�
 ## 2026-11-21 M3 独立 PBL 作业包（文档代生成）
 
 按最新功能分工，C 的个人题目统一聚焦“M3 因子计算与研究检验模块”，覆盖因子预处理、信号/收益错位、IC/Rank IC、分组、多空成本、时间切分和成分诊断。四份成品为：[PBL1 作业1](../../outputs/pbl-assignments-2026-11-20/final/C_因子计算与研究检验_PBL1_作业1.docx)、[PBL1 作业2](../../outputs/pbl-assignments-2026-11-20/final/C_因子计算与研究检验_PBL1_作业2.docx)、[PBL2 作业1](../../outputs/pbl-assignments-2026-11-20/final/C_因子计算与研究检验_PBL2_作业1.docx)、[PBL2 作业2](../../outputs/pbl-assignments-2026-11-20/final/C_因子计算与研究检验_PBL2_作业2.docx)。题目、提交物和事实边界见[总索引](../PBL_INDIVIDUAL_ASSIGNMENTS_2026-11-21.md)及 [CHG-20261121-001](../changes/2026-11-21-001-four-member-pbl-assignment-pack.md)。姓名等信息仍为占位符；实际生成与排版核验者为 Codex，按约定不要求成员另行签收。
+
+## 2026-11-21 M3 PBL 中期报告（文档代生成）
+
+C 的两份中期报告聚焦因子预处理、信号与下一期收益对齐、IC/Rank IC、分组、多空成本和共同样本审计，使用 `backend/app/domain/research.py::evaluate` 真实片段说明研究检验。成品为 [PBL1 中期报告](../../outputs/pbl-midterm-reports-2026-11-21/final/C_因子计算与研究检验_PBL1_中期报告.docx)和 [PBL2 中期报告](../../outputs/pbl-midterm-reports-2026-11-21/final/C_因子计算与研究检验_PBL2_中期报告.docx)。结构、事实边界和占位符见[总索引](../PBL_MIDTERM_REPORTS_2026-11-21.md)及 [CHG-20261121-002](../changes/2026-11-21-002-four-member-pbl-midterm-reports.md)。实际生成与核验者为 Codex，按约定不要求成员另行签收。

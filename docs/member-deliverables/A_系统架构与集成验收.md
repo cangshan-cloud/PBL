@@ -774,3 +774,7 @@ OrbStack 恢复后，专用 QA Compose 预检通过；只重建 db/redis/api/web
 
 按最新功能分工，A 的个人题目统一聚焦“M1 平台基础与任务运行模块”，覆盖身份权限、Run 状态、异步 Worker、持久化、报告索引与部署边界。四份成品为：[PBL1 作业1](../../outputs/pbl-assignments-2026-11-20/final/A_平台基础与任务运行_PBL1_作业1.docx)、[PBL1 作业2](../../outputs/pbl-assignments-2026-11-20/final/A_平台基础与任务运行_PBL1_作业2.docx)、[PBL2 作业1](../../outputs/pbl-assignments-2026-11-20/final/A_平台基础与任务运行_PBL2_作业1.docx)、[PBL2 作业2](../../outputs/pbl-assignments-2026-11-20/final/A_平台基础与任务运行_PBL2_作业2.docx)。题目、提交物和事实边界见[总索引](../PBL_INDIVIDUAL_ASSIGNMENTS_2026-11-21.md)及 [CHG-20261121-001](../changes/2026-11-21-001-four-member-pbl-assignment-pack.md)。姓名等信息仍为占位符；实际生成与排版核验者为 Codex，按约定不要求成员另行签收。
 
+## 2026-11-21 M1 PBL 中期报告（文档代生成）
+
+A 的两份中期报告聚焦 RBAC、Experiment/Run、Celery Worker、数据库持久化、部署和审计边界，使用 `backend/app/tasks.py` 真实片段说明任务执行组件。成品为 [PBL1 中期报告](../../outputs/pbl-midterm-reports-2026-11-21/final/A_平台基础与任务运行_PBL1_中期报告.docx)和 [PBL2 中期报告](../../outputs/pbl-midterm-reports-2026-11-21/final/A_平台基础与任务运行_PBL2_中期报告.docx)。结构、事实边界和占位符见[总索引](../PBL_MIDTERM_REPORTS_2026-11-21.md)及 [CHG-20261121-002](../changes/2026-11-21-002-four-member-pbl-midterm-reports.md)。实际生成与核验者为 Codex，按约定不要求成员另行签收。
+
