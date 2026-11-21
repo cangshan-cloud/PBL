@@ -781,3 +781,7 @@ B 的两份中期报告聚焦数据导入、不可变版本、SHA-256、质量�
 ## 2026-11-21 M2 PBL 中期报告扩写（文档代生成）
 
 B 的两份报告补充数据版本责任、与 M1/M3 的协作边界、不可变版本与发布门禁的设计依据、DatasetVersion/质量报告模型、接口、验收证据、授权风险和阶段计划。PBL1/PBL2 均为 12 页。见[CHG-20261121-003](../changes/2026-11-21-003-expanded-pbl-midterm-reports.md)和[总索引](../PBL_MIDTERM_REPORTS_2026-11-21.md)。实际生成与排版核验者为 Codex，成员本人尚待填写身份信息并最终查看。
+
+## 2026-11-21 M2 可提交图件（文档代生成）
+
+新增[数据版本与质量门禁图](../../outputs/pbl-midterm-reports-2026-11-21/assets/B_data_quality_gate.png)，说明导入、字段检查、哈希、阻断错误和发布的关系，已嵌入 PBL1/PBL2 中期报告。代码依据和图题见[图册索引](../PBL_MIDTERM_FIGURE_CATALOG_2026-11-21.md)及 [CHG-20261121-004](../changes/2026-11-21-004-midterm-submission-figures.md)。

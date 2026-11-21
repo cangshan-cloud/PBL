@@ -782,3 +782,7 @@ A 的两份中期报告聚焦 RBAC、Experiment/Run、Celery Worker、数据库�
 
 A 作为组长的两份报告已重点扩写：除 M1 的认证、Run、异步任务、持久化和部署外，新增模块化单体取舍、PostgreSQL/Redis 分工、完整 Run ID、后端权限、跨模块接口冻结、范围控制、质量管理、风险矩阵和最终交付组织。PBL1/PBL2 分别为 12/13 页，内容量高于其他成员且不占用 M2—M4 的个人成果。见[CHG-20261121-003](../changes/2026-11-21-003-expanded-pbl-midterm-reports.md)和[总索引](../PBL_MIDTERM_REPORTS_2026-11-21.md)。实际生成与排版核验者为 Codex，成员本人尚待填写身份信息并最终查看。
 
+## 2026-11-21 M1 可提交图件（文档代生成）
+
+组长新增 [五服务部署图](../../outputs/pbl-midterm-reports-2026-11-21/assets/A_platform_architecture.png)、[Run 状态机](../../outputs/pbl-midterm-reports-2026-11-21/assets/A_run_state_machine.png)、[异步任务时序图](../../outputs/pbl-midterm-reports-2026-11-21/assets/A_async_sequence.png)及[四模块集成契约图](../../outputs/pbl-midterm-reports-2026-11-21/assets/A_module_integration.png)，均已嵌入两份中期报告的相应章节。用途与代码依据见[图册索引](../PBL_MIDTERM_FIGURE_CATALOG_2026-11-21.md)及 [CHG-20261121-004](../changes/2026-11-21-004-midterm-submission-figures.md)。这些是设计图，不是队长本人实机截图。
+

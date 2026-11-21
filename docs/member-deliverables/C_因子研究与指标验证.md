@@ -783,3 +783,7 @@ C 的两份中期报告聚焦因子预处理、信号与下一期收益对齐、
 ## 2026-11-21 M3 PBL 中期报告扩写（文档代生成）
 
 C 的两份报告补充信号—收益时序、共同样本与防前视设计依据，增加 Observation/ResearchResult 等领域模型、研究接口、验收证据、统计误读风险和阶段计划。PBL1/PBL2 均为 12 页。见[CHG-20261121-003](../changes/2026-11-21-003-expanded-pbl-midterm-reports.md)和[总索引](../PBL_MIDTERM_REPORTS_2026-11-21.md)。实际生成与排版核验者为 Codex，成员本人尚待填写身份信息并最终查看。
+
+## 2026-11-21 M3 可提交图件（文档代生成）
+
+新增[信号与下一期收益对齐图](../../outputs/pbl-midterm-reports-2026-11-21/assets/C_signal_return_alignment.png)，说明因子观测、收益标签、共同样本、逐日 IC 和缺失状态，已嵌入 PBL1/PBL2 中期报告。代码依据和图题见[图册索引](../PBL_MIDTERM_FIGURE_CATALOG_2026-11-21.md)及 [CHG-20261121-004](../changes/2026-11-21-004-midterm-submission-figures.md)。

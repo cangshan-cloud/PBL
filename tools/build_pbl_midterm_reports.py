@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
 import build_pbl_assignment_docs as common  # noqa: E402
+import build_pbl_midterm_figures as figures  # noqa: E402
 
 
 BASE = ROOT / "outputs" / "pbl-midterm-reports-2026-11-21"
@@ -223,10 +224,10 @@ EXTENDED = {
         ],
         "models": [
             ("User", "id、username、role、is_active", "创建任务和读取资源时生成身份上下文"),
-            ("Experiment", "id、owner_id、name、created_at", "组织同一研究问题下的多个 Run"),
-            ("Run", "id、experiment_id、status、progress、params、result", "绑定一次不可混淆的研究执行"),
-            ("RunLog", "run_id、level、stage、message、created_at", "记录可定位的阶段和失败原因"),
-            ("Artifact", "run_id、kind、path、checksum", "索引报告、导出和复现材料"),
+            ("Experiment", "id、created_by_id、parameters、code_version", "保存研究参数与数据、因子版本关联"),
+            ("Run", "id、experiment_id、status、progress、error_summary", "绑定一次不可混淆的研究执行"),
+            ("RunLog", "run_id、level、event、message、created_at", "记录可定位的事件和失败原因"),
+            ("Artifact", "run_id、artifact_type、storage_uri、checksum", "索引报告和结构化结果产物"),
         ],
         "risks": [
             ("队长成为单点", "关键实现和文档只存在于个人环境", "把脚本、测试、部署说明和变更记录提交仓库，使其他成员能按材料说明模块。"),
@@ -365,6 +366,12 @@ def set_repeat_table_header(row) -> None:
     tr_pr.append(node)
 
 
+def keep_row_together(row) -> None:
+    tr_pr = row._tr.get_or_add_trPr()
+    if tr_pr.find(qn("w:cantSplit")) is None:
+        tr_pr.append(OxmlElement("w:cantSplit"))
+
+
 def add_title(doc: Document, course: str, module: dict) -> None:
     title = doc.add_paragraph(f"量化投资多因子研发平台 {course.upper()} 中期报告", style="Title")
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -402,6 +409,12 @@ def add_code_block(doc: Document, path: str, code: str) -> None:
             common.set_run_font(run, size=8.5, color="000000", font="Courier New")
 
 
+def add_report_figure(doc: Document, filename: str, caption: str) -> None:
+    common.add_figure(doc, ASSETS / filename, caption)
+    doc.paragraphs[-2].paragraph_format.keep_with_next = True
+    doc.paragraphs[-1].paragraph_format.keep_together = True
+
+
 def add_common_status(doc: Document) -> None:
     common.add_table(
         doc,
@@ -434,9 +447,11 @@ def build_pbl1(doc: Document, code: str, module: dict, diagram: Path) -> None:
     add_common_status(doc)
 
     heading = common.add_heading(doc, "二 技术架构")
-    heading.paragraph_format.page_break_before = True
     common.add_body(doc, COMMON_ARCHITECTURE)
     common.add_figure(doc, diagram, f"图1 {module['name']}在平台架构中的处理链")
+    if code == "A":
+        add_report_figure(doc, "A_platform_architecture.png", "图2 五服务部署与持久化、队列分工")
+        common.add_body(doc, "图2将系统交互与基础设施放在同一视图：浏览器经 Web 调用 API，API 保存任务和参数，Worker 处理耗时计算；PostgreSQL 持久化研究事实，Redis 只承载消息。队长据此检查服务依赖、健康探针、迁移顺序和重启后的数据保留。")
     common.add_table(
         doc,
         ["层次", "主要技术", "职责"],
@@ -452,11 +467,27 @@ def build_pbl1(doc: Document, code: str, module: dict, diagram: Path) -> None:
     common.add_heading(doc, "1 模块协作边界", level=2)
     common.add_body(doc, extended["collaboration"])
     if code == "A":
+        add_report_figure(doc, "A_module_integration.png", "图3 四模块交付契约与统一身份")
+        common.add_body(doc, "图3中的箭头表示交付顺序，不表示四个独立微服务。跨模块联调依次核对数据版本 ID、Run 参数快照、已保存结构化结果以及同一 Run 的报告身份；任何一段不一致都应回到产生该字段的模块修复。")
         common.add_heading(doc, "2 组长架构决策", level=2)
         common.add_table(doc, ["决策", "选择依据", "落地方式"], extended["decisions"], [1.35, 2.45, 2.4], font_size=8.6)
 
     heading = common.add_heading(doc, "三 个人技术实现")
     common.add_body(doc, f"本人的课程责任范围为{module['name']}。{module['architecture']}")
+    if code == "B":
+        common.add_body(doc, "数据版本的最小可复核单位是一次导入产生的不可变标识。导入阶段检查字段、日期格式、重复证券日期键、数值有限性和价格关系，记录行数、证券数、时间范围与摘要；发布阶段再次检查阻断错误。历史封存包还核对 manifest、逐文件哈希、交易日与成分范围，研究任务只选择已发布版本。")
+    elif code == "C":
+        common.add_body(doc, "研究计算先按交易日和证券键对齐因子观测，再根据已知日历生成下一期收益标签。逐日截面分别保存有效样本数、IC、Rank IC 与跳过原因；当截面常数或数量不足时保留空值状态。合成因子采用共同有效样本，避免不同成分的覆盖差异被误读为因子优劣。")
+    elif code == "D":
+        common.add_body(doc, "工作台以配置快照和完整 Run ID 为界管理页面状态。配置改变后旧结果不继续冒充当前查询，异步轮询检查所选 Run 并清理失效请求；图表按已知日期并集绘制，缺测保留断线。报告、导出与任务回看均读取保存结果，并展示数据版本、参数和限制。")
+    if code == "A":
+        common.add_body(doc, "作为组长，我负责把四个模块的接口和验收证据连成同一条研究链：M2 发布数据版本，M3 读取该版本并产生研究结果，M4 按完整 Run ID 展示和交付，M1 在每一步提供身份校验、任务状态与产物索引。接口联调以版本号、Run ID、状态和错误码为共同契约，先用构造数据覆盖成功、失败、取消和越权，再用封存样本复核结果归属。")
+        common.add_body(doc, "架构采用模块化单体，是因为课程周期内四个模块需要频繁调整数据与研究口径；FastAPI 内部按领域分层，长任务由 Celery Worker 执行。PostgreSQL 保存可恢复的任务与元数据，Redis 承担队列消息。任务创建后立即返回 pending Run，Worker 条件认领后进入 running；重复消息不得重复计算，取消与认领通过数据库条件更新协调，最终状态只能为 success、failed 或 cancelled。")
+        add_report_figure(doc, "A_run_state_machine.png", "图4 Run 合法状态转换与取消边界")
+        common.add_body(doc, "图4把 pending 和 running 视为可变状态，success、failed、cancelled 视为终态。pending 取消立即写入终态；running 取消先写请求时间，再由 Worker 在检查点确认。条件更新保证并发认领、取消和入队失败不会各自产生冲突的最终状态。")
+    else:
+        supplementary = {"B": ("B_data_quality_gate.png", "图2 数据版本质量门禁"), "C": ("C_signal_return_alignment.png", "图2 信号与收益标签的时间对齐"), "D": ("D_run_delivery_identity.png", "图2 统一 Run 身份的交付链")}
+        add_report_figure(doc, *supplementary[code])
     common.add_table(doc, ["技术单元", "已实现内容"], extra["implementation"], [1.55, 4.6], font_size=9.0)
     if code != "A":
         common.add_heading(doc, "1 关键设计决策", level=2)
@@ -469,6 +500,8 @@ def build_pbl1(doc: Document, code: str, module: dict, diagram: Path) -> None:
     heading = common.add_heading(doc, "四 个人项目进展")
     common.add_table(doc, ["工作项", "状态", "中期证据"], extra["progress"], [1.2, 0.9, 4.1], font_size=8.8)
     common.add_body(doc, "总体判断：核心闭环已经具备，当前工作从功能扩展转向冻结、复核和材料归档。这里的“已完成”指现有自动化或开发者代执行证据通过，不等同于成员本人已经完成最终人工产品验收。")
+    if code == "A":
+        common.add_body(doc, "组长的集成验收按四类证据收口：一是权限矩阵与资源归属拒绝；二是异步任务从提交到归档的状态和日志；三是同一 Run 在页面、报告与复现包中的参数和版本一致；四是 OrbStack 五服务健康、迁移与重启后的元数据保留。当前自动化和隔离环境验收已有记录，最终仍需用队长实际操作结果核对页面体验与提交材料。")
     common.add_heading(doc, "1 阶段证据与验收对应", level=2)
     common.add_table(doc, ["能力", "证据位置或类型", "能够说明的结论"], extended["evidence"], [1.35, 2.45, 2.4], font_size=8.5)
     if code == "A":
@@ -523,7 +556,24 @@ def build_pbl2(doc: Document, code: str, module: dict, diagram: Path) -> None:
 
     heading = common.add_heading(doc, "三 个人功能设计")
     common.add_body(doc, f"本人的产品责任范围为{module['name']}。{extra['design']}")
+    if code == "B":
+        common.add_body(doc, "数据发布与数据可用是两个独立判断。文件字节哈希证明封存后未变化，字段与业务质量检查证明满足当前软件约束，来源说明则交代数据获取和许可边界。研究员在选版时能看到日期、证券覆盖和质量摘要；如果发布后原文件遭修改，加载时拒绝继续研究并给出可定位的错误。")
+    elif code == "C":
+        common.add_body(doc, "验收以小型黄金样例先固定方向与数值，再用真实封存样本做只读复算。对每个信号日记录参与证券、有效收益标签和缺失原因，比较逐日原值、汇总均值与报告显示值。时间切分只作既有样本内的回溯诊断，研究结论明确披露过拟合和幸存者偏差。")
+    elif code == "D":
+        common.add_body(doc, "页面验收覆盖配置、提交、任务回看、报告预览和下载的连续路径。切换数据版本或 Run 后，标题、曲线、逐日检查器和导出身份必须同时变化；旧归档缺少新字段时显示“未保存”。窄屏下图表和表格可局部滚动，错误提示应说明用户可采取的下一步。")
+    if code == "A":
+        common.add_body(doc, "组长从跨模块交付反推平台需求：研究员提交配置时先校验角色、数据发布状态和参数，再创建不可变 Run 快照；后台计算只写该 Run 的进度、诊断与结果；报告服务只读取已保存产物。这样任务中心、工作台和下载文件可共享同一身份，出现失败时也能从状态、阶段日志和输入版本定位原因。")
+        common.add_body(doc, "验收时分别验证正常完成、队列不可用、重复投递、取消与认领竞争、Worker 中途失败和无权限读取。每个场景都检查 API 响应、数据库最终状态、可见错误信息与产物归属。对于重试，必须沿用原研究模式和参数快照，形成新的执行证据，但不能悄悄改变旧结果。")
     common.add_figure(doc, diagram, f"图1 {module['name']}业务流程")
+    if code == "A":
+        add_report_figure(doc, "A_async_sequence.png", "图2 异步任务请求、入队与结果写回时序")
+        common.add_body(doc, "图2明确了 HTTP 响应和后台计算的先后关系：API 保存 Run 并入队后立即返回完整 ID；Worker 随后条件认领，独立写回状态和结果。浏览器轮询只读取已保存状态，不能以页面请求是否保持连接判断任务成功。")
+        add_report_figure(doc, "A_run_state_machine.png", "图3 Run 状态与失败、取消分支")
+        common.add_body(doc, "状态图用于检查重试和取消用例：终态不能在原 Run 上重新进入执行态；重复消息到达时不应再次计算。队列连接失败只在 Run 仍为 pending 时标记失败，避免覆盖已被 Worker 认领的任务。")
+    else:
+        supplementary = {"B": ("B_data_quality_gate.png", "图2 数据导入、质量检查与发布门禁"), "C": ("C_signal_return_alignment.png", "图2 因子信号日与下一期收益标签"), "D": ("D_run_delivery_identity.png", "图2 工作台、任务与报告的同 Run 交付")}
+        add_report_figure(doc, *supplementary[code])
     common.add_heading(doc, "1 功能模块与验收", level=2)
     common.add_table(doc, ["类别", "需求", "验收标准"], module["requirements"], [0.9, 2.2, 3.1], font_size=8.7)
     common.add_heading(doc, "2 关键设计决策", level=2)
@@ -551,7 +601,9 @@ def build_pbl2(doc: Document, code: str, module: dict, diagram: Path) -> None:
     common.add_heading(doc, "五 下一步计划")
     common.add_body(doc, extra["next"])
     common.add_table(doc, ["阶段", "主要工作", "完成标准"], extended["plan"], [1.2, 2.65, 2.35], font_size=8.6)
-    common.add_heading(doc, "六 相关代码")
+    code_heading = common.add_heading(doc, "六 相关代码")
+    if code == "A":
+        code_heading.paragraph_format.page_break_before = True
     common.add_body(doc, "以下片段用于说明本模块的软件组件转化；完整实现、异常分支和测试仍以仓库为准。")
     add_code_block(doc, extra["code_path"], extra["code"])
 
@@ -580,6 +632,8 @@ def build_document(code: str, module: dict, course: str) -> Path:
     for table in doc.tables[2:]:
         if table.rows:
             set_repeat_table_header(table.rows[0])
+        for row in table.rows:
+            keep_row_together(row)
     doc.core_properties.title = f"{module['short']} {course.upper()} 中期报告"
     doc.core_properties.subject = "量化投资多因子研发平台个人中期报告"
     doc.core_properties.author = f"{code}【待填写姓名】"
@@ -591,6 +645,7 @@ def build_document(code: str, module: dict, course: str) -> Path:
 def main() -> None:
     ASSETS.mkdir(parents=True, exist_ok=True)
     FINAL.mkdir(parents=True, exist_ok=True)
+    figures.main()
     for path in FINAL.glob("*.docx"):
         path.unlink()
     outputs: list[Path] = []

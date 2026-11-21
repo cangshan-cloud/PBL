@@ -17,6 +17,13 @@ MODULES = {
     "D": ("研究工作台与报告交付", "frontend/src/main.tsx::downloadReport"),
 }
 
+FIGURE_ASSETS = {
+    "A": ("A_platform_architecture.png", "A_run_state_machine.png", "A_async_sequence.png", "A_module_integration.png"),
+    "B": ("B_data_quality_gate.png",),
+    "C": ("C_signal_return_alignment.png",),
+    "D": ("D_run_delivery_identity.png",),
+}
+
 REQUIRED = {
     "PBL1": ("一 项目概述", "二 技术架构", "三 个人技术实现", "四 个人项目进展", "七 相关代码"),
     "PBL2": ("一 项目概述", "二 需求分析", "三 个人功能设计", "四 挑战与问题", "六 相关代码"),
@@ -69,7 +76,7 @@ def main() -> int:
             "identity placeholder": "【待填写：" in text,
             "individual scope": "个人模块" in text,
             "code location": code_path in text,
-            "diagram": len(document.inline_shapes) >= 2,
+            "diagram count": len(document.inline_shapes) >= (5 if code == "A" and course == "PBL1" else 4 if code == "A" else 3),
             "substantial content": len(text) >= (5800 if code == "A" else 4500),
             "design decisions": ("关键设计决策" in text or "组长架构决策" in text),
             "domain model": "数据与领域模型" in text,
@@ -91,6 +98,12 @@ def main() -> int:
         for error in errors:
             print(f"- {error}", file=sys.stderr)
         return 1
+    for code, names in FIGURE_ASSETS.items():
+        for name in names:
+            path = FINAL.parent / "assets" / name
+            if not path.is_file() or path.stat().st_size < 10_000:
+                print(f"PBL midterm report check failed: missing figure {code}/{name}", file=sys.stderr)
+                return 1
     print("PBL midterm report check passed: 8 reports, 4 modules, PBL1/PBL2 complete")
     return 0
 

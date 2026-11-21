@@ -780,3 +780,7 @@ D 的两份中期报告聚焦研究配置、异步状态回看、逐日图表与
 ## 2026-11-21 M4 PBL 中期报告扩写（文档代生成）
 
 D 的两份报告补充工作台与 M1/M2/M3 的结果消费边界、服务端报告与完整 Run ID 的设计依据、TaskView/ReportArtifact 等模型、下载接口、窄屏和旧 Run 风险以及阶段计划。PBL1/PBL2 均为 12 页。见[CHG-20261121-003](../changes/2026-11-21-003-expanded-pbl-midterm-reports.md)和[总索引](../PBL_MIDTERM_REPORTS_2026-11-21.md)。实际生成与排版核验者为 Codex，成员本人尚待填写身份信息并最终查看。
+
+## 2026-11-21 M4 可提交图件（文档代生成）
+
+新增[同一 Run 的页面与交付图](../../outputs/pbl-midterm-reports-2026-11-21/assets/D_run_delivery_identity.png)，说明配置、任务回看、逐日诊断、报告和导出身份，已嵌入 PBL1/PBL2 中期报告。代码依据和图题见[图册索引](../PBL_MIDTERM_FIGURE_CATALOG_2026-11-21.md)及 [CHG-20261121-004](../changes/2026-11-21-004-midterm-submission-figures.md)。
