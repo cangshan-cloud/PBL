@@ -18,10 +18,10 @@ MODULES = {
 }
 
 FIGURE_ASSETS = {
-    "A": ("A_platform_architecture.png", "A_run_state_machine.png", "A_async_sequence.png", "A_module_integration.png"),
-    "B": ("B_data_quality_gate.png",),
-    "C": ("C_signal_return_alignment.png",),
-    "D": ("D_run_delivery_identity.png",),
+    "A": ("A_platform_architecture.png", "A_run_state_machine.png", "A_async_sequence.png", "A_module_integration.png", "A_permission_path.png", "A_recovery_path.png"),
+    "B": ("B_data_quality_gate.png", "B_version_lineage.png"),
+    "C": ("C_signal_return_alignment.png", "C_research_audit.png"),
+    "D": ("D_run_delivery_identity.png", "D_request_identity.png"),
 }
 
 REQUIRED = {
@@ -76,7 +76,7 @@ def main() -> int:
             "identity placeholder": "【待填写：" in text,
             "individual scope": "个人模块" in text,
             "code location": code_path in text,
-            "diagram count": len(document.inline_shapes) >= (5 if code == "A" and course == "PBL1" else 4 if code == "A" else 3),
+            "diagram count": len(document.inline_shapes) >= (6 if code == "A" and course == "PBL1" else 5 if code == "A" else 4),
             "substantial content": len(text) >= (10_000 if code == "A" else 7_400),
             "design decisions": ("关键设计决策" in text or "组长架构决策" in text),
             "domain model": "数据与领域模型" in text,

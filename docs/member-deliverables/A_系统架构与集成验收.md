@@ -794,3 +794,7 @@ A 的 PBL1/PBL2 均扩展为 17 页，增加权限与资源归属、异步异常
 
 A 的 PBL1/PBL2 进一步扩展为 20/19 页，新增认证、版本、Run、取消重试、产物和部署六类代码证据映射，补充单元、API、异步、容器、人工和文档六层验证边界，并形成故障处置、产品接口契约、组长答辩问答和最终提交清单。正文约 12,152/10,564 字符。见 [CHG-20261121-006](../changes/2026-11-21-006-midterm-evidence-and-defense.md)及[总索引](../PBL_MIDTERM_REPORTS_2026-11-21.md)。
 
+## 2026-11-21 M1 权限与恢复设计图（文档代生成）
+
+新增[后端授权路径](../../outputs/pbl-midterm-reports-2026-11-21/assets/A_permission_path.png)和[故障恢复核对顺序](../../outputs/pbl-midterm-reports-2026-11-21/assets/A_recovery_path.png)，分别嵌入 PBL1、PBL2。前者说明角色、Run 归属与派生产物的检查顺序；后者要求服务恢复后核对旧数据及新任务。两份报告均为 20 页，正文约 12,288/10,677 字符；图为代码依据支持的设计说明，不代替实机验收。见 [CHG-20261121-007](../changes/2026-11-21-007-midterm-design-diagrams-and-code-notes.md)。
+

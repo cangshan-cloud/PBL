@@ -792,3 +792,7 @@ D 的 PBL1/PBL2 均扩展为 14 页，增加页面功能清单、任务状态行
 ## 2026-11-21 M4 证据与答辩深化（文档代生成）
 
 D 的两份报告均扩展为 16 页，新增配置、轮询、图表、下载和响应式布局的代码证据映射，补充请求竞态、假零、下载串档和窄屏故障排查，以及页面接口契约、用户验收、个人答辩问答与最终清单。见 [CHG-20261121-006](../changes/2026-11-21-006-midterm-evidence-and-defense.md)及[总索引](../PBL_MIDTERM_REPORTS_2026-11-21.md)。
+
+## 2026-11-21 M4 请求身份图（文档代生成）
+
+新增[Run 切换与迟到响应图](../../outputs/pbl-midterm-reports-2026-11-21/assets/D_request_identity.png)，两份报告均嵌入并解释页面请求竞态的验收步骤。PBL1/PBL2 均为 16 页。实际浏览器验收仍需以队长最终操作记录为准。见 [CHG-20261121-007](../changes/2026-11-21-007-midterm-design-diagrams-and-code-notes.md)。

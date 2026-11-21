@@ -8,6 +8,7 @@
 
 | ID | 日期 | 类型／状态 | 内容 | 记录 | 对应位置 |
 | --- | --- | --- | --- | --- | --- |
+| CHG-20261121-007 | 2026-11-21 | document figures and evidence / generated + rendered | 四人八份中期报告增加权限、恢复、血缘、复算和请求身份五张图；B 补代码验收说明 | [记录](changes/2026-11-21-007-midterm-design-diagrams-and-code-notes.md) | `tools/build_pbl_midterm_figures.py`、`tools/build_pbl_midterm_reports.py`、检查脚本、8 份 Word、图册与 A/B/C/D 材料（无应用代码改动） |
 | CHG-20261121-006 | 2026-11-21 | document evidence and defense / generated + rendered | 增加代码证据映射、测试边界、故障处置、接口契约、答辩问答和最终清单；A 达 20/19 页，B/C/D 均达 16 页 | [记录](changes/2026-11-21-006-midterm-evidence-and-defense.md) | `tools/build_pbl_midterm_reports.py`、检查脚本、8 份 Word、总索引与 A/B/C/D 四份材料（无应用代码改动） |
 | CHG-20261121-005 | 2026-11-21 | document content depth / generated + rendered | 深化四人模块字典、操作流程、典型场景和工作分解；A 增加权限、异常、恢复与证据治理，8 份 Word 增至 14—17 页 | [记录](changes/2026-11-21-005-midterm-content-depth.md) | `tools/build_pbl_midterm_reports.py`、`tools/check_pbl_midterm_reports.py`、`docs/PBL_MIDTERM_REPORTS_2026-11-21.md`、`outputs/pbl-midterm-reports-2026-11-21/`、A/B/C/D 四份模块材料（无应用代码改动） |
 | CHG-20261121-004 | 2026-11-21 | document figures / generated + rendered | 为四人中期报告新增 7 张可独立提交的模块图，A 重点补五服务部署、Run 状态、异步时序和四模块契约；更新 8 份 Word 与图册索引 | [记录](changes/2026-11-21-004-midterm-submission-figures.md) | `tools/build_pbl_midterm_figures.py`、`tools/build_pbl_midterm_reports.py`、`tools/check_pbl_midterm_reports.py`、`docs/PBL_MIDTERM_FIGURE_CATALOG_2026-11-21.md`、`outputs/pbl-midterm-reports-2026-11-21/`、A/B/C/D 四份模块材料（无应用代码改动） |

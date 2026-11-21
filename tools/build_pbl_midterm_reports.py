@@ -846,6 +846,20 @@ def add_code_block(doc: Document, path: str, code: str) -> None:
             common.set_run_font(run, size=8.5, color="000000", font="Courier New")
 
 
+def add_b_code_explanation(doc: Document, course: str) -> None:
+    common.add_heading(doc, "代码关键行与验收观察", level=2)
+    common.add_body(doc, "该片段展示一次 CSV 导入如何从验证结果建立不可变版本。它只覆盖版本注册入口；发布门禁、授权及加载时的文件完整性检查分别由相应服务和测试负责，不能由片段本身推断全部链路已经通过。")
+    rows = [
+        ("validate_csv(content)", "检查字段、日期、键和数值，返回行数、证券数、日期范围及质量报告。", "使用缺列、重复键和非法日期样例，确认导入拒绝或记录可解释错误。"),
+        ("sha256(content)", "对原始文件字节计算摘要，为封存后的完整性复核提供基准。", "修改一个字节后重新加载，比较摘要并确认旧版本不被静默改写。"),
+        ("version_id / target", "为每次导入创建独立版本 ID 和受控存放路径。", "相同数据重复导入应产生可区分的版本记录；旧 Run 保持原引用。"),
+        ("quality_report / draft", "先保存质量摘要并处于草稿态，再由发布操作检查阻断条件。", "含阻断错误的版本不得成为研究任务可选输入。"),
+    ]
+    common.add_table(doc, ["代码位置", "设计含义", "验收观察"], rows, [1.45, 2.25, 2.5], font_size=8.5)
+    if course == "pbl2":
+        common.add_body(doc, "产品交付时，研究员从版本详情看到来源、覆盖和质量信息，再由发布操作决定是否可选；报告显示的是 Run 固定引用的版本，而非当前最新文件。")
+
+
 def add_report_figure(doc: Document, filename: str, caption: str) -> None:
     common.add_figure(doc, ASSETS / filename, caption)
     doc.paragraphs[-2].paragraph_format.keep_with_next = True
@@ -1017,6 +1031,8 @@ def build_pbl1(doc: Document, code: str, module: dict, diagram: Path) -> None:
     if code == "A":
         add_report_figure(doc, "A_platform_architecture.png", "图2 五服务部署与持久化、队列分工")
         common.add_body(doc, "图2将系统交互与基础设施放在同一视图：浏览器经 Web 调用 API，API 保存任务和参数，Worker 处理耗时计算；PostgreSQL 持久化研究事实，Redis 只承载消息。队长据此检查服务依赖、健康探针、迁移顺序和重启后的数据保留。")
+        add_report_figure(doc, "A_permission_path.png", "图3 任务与报告的后端授权检查路径")
+        common.add_body(doc, "图3强调关联资源的授权需要回溯到所属 Run。研究员尝试读取任务日志或下载报告时，服务端先验证身份和操作权限，再检查 Run 的创建者与资源归属；无权访问者应得到拒绝响应，不能仅依赖前端隐藏按钮。此流程也适用于复现包及其他派生产物。")
     common.add_table(
         doc,
         ["层次", "主要技术", "职责"],
@@ -1032,8 +1048,8 @@ def build_pbl1(doc: Document, code: str, module: dict, diagram: Path) -> None:
     common.add_heading(doc, "1 模块协作边界", level=2)
     common.add_body(doc, extended["collaboration"])
     if code == "A":
-        add_report_figure(doc, "A_module_integration.png", "图3 四模块交付契约与统一身份")
-        common.add_body(doc, "图3中的箭头表示交付顺序，不表示四个独立微服务。跨模块联调依次核对数据版本 ID、Run 参数快照、已保存结构化结果以及同一 Run 的报告身份；任何一段不一致都应回到产生该字段的模块修复。")
+        add_report_figure(doc, "A_module_integration.png", "图4 四模块交付契约与统一身份")
+        common.add_body(doc, "图4中的箭头表示交付顺序，不表示四个独立微服务。跨模块联调依次核对数据版本 ID、Run 参数快照、已保存结构化结果以及同一 Run 的报告身份；任何一段不一致都应回到产生该字段的模块修复。")
         common.add_heading(doc, "2 组长架构决策", level=2)
         common.add_table(doc, ["决策", "选择依据", "落地方式"], extended["decisions"], [1.35, 2.45, 2.4], font_size=8.6)
 
@@ -1048,11 +1064,19 @@ def build_pbl1(doc: Document, code: str, module: dict, diagram: Path) -> None:
     if code == "A":
         common.add_body(doc, "作为组长，我负责把四个模块的接口和验收证据连成同一条研究链：M2 发布数据版本，M3 读取该版本并产生研究结果，M4 按完整 Run ID 展示和交付，M1 在每一步提供身份校验、任务状态与产物索引。接口联调以版本号、Run ID、状态和错误码为共同契约，先用构造数据覆盖成功、失败、取消和越权，再用封存样本复核结果归属。")
         common.add_body(doc, "架构采用模块化单体，是因为课程周期内四个模块需要频繁调整数据与研究口径；FastAPI 内部按领域分层，长任务由 Celery Worker 执行。PostgreSQL 保存可恢复的任务与元数据，Redis 承担队列消息。任务创建后立即返回 pending Run，Worker 条件认领后进入 running；重复消息不得重复计算，取消与认领通过数据库条件更新协调，最终状态只能为 success、failed 或 cancelled。")
-        add_report_figure(doc, "A_run_state_machine.png", "图4 Run 合法状态转换与取消边界")
-        common.add_body(doc, "图4把 pending 和 running 视为可变状态，success、failed、cancelled 视为终态。pending 取消立即写入终态；running 取消先写请求时间，再由 Worker 在检查点确认。条件更新保证并发认领、取消和入队失败不会各自产生冲突的最终状态。")
+        add_report_figure(doc, "A_run_state_machine.png", "图5 Run 合法状态转换与取消边界")
+        common.add_body(doc, "图5把 pending 和 running 视为可变状态，success、failed、cancelled 视为终态。pending 取消立即写入终态；running 取消先写请求时间，再由 Worker 在检查点确认。条件更新保证并发认领、取消和入队失败不会各自产生冲突的最终状态。")
     else:
         supplementary = {"B": ("B_data_quality_gate.png", "图2 数据版本质量门禁"), "C": ("C_signal_return_alignment.png", "图2 信号与收益标签的时间对齐"), "D": ("D_run_delivery_identity.png", "图2 统一 Run 身份的交付链")}
         add_report_figure(doc, *supplementary[code])
+        additional = {
+            "B": ("B_version_lineage.png", "图3 数据版本到研究报告的血缘路径", "图3说明数据修订必须产生新版本。导入记录保存内容哈希和质量摘要，研究运行绑定已发布版本的完整 ID，报告继续披露该 ID。即使后续有新行情或更正文件，旧 Run 的输入身份也不随之变化。"),
+            "C": ("C_research_audit.png", "图3 研究指标的独立复算路径", "图3把审计顺序固定为参数、逐股观测、逐日指标、汇总与报告。复算时先核对样本和日期，再比较 IC、分组及成本原值；常数截面与样本不足日期应保留不可计算状态，不能混入有效均值。"),
+            "D": ("D_request_identity.png", "图3 页面切换时的 Run 身份守护", "图3给出请求竞态的典型场景：用户已切换至 Run B，Run A 的迟到响应不能覆盖当前结果。任务详情、曲线、日期原值和下载请求都应读取当前完整 ID，旧归档缺失字段只显示未保存。"),
+        }
+        image_name, caption, explanation = additional[code]
+        add_report_figure(doc, image_name, caption)
+        common.add_body(doc, explanation)
     common.add_table(doc, ["技术单元", "已实现内容"], extra["implementation"], [1.55, 4.6], font_size=9.0)
     if code != "A":
         common.add_heading(doc, "1 关键设计决策", level=2)
@@ -1086,6 +1110,8 @@ def build_pbl1(doc: Document, code: str, module: dict, diagram: Path) -> None:
     common.add_heading(doc, "七 相关代码")
     common.add_body(doc, "以下代码只节选与本模块中期内容直接相关的核心片段，完整上下文和测试以仓库为准。")
     add_code_block(doc, extra["code_path"], extra["code"])
+    if code == "B":
+        add_b_code_explanation(doc, "pbl1")
 
 
 def build_pbl2(doc: Document, code: str, module: dict, diagram: Path) -> None:
@@ -1138,9 +1164,22 @@ def build_pbl2(doc: Document, code: str, module: dict, diagram: Path) -> None:
         common.add_body(doc, "图2明确了 HTTP 响应和后台计算的先后关系：API 保存 Run 并入队后立即返回完整 ID；Worker 随后条件认领，独立写回状态和结果。浏览器轮询只读取已保存状态，不能以页面请求是否保持连接判断任务成功。")
         add_report_figure(doc, "A_run_state_machine.png", "图3 Run 状态与失败、取消分支")
         common.add_body(doc, "状态图用于检查重试和取消用例：终态不能在原 Run 上重新进入执行态；重复消息到达时不应再次计算。队列连接失败只在 Run 仍为 pending 时标记失败，避免覆盖已被 Worker 认领的任务。")
+        add_report_figure(doc, "A_recovery_path.png", "图4 私域部署故障与恢复核对顺序")
+        common.add_body(doc, "图4将运维验收组织为故障定位、既有事实核对和新任务验证。数据库与产物索引恢复后，应先读取旧用户、版本、Run 与报告关系，再运行最小新任务；仅检查容器进程存活不足以说明历史研究材料可恢复。")
     else:
         supplementary = {"B": ("B_data_quality_gate.png", "图2 数据导入、质量检查与发布门禁"), "C": ("C_signal_return_alignment.png", "图2 因子信号日与下一期收益标签"), "D": ("D_run_delivery_identity.png", "图2 工作台、任务与报告的同 Run 交付")}
         add_report_figure(doc, *supplementary[code])
+        additional = {
+            "B": ("B_version_lineage.png", "图3 数据版本引用与历史报告披露"),
+            "C": ("C_research_audit.png", "图3 从逐股观测到汇总指标的审计链"),
+            "D": ("D_request_identity.png", "图3 Run 切换与迟到响应处理"),
+        }
+        add_report_figure(doc, *additional[code])
+        common.add_body(doc, {
+            "B": "图3用于解释版本不可变的验收口径：同一个研究运行始终引用导入时已发布的版本 ID、文件摘要与质量结论；新文件或修订产生新版本，历史报告仍能指出原始输入。检查时比较版本详情、Run 参数和报告披露的完整标识。",
+            "C": "图3将研究结论拆成可逐层复核的证据。先核对参数、股票日期键和有效标签，再由逐股观测重算逐日 IC 与分组，最后由有效日期汇总指标。每一层出现差异都能定位到输入、对齐、计算或展示环节。",
+            "D": "图3展示页面异步请求的身份约束。选中 Run B 后，即使 Run A 的网络响应最后到达，也不能覆盖 B 的标题、曲线或下载目标。验收应连续切换两个任务并观察迟到响应，检查所有导出文件仍属于当前完整 Run ID。",
+        }[code])
     common.add_heading(doc, "1 功能模块与验收", level=2)
     common.add_table(doc, ["类别", "需求", "验收标准"], module["requirements"], [0.9, 2.2, 3.1], font_size=8.7)
     common.add_heading(doc, "2 关键设计决策", level=2)
@@ -1176,6 +1215,8 @@ def build_pbl2(doc: Document, code: str, module: dict, diagram: Path) -> None:
         code_heading.paragraph_format.page_break_before = True
     common.add_body(doc, "以下片段用于说明本模块的软件组件转化；完整实现、异常分支和测试仍以仓库为准。")
     add_code_block(doc, extra["code_path"], extra["code"])
+    if code == "B":
+        add_b_code_explanation(doc, "pbl2")
 
 
 def build_document(code: str, module: dict, course: str) -> Path:

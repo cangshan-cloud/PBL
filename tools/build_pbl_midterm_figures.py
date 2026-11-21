@@ -156,17 +156,51 @@ def integration() -> None:
     img.save(ASSETS / "A_module_integration.png", optimize=True)
 
 
+def permission_path() -> None:
+    img, d = canvas("M1 授权检查路径", "入口校验身份，关联资源先解析 Run，再检查角色与资源归属")
+    labels = ["请求与 Token\n识别调用者", "角色能力\n检查操作", "资源 ID\n解析关联 Run", "所有者 / 授权\n核对归属", "允许访问或\n返回拒绝"]
+    n = len(labels)
+    for i, label in enumerate(labels):
+        x0 = 65 + i * 352
+        box(d, (x0, 265, x0 + 280, 445), label,
+            ["#EAF2F8", "#E7F5F4", "#EEF5E9", "#FFF2E4", "#FDECEC"][i],
+            [BLUE, TEAL, GREEN, AMBER, RED][i], 27)
+        if i < n - 1:
+            arrow(d, (x0 + 287, 355), (x0 + 343, 355))
+    note(d, "任务详情、报告与复现包下载均需执行授权；页面隐藏入口不替代 API 拒绝")
+    img.save(ASSETS / "A_permission_path.png", optimize=True)
+
+
+def recovery_path() -> None:
+    img, d = canvas("M1 部署故障与恢复核对", "故障先保留现场证据，再定位服务依赖与持久化事实")
+    labels = ["健康检查\n定位服务", "迁移与日志\n确定阶段", "数据库 / 产物\n核对身份", "隔离恢复\n复核旧 Run", "最小新任务\n验证链路"]
+    for i, label in enumerate(labels):
+        x0 = 65 + i * 352
+        box(d, (x0, 265, x0 + 280, 445), label,
+            ["#EAF2F8", "#E7F5F4", "#EEF5E9", "#FFF2E4", "#EAF2F8"][i],
+            [BLUE, TEAL, GREEN, AMBER, BLUE][i], 27)
+        if i < len(labels) - 1:
+            arrow(d, (x0 + 287, 355), (x0 + 343, 355))
+    note(d, "旧用户、版本、Run、日志与 Artifact 可读，再证明新任务可执行；Redis 不是恢复基准")
+    img.save(ASSETS / "A_recovery_path.png", optimize=True)
+
+
 def main() -> None:
     ASSETS.mkdir(parents=True, exist_ok=True)
     architecture()
     state_machine()
     sequence()
     integration()
+    permission_path()
+    recovery_path()
     pipeline("B_data_quality_gate.png", "M2 数据版本与质量门禁", "对应 CSV 导入、历史封存包校验和发布前检查", ["导入文件\n与来源说明", "字段 / 日期\n重复键检查", "SHA-256\n质量摘要", "无阻断错误\n通过门禁", "published\n研究选版"], "字节完整性、业务质量和来源授权分别记录；阻断错误存在时拒绝发布")
+    pipeline("B_version_lineage.png", "M2 数据版本血缘", "每次导入产生独立版本，研究任务保存具体版本 ID", ["来源说明\n原始文件", "解析与质量\n检查结果", "版本 ID\nSHA-256", "published\n研究选择", "Run 参数\n报告披露"], "修订输入时创建新版本；旧 Run 继续引用其原版本与质量摘要")
     pipeline("C_signal_return_alignment.png", "M3 信号与下一期收益对齐", "逐交易日形成因子观测，保留缺失与不可计算状态", ["信号日 t\n已知行情", "因子值\n预处理", "下一期 t+1\n收益标签", "共同样本\n逐日 IC", "汇总 / 分组\n局限披露"], "常数截面与样本不足写为空值和原因；不能以零补出不存在的指标")
+    pipeline("C_research_audit.png", "M3 指标独立核对链", "从保存的逐股观测与逐日序列复算汇总，不依赖页面图形", ["Run 参数\n版本身份", "逐股观测\n有效样本", "逐日 IC\n分组与成本", "汇总指标\n时间切分", "报告 / 复现包\n逐值核对"], "样本不足、常数截面和缺失标签保留状态；不把无法计算的日期计作零")
     pipeline("D_run_delivery_identity.png", "M4 同一 Run 的页面与交付", "工作台、任务中心、报告和下载读取保存的同一份研究结果", ["配置提交\n获得 Run ID", "状态与日志\n任务回看", "逐日诊断\n原值核对", "HTML 报告\n预览", "CSV / JSON\n复现包"], "完整 Run ID、数据版本和参数贯穿各出口；旧归档缺字段显示“未保存”")
+    pipeline("D_request_identity.png", "M4 页面请求与 Run 身份", "用户切换任务时，迟到响应必须先通过当前身份检查", ["选择 Run A\n开始请求", "切换 Run B\n更新当前选择", "A 响应迟到\n身份不一致", "忽略 A 结果\n保留 B 状态", "下载请求\n只用当前 ID"], "曲线、原值、报告和下载均核对完整 Run ID；缺失字段只显示“未保存”")
     for path in sorted(ASSETS.glob("[ABCD]_*.png")):
-        if path.name in {"A_platform_architecture.png", "A_run_state_machine.png", "A_async_sequence.png", "A_module_integration.png", "B_data_quality_gate.png", "C_signal_return_alignment.png", "D_run_delivery_identity.png"}:
+        if path.name in {"A_platform_architecture.png", "A_run_state_machine.png", "A_async_sequence.png", "A_module_integration.png", "A_permission_path.png", "A_recovery_path.png", "B_data_quality_gate.png", "B_version_lineage.png", "C_signal_return_alignment.png", "C_research_audit.png", "D_run_delivery_identity.png", "D_request_identity.png"}:
             print(path.relative_to(ROOT))
 
 
