@@ -185,6 +185,179 @@ def recovery_path() -> None:
     img.save(ASSETS / "A_recovery_path.png", optimize=True)
 
 
+def task_failure_branches() -> None:
+    img, d = canvas("M1 异步任务故障分支", "从创建 Run 到终态，区分入队、认领与执行阶段的故障")
+    for xy, label, tint, border in [
+        ((70, 275, 330, 405), "创建 Run\npending", "#EAF2F8", BLUE),
+        ((450, 275, 710, 405), "发送队列\n消息", "#E7F5F4", TEAL),
+        ((830, 275, 1090, 405), "条件认领\nrunning", "#EEF5E9", GREEN),
+        ((1210, 275, 1470, 405), "执行研究\n写回产物", "#EAF2F8", BLUE),
+        ((450, 485, 710, 590), "入队失败\n记录 failed", "#FDECEC", RED),
+        ((830, 485, 1090, 590), "重复消息\n停止认领", "#FFF2E4", AMBER),
+        ((1210, 485, 1470, 590), "异常或取消\n保存终态", "#FDECEC", RED),
+    ]:
+        box(d, xy, label, tint, border, 27)
+    for x0, x1 in [(337, 443), (717, 823), (1097, 1203)]:
+        arrow(d, (x0, 340), (x1, 340))
+    for x in (580, 960, 1340):
+        arrow(d, (x, 410), (x, 478), RED)
+    note(d, "只有 pending 可标记入队失败；重复投递不产生第二次计算；终态保留日志与错误原因")
+    img.save(ASSETS / "A_task_failure_branches.png", optimize=True)
+
+
+def domain_model() -> None:
+    img, d = canvas("M1 研究任务领域模型", "版本身份、参数快照、运行记录与产物之间的持久化关系")
+    items = [
+        ((85, 255, 375, 365), "User\n创建者", BLUE),
+        ((85, 455, 375, 565), "DatasetVersion\n数据版本", GREEN),
+        ((480, 350, 790, 470), "Experiment\n参数与代码版本", TEAL),
+        ((900, 350, 1190, 470), "Run\n状态与结果", BLUE),
+        ((1300, 230, 1640, 350), "RunLog\n事件日志", AMBER),
+        ((1300, 470, 1640, 590), "Artifact\n报告与复现文件", GREEN),
+    ]
+    for xy, label, border in items:
+        box(d, xy, label, "#F4F8FB", border, 28)
+    arrow(d, (380, 310), (473, 375))
+    arrow(d, (380, 510), (473, 445), GREEN)
+    arrow(d, (797, 410), (893, 410))
+    arrow(d, (1197, 390), (1293, 290), AMBER)
+    arrow(d, (1197, 430), (1293, 530), GREEN)
+    note(d, "Run 指向一次 Experiment；日志和产物按 Run ID 归档，数据修订不覆盖旧版本")
+    img.save(ASSETS / "A_domain_model.png", optimize=True)
+
+
+def role_matrix() -> None:
+    img, d = canvas("M1 角色与资源权限矩阵", "以服务端 API 判定为准；研究员访问任务时还要核对创建者")
+    left, top, row_h = 90, 220, 96
+    widths = [250, 330, 330, 330, 330]
+    headings = ["角色", "账号与数据发布", "创建与取消任务", "查看本人研究", "查看全部研究"]
+    rows = [
+        ["管理员", "允许", "允许", "允许", "允许"],
+        ["研究员", "拒绝", "允许", "允许", "拒绝"],
+        ["查看者", "拒绝", "拒绝", "只读", "只读"],
+    ]
+    for ri, row in enumerate([headings] + rows):
+        x = left
+        for ci, value in enumerate(row):
+            y = top + ri * row_h
+            d.rounded_rectangle((x, y, x + widths[ci] - 8, y + row_h - 8), radius=12,
+                                fill="#DDEAF3" if ri == 0 else ("#F3F7FA" if ri % 2 else "#FFFFFF"),
+                                outline="#BDCEDB", width=2)
+            centered(d, (x, y, x + widths[ci] - 8, y + row_h - 8), value, 25, NAVY if ri == 0 else INK)
+            x += widths[ci]
+    note(d, "此图描述课程验收角色边界；具体端点以 API 权限依赖与 Run 归属检查复核")
+    img.save(ASSETS / "A_role_matrix.png", optimize=True)
+
+
+def release_gate() -> None:
+    pipeline("A_release_gate.png", "组长交付放行流程", "每一项都要留下可定位的提交号、运行记录或人工确认",
+             ["冻结代码\n与数据版本", "结构测试\n与回归", "隔离部署\n队列验收", "四人材料\n图件归档", "人工核对\n最终提交"],
+             "材料生成、自动测试与人工产品验收分别记录；发现阻断问题返回对应阶段修正")
+
+
+def dataset_lifecycle() -> None:
+    img, d = canvas("M2 数据版本生命周期", "导入创建 draft；发布前检查质量与文件身份，旧版本不被新导入覆盖")
+    box(d, (80, 280, 375, 420), "上传与解析\n创建新版本", "#EAF2F8", BLUE, 28)
+    box(d, (545, 280, 840, 420), "draft\n待发布", "#FFF2E4", AMBER, 29)
+    box(d, (1010, 280, 1305, 420), "发布门禁\n质量与文件核验", "#E7F5F4", TEAL, 27)
+    box(d, (1470, 280, 1740, 420), "published\n可供研究", "#EEF5E9", GREEN, 28)
+    box(d, (1010, 485, 1305, 585), "阻断错误\n保持不可选", "#FDECEC", RED, 26)
+    for x0, x1 in [(382, 538), (847, 1003), (1312, 1463)]:
+        arrow(d, (x0, 350), (x1, 350))
+    arrow(d, (1158, 427), (1158, 478), RED)
+    note(d, "修订文件应创建另一版本；已发布版本供 Run 固定引用，不能以新文件覆盖旧输入")
+    img.save(ASSETS / "B_dataset_lifecycle.png", optimize=True)
+
+
+def quality_decision() -> None:
+    img, d = canvas("M2 数据发布质量决策树", "结构、业务质量与来源信息分别判断，失败原因必须能定位")
+    box(d, (80, 290, 360, 430), "输入文件\n与来源", "#EAF2F8", BLUE, 28)
+    box(d, (500, 290, 780, 430), "字段 日期 键\n是否合法", "#E7F5F4", TEAL, 27)
+    box(d, (920, 290, 1200, 430), "业务质量\n有无阻断", "#E7F5F4", TEAL, 27)
+    box(d, (1340, 290, 1620, 430), "发布版本\n供 Run 选择", "#EEF5E9", GREEN, 27)
+    for x0, x1 in [(367, 493), (787, 913), (1207, 1333)]:
+        arrow(d, (x0, 360), (x1, 360))
+    box(d, (500, 500, 780, 590), "解析拒绝\n记录字段原因", "#FDECEC", RED, 24)
+    box(d, (920, 500, 1200, 590), "发布拒绝\n保留质量报告", "#FFF2E4", AMBER, 24)
+    arrow(d, (640, 435), (640, 493), RED)
+    arrow(d, (1060, 435), (1060, 493), AMBER)
+    note(d, "SHA-256 证明字节未变；来源授权仍需单独确认，不能由质量通过推断")
+    img.save(ASSETS / "B_quality_decision.png", optimize=True)
+
+
+def metric_dependencies() -> None:
+    img, d = canvas("M3 研究指标依赖关系", "逐股观测先完成时间对齐，再形成多条可独立复核的指标链")
+    box(d, (65, 320, 360, 455), "逐股因子值\n下一期收益", "#EAF2F8", BLUE, 26)
+    box(d, (480, 320, 775, 455), "共同有效样本\n逐日截面", "#E7F5F4", TEAL, 27)
+    for xy, label, color in [
+        ((920, 215, 1215, 315), "IC / Rank IC", GREEN),
+        ((920, 360, 1215, 460), "分组与多空收益", AMBER),
+        ((920, 505, 1215, 605), "换手与成本", BLUE),
+    ]:
+        box(d, xy, label, "#F4F8FB", color, 26)
+    box(d, (1370, 345, 1690, 470), "逐日序列汇总\n报告披露", "#EEF5E9", GREEN, 27)
+    arrow(d, (367, 387), (473, 387))
+    for y in (265, 410, 555):
+        arrow(d, (782, 387), (913, y))
+        arrow(d, (1222, y), (1363, 408))
+    note(d, "有效样本、跳过原因和逐日原值随指标保存，汇总值不能靠图表截图反推")
+    img.save(ASSETS / "C_metric_dependencies.png", optimize=True)
+
+
+def valid_slice_decision() -> None:
+    img, d = canvas("M3 逐日截面有效性判断", "样本不足与常数截面保留不可计算状态，不用零替代缺失指标")
+    box(d, (80, 280, 340, 420), "交易日 t\n因子与标签", "#EAF2F8", BLUE, 28)
+    box(d, (470, 280, 730, 420), "过滤缺失值\n形成共同样本", "#E7F5F4", TEAL, 26)
+    box(d, (860, 280, 1120, 420), "样本数与方差\n满足口径", "#FFF2E4", AMBER, 26)
+    box(d, (1250, 240, 1530, 350), "计算 IC\n分组与成本", "#EEF5E9", GREEN, 27)
+    box(d, (1250, 470, 1530, 580), "记录跳过原因\n指标为缺失", "#FDECEC", RED, 26)
+    arrow(d, (347, 350), (463, 350))
+    arrow(d, (737, 350), (853, 350))
+    arrow(d, (1127, 325), (1243, 295), GREEN)
+    arrow(d, (1127, 395), (1243, 520), RED)
+    note(d, "汇总只纳入有效日期；报告同时披露可用日期数与跳过原因")
+    img.save(ASSETS / "C_valid_slice_decision.png", optimize=True)
+
+
+def workspace_map() -> None:
+    img, d = canvas("M4 研究工作台页面架构", "用户从配置进入 Run；回看、诊断、报告与导出均绑定同一身份")
+    box(d, (80, 280, 380, 425), "配置页\n版本 因子 参数", "#EAF2F8", BLUE, 26)
+    box(d, (520, 280, 820, 425), "任务中心\nRun ID 与状态", "#E7F5F4", TEAL, 26)
+    for xy, label, color in [
+        ((990, 205, 1280, 320), "结果诊断\n逐日原值", GREEN),
+        ((990, 390, 1280, 505), "报告预览\n限制说明", AMBER),
+        ((1430, 300, 1730, 445), "CSV JSON HTML\n复现包下载", BLUE),
+    ]:
+        box(d, xy, label, "#F4F8FB", color, 27)
+    arrow(d, (387, 352), (513, 352))
+    arrow(d, (827, 330), (983, 265))
+    arrow(d, (827, 385), (983, 447))
+    arrow(d, (1287, 265), (1423, 355))
+    arrow(d, (1287, 447), (1423, 390))
+    note(d, "切换 Run 时取消旧请求写回；文件名与正文继续披露完整 Run ID 和数据版本")
+    img.save(ASSETS / "D_workspace_map.png", optimize=True)
+
+
+def ui_state_machine() -> None:
+    img, d = canvas("M4 任务页面状态机", "页面只展示服务端保存的 Run 状态；终态触发相应可用操作")
+    for xy, label, color in [
+        ((80, 270, 340, 390), "未选择\n提示配置", BLUE),
+        ((470, 270, 730, 390), "pending\n显示等待", TEAL),
+        ((860, 270, 1120, 390), "running\n进度与日志", TEAL),
+        ((1250, 220, 1530, 330), "success\n查看报告", GREEN),
+        ((1250, 390, 1530, 500), "failed\n显示原因", RED),
+        ((1250, 540, 1530, 630), "cancelled\n保留记录", AMBER),
+    ]:
+        box(d, xy, label, "#F4F8FB", color, 26)
+    arrow(d, (347, 330), (463, 330))
+    arrow(d, (737, 330), (853, 330))
+    arrow(d, (1127, 305), (1243, 275), GREEN)
+    arrow(d, (1127, 350), (1243, 445), RED)
+    arrow(d, (1127, 385), (1243, 585), AMBER)
+    note(d, "用户切换任务时以当前完整 Run ID 更新页面；迟到响应不能把旧任务状态写到新任务")
+    img.save(ASSETS / "D_ui_state_machine.png", optimize=True)
+
+
 def main() -> None:
     ASSETS.mkdir(parents=True, exist_ok=True)
     architecture()
@@ -193,6 +366,16 @@ def main() -> None:
     integration()
     permission_path()
     recovery_path()
+    task_failure_branches()
+    domain_model()
+    role_matrix()
+    release_gate()
+    dataset_lifecycle()
+    quality_decision()
+    metric_dependencies()
+    valid_slice_decision()
+    workspace_map()
+    ui_state_machine()
     pipeline("B_data_quality_gate.png", "M2 数据版本与质量门禁", "对应 CSV 导入、历史封存包校验和发布前检查", ["导入文件\n与来源说明", "字段 / 日期\n重复键检查", "SHA-256\n质量摘要", "无阻断错误\n通过门禁", "published\n研究选版"], "字节完整性、业务质量和来源授权分别记录；阻断错误存在时拒绝发布")
     pipeline("B_version_lineage.png", "M2 数据版本血缘", "每次导入产生独立版本，研究任务保存具体版本 ID", ["来源说明\n原始文件", "解析与质量\n检查结果", "版本 ID\nSHA-256", "published\n研究选择", "Run 参数\n报告披露"], "修订输入时创建新版本；旧 Run 继续引用其原版本与质量摘要")
     pipeline("C_signal_return_alignment.png", "M3 信号与下一期收益对齐", "逐交易日形成因子观测，保留缺失与不可计算状态", ["信号日 t\n已知行情", "因子值\n预处理", "下一期 t+1\n收益标签", "共同样本\n逐日 IC", "汇总 / 分组\n局限披露"], "常数截面与样本不足写为空值和原因；不能以零补出不存在的指标")
@@ -200,7 +383,7 @@ def main() -> None:
     pipeline("D_run_delivery_identity.png", "M4 同一 Run 的页面与交付", "工作台、任务中心、报告和下载读取保存的同一份研究结果", ["配置提交\n获得 Run ID", "状态与日志\n任务回看", "逐日诊断\n原值核对", "HTML 报告\n预览", "CSV / JSON\n复现包"], "完整 Run ID、数据版本和参数贯穿各出口；旧归档缺字段显示“未保存”")
     pipeline("D_request_identity.png", "M4 页面请求与 Run 身份", "用户切换任务时，迟到响应必须先通过当前身份检查", ["选择 Run A\n开始请求", "切换 Run B\n更新当前选择", "A 响应迟到\n身份不一致", "忽略 A 结果\n保留 B 状态", "下载请求\n只用当前 ID"], "曲线、原值、报告和下载均核对完整 Run ID；缺失字段只显示“未保存”")
     for path in sorted(ASSETS.glob("[ABCD]_*.png")):
-        if path.name in {"A_platform_architecture.png", "A_run_state_machine.png", "A_async_sequence.png", "A_module_integration.png", "A_permission_path.png", "A_recovery_path.png", "B_data_quality_gate.png", "B_version_lineage.png", "C_signal_return_alignment.png", "C_research_audit.png", "D_run_delivery_identity.png", "D_request_identity.png"}:
+        if path.name in {"A_platform_architecture.png", "A_run_state_machine.png", "A_async_sequence.png", "A_module_integration.png", "A_permission_path.png", "A_recovery_path.png", "A_task_failure_branches.png", "A_domain_model.png", "A_role_matrix.png", "A_release_gate.png", "B_data_quality_gate.png", "B_version_lineage.png", "B_dataset_lifecycle.png", "B_quality_decision.png", "C_signal_return_alignment.png", "C_research_audit.png", "C_metric_dependencies.png", "C_valid_slice_decision.png", "D_run_delivery_identity.png", "D_request_identity.png", "D_workspace_map.png", "D_ui_state_machine.png"}:
             print(path.relative_to(ROOT))
 
 

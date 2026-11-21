@@ -796,3 +796,7 @@ D 的两份报告均扩展为 16 页，新增配置、轮询、图表、下载�
 ## 2026-11-21 M4 请求身份图（文档代生成）
 
 新增[Run 切换与迟到响应图](../../outputs/pbl-midterm-reports-2026-11-21/assets/D_request_identity.png)，两份报告均嵌入并解释页面请求竞态的验收步骤。PBL1/PBL2 均为 16 页。实际浏览器验收仍需以队长最终操作记录为准。见 [CHG-20261121-007](../changes/2026-11-21-007-midterm-design-diagrams-and-code-notes.md)。
+
+## 2026-11-21 M4 页面架构与状态图（文档代生成）
+
+新增[工作台页面架构](../../outputs/pbl-midterm-reports-2026-11-21/assets/D_workspace_map.png)和[任务页面状态机](../../outputs/pbl-midterm-reports-2026-11-21/assets/D_ui_state_machine.png)，分别嵌入 PBL1、PBL2。两份报告均为 17 页，代码节选另补当前 Run 下载、无选择与失败提示的验收观察。设计图不能替代队长最终浏览器操作截图。见 [CHG-20261121-008](../changes/2026-11-21-008-midterm-figure-expansion.md)。

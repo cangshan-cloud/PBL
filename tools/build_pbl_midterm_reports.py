@@ -860,6 +860,39 @@ def add_b_code_explanation(doc: Document, course: str) -> None:
         common.add_body(doc, "产品交付时，研究员从版本详情看到来源、覆盖和质量信息，再由发布操作决定是否可选；报告显示的是 Run 固定引用的版本，而非当前最新文件。")
 
 
+def add_other_code_explanation(doc: Document, code: str) -> None:
+    descriptions = {
+        "A": (
+            "该片段给出后台任务的入口。任务状态的合法转换、条件认领、异常与取消处理在 Run 服务中实现，因此验收需要同时查看入口代码和持久化状态，不应只凭 Celery 函数存在判断链路正确。",
+            [
+                ("Celery / redis_url", "使用 Redis 传递研究任务消息。", "断开队列时检查 pending Run 是否记录可解释失败。"),
+                ("execute_research_run_task", "Worker 以完整 Run ID 调用研究执行服务。", "重复发送同一 ID，确认只有一次合法条件认领。"),
+                ("SessionLocal", "每次后台调用取得独立数据库会话。", "核对失败和成功后 Run、日志、产物的持久化状态。"),
+            ],
+        ),
+        "C": (
+            "该片段展示逐股观测的唯一性检查，以及逐日 IC 与 Rank IC 的核心计算入口。研究报告的分组、成本和有效日期汇总仍需由其余实现与独立审计文件共同证明。",
+            [
+                ("trade_date + symbol", "同一日期与证券只能有一条有效观测。", "注入重复键并确认明确拒绝。"),
+                ("preprocess_observations", "在逐日统计前执行统一预处理。", "用黄金样例核对去极值和标准化前后样本。"),
+                ("pearson / _rank", "分别计算线性 IC 与秩相关 Rank IC。", "手工复算小样例并核对常数截面的缺失状态。"),
+            ],
+        ),
+        "D": (
+            "该片段说明披露版报告下载如何使用当前选择的 Run ID，并把开始下载或失败原因反馈给用户。文件身份、授权和内容完整性仍由下载辅助函数与服务端共同保证。",
+            [
+                ("selectedReport", "没有当前报告时立即停止。", "清空选择后点击下载，确认无错误请求。"),
+                ("selectedReport.run_id", "下载请求绑定完整 Run 身份。", "快速切换 A/B 两个 Run，核对最终文件属于当前选择。"),
+                ("setNotice / catch", "展示下载启动信息或可定位的失败提示。", "模拟 403、404 与网络失败，确认页面不会显示成功。"),
+            ],
+        ),
+    }
+    intro, rows = descriptions[code]
+    common.add_heading(doc, "代码关键行与验收观察", level=2)
+    common.add_body(doc, intro)
+    common.add_table(doc, ["代码位置", "设计含义", "验收观察"], rows, [1.45, 2.25, 2.5], font_size=8.5)
+
+
 def add_report_figure(doc: Document, filename: str, caption: str) -> None:
     common.add_figure(doc, ASSETS / filename, caption)
     doc.paragraphs[-2].paragraph_format.keep_with_next = True
@@ -1066,6 +1099,10 @@ def build_pbl1(doc: Document, code: str, module: dict, diagram: Path) -> None:
         common.add_body(doc, "架构采用模块化单体，是因为课程周期内四个模块需要频繁调整数据与研究口径；FastAPI 内部按领域分层，长任务由 Celery Worker 执行。PostgreSQL 保存可恢复的任务与元数据，Redis 承担队列消息。任务创建后立即返回 pending Run，Worker 条件认领后进入 running；重复消息不得重复计算，取消与认领通过数据库条件更新协调，最终状态只能为 success、failed 或 cancelled。")
         add_report_figure(doc, "A_run_state_machine.png", "图5 Run 合法状态转换与取消边界")
         common.add_body(doc, "图5把 pending 和 running 视为可变状态，success、failed、cancelled 视为终态。pending 取消立即写入终态；running 取消先写请求时间，再由 Worker 在检查点确认。条件更新保证并发认领、取消和入队失败不会各自产生冲突的最终状态。")
+        add_report_figure(doc, "A_task_failure_branches.png", "图6 异步任务三个故障阶段与处理分支")
+        common.add_body(doc, "图6把入队失败、重复投递和执行异常分开处理。入队失败只允许更新仍为 pending 的任务；重复消息依赖条件认领停止第二次计算；执行异常或取消由 Worker 保存终态及阶段日志。这样可从 Run 状态和事件日志追溯失败发生在哪一段。")
+        add_report_figure(doc, "A_domain_model.png", "图7 研究任务持久化领域模型")
+        common.add_body(doc, "图7展示 User、DatasetVersion、Experiment、Run、RunLog 与 Artifact 的主线关系。Experiment 保存版本和参数快照，Run 表示一次执行，日志和产物都通过完整 Run ID 归档。此图用于解释服务重启后仍能回看旧任务的持久化依据。")
     else:
         supplementary = {"B": ("B_data_quality_gate.png", "图2 数据版本质量门禁"), "C": ("C_signal_return_alignment.png", "图2 信号与收益标签的时间对齐"), "D": ("D_run_delivery_identity.png", "图2 统一 Run 身份的交付链")}
         add_report_figure(doc, *supplementary[code])
@@ -1075,6 +1112,14 @@ def build_pbl1(doc: Document, code: str, module: dict, diagram: Path) -> None:
             "D": ("D_request_identity.png", "图3 页面切换时的 Run 身份守护", "图3给出请求竞态的典型场景：用户已切换至 Run B，Run A 的迟到响应不能覆盖当前结果。任务详情、曲线、日期原值和下载请求都应读取当前完整 ID，旧归档缺失字段只显示未保存。"),
         }
         image_name, caption, explanation = additional[code]
+        add_report_figure(doc, image_name, caption)
+        common.add_body(doc, explanation)
+        extra_diagrams = {
+            "B": ("B_dataset_lifecycle.png", "图4 数据版本从导入到发布的生命周期", "图4区分导入产生的 draft 与通过门禁后的 published。阻断错误使版本保持不可选；修订输入时创建另一个版本，而不是覆盖旧 Run 引用的文件。"),
+            "C": ("C_metric_dependencies.png", "图4 逐日研究指标的输入依赖", "图4说明 IC、Rank IC、分组收益、换手与成本均依赖同一个逐日共同有效样本。每条指标链都需要保留有效样本数和逐日原值，报告汇总应能由保存结果独立复算。"),
+            "D": ("D_workspace_map.png", "图4 研究工作台的页面与交付架构", "图4把配置页、任务中心、结果诊断、报告预览和文件导出连成同一 Run 的页面路径。用户切换任务时，页面各区域应同时更新身份；旧请求不应覆盖当前选择。"),
+        }
+        image_name, caption, explanation = extra_diagrams[code]
         add_report_figure(doc, image_name, caption)
         common.add_body(doc, explanation)
     common.add_table(doc, ["技术单元", "已实现内容"], extra["implementation"], [1.55, 4.6], font_size=9.0)
@@ -1112,6 +1157,8 @@ def build_pbl1(doc: Document, code: str, module: dict, diagram: Path) -> None:
     add_code_block(doc, extra["code_path"], extra["code"])
     if code == "B":
         add_b_code_explanation(doc, "pbl1")
+    else:
+        add_other_code_explanation(doc, code)
 
 
 def build_pbl2(doc: Document, code: str, module: dict, diagram: Path) -> None:
@@ -1166,6 +1213,10 @@ def build_pbl2(doc: Document, code: str, module: dict, diagram: Path) -> None:
         common.add_body(doc, "状态图用于检查重试和取消用例：终态不能在原 Run 上重新进入执行态；重复消息到达时不应再次计算。队列连接失败只在 Run 仍为 pending 时标记失败，避免覆盖已被 Worker 认领的任务。")
         add_report_figure(doc, "A_recovery_path.png", "图4 私域部署故障与恢复核对顺序")
         common.add_body(doc, "图4将运维验收组织为故障定位、既有事实核对和新任务验证。数据库与产物索引恢复后，应先读取旧用户、版本、Run 与报告关系，再运行最小新任务；仅检查容器进程存活不足以说明历史研究材料可恢复。")
+        add_report_figure(doc, "A_role_matrix.png", "图5 三类角色的服务端资源权限矩阵")
+        common.add_body(doc, "图5按管理员、研究员和查看者梳理账号与数据发布、任务写入及研究读取边界。研究员只读取本人创建的 Run；查看者只读研究结果。最终权限由 API 判定，页面是否显示按钮不作为授权依据。")
+        add_report_figure(doc, "A_release_gate.png", "图6 组长组织的交付放行流程")
+        common.add_body(doc, "图6把代码与数据冻结、结构回归、隔离部署验收、四人材料归档和队长人工核对串成课程交付顺序。每一步记录提交号、运行输出或人工确认；若发现阻断问题，返回产生问题的阶段修复并重做相应核对。")
     else:
         supplementary = {"B": ("B_data_quality_gate.png", "图2 数据导入、质量检查与发布门禁"), "C": ("C_signal_return_alignment.png", "图2 因子信号日与下一期收益标签"), "D": ("D_run_delivery_identity.png", "图2 工作台、任务与报告的同 Run 交付")}
         add_report_figure(doc, *supplementary[code])
@@ -1180,6 +1231,14 @@ def build_pbl2(doc: Document, code: str, module: dict, diagram: Path) -> None:
             "C": "图3将研究结论拆成可逐层复核的证据。先核对参数、股票日期键和有效标签，再由逐股观测重算逐日 IC 与分组，最后由有效日期汇总指标。每一层出现差异都能定位到输入、对齐、计算或展示环节。",
             "D": "图3展示页面异步请求的身份约束。选中 Run B 后，即使 Run A 的网络响应最后到达，也不能覆盖 B 的标题、曲线或下载目标。验收应连续切换两个任务并观察迟到响应，检查所有导出文件仍属于当前完整 Run ID。",
         }[code])
+        extra_diagrams = {
+            "B": ("B_quality_decision.png", "图4 数据发布的结构与业务质量决策", "图4将结构错误和业务阻断分成两条拒绝路径。字段、日期或重复键不合法时拒绝解析；业务质量有阻断项时拒绝发布并保留报告。哈希和来源说明分别承担完整性与授权信息，不应互相替代。"),
+            "C": ("C_valid_slice_decision.png", "图4 逐日截面有效性判断及跳过分支", "图4从因子值和下一期标签形成共同样本，再检查样本数和方差。有效日期计算 IC、分组与成本；无效日期保存跳过原因和缺失状态，汇总时仅纳入可计算日期。"),
+            "D": ("D_ui_state_machine.png", "图4 研究任务页面状态与可用操作", "图4把未选择、等待、运行、成功、失败和取消映射到页面提示。页面按服务端 Run 状态呈现进度、报告入口或错误原因；切换任务时以当前完整 ID 阻止迟到响应回写。"),
+        }
+        image_name, caption, explanation = extra_diagrams[code]
+        add_report_figure(doc, image_name, caption)
+        common.add_body(doc, explanation)
     common.add_heading(doc, "1 功能模块与验收", level=2)
     common.add_table(doc, ["类别", "需求", "验收标准"], module["requirements"], [0.9, 2.2, 3.1], font_size=8.7)
     common.add_heading(doc, "2 关键设计决策", level=2)
@@ -1217,6 +1276,8 @@ def build_pbl2(doc: Document, code: str, module: dict, diagram: Path) -> None:
     add_code_block(doc, extra["code_path"], extra["code"])
     if code == "B":
         add_b_code_explanation(doc, "pbl2")
+    else:
+        add_other_code_explanation(doc, code)
 
 
 def build_document(code: str, module: dict, course: str) -> Path:
@@ -1240,6 +1301,11 @@ def build_document(code: str, module: dict, course: str) -> Path:
         build_pbl1(doc, code, module, diagram)
     else:
         build_pbl2(doc, code, module, diagram)
+    # add_table leaves a spacer paragraph; at the end of a full report it can
+    # spill onto an otherwise empty final page.
+    last_paragraph = doc.paragraphs[-1]
+    if not last_paragraph.text and last_paragraph._p.getnext() is not None and last_paragraph._p.getnext().tag == qn("w:sectPr"):
+        last_paragraph._element.getparent().remove(last_paragraph._element)
     for table in doc.tables[2:]:
         if table.rows:
             set_repeat_table_header(table.rows[0])

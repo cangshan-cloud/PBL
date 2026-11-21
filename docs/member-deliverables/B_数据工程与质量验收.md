@@ -797,3 +797,7 @@ B 的两份报告均扩展为 16 页，新增解析、唯一性、业务质量�
 ## 2026-11-21 M2 数据血缘图与代码说明（文档代生成）
 
 新增[版本血缘图](../../outputs/pbl-midterm-reports-2026-11-21/assets/B_version_lineage.png)，两份报告均嵌入，并给 CSV 导入代码节选增加逐行设计含义和验收观察。PBL1/PBL2 均为 17 页。图与文字说明版本引用口径，实际文件授权和最终人工确认仍按责任清单执行。见 [CHG-20261121-007](../changes/2026-11-21-007-midterm-design-diagrams-and-code-notes.md)。
+
+## 2026-11-21 M2 生命周期与质量决策图（文档代生成）
+
+新增[数据版本生命周期](../../outputs/pbl-midterm-reports-2026-11-21/assets/B_dataset_lifecycle.png)和[发布质量决策树](../../outputs/pbl-midterm-reports-2026-11-21/assets/B_quality_decision.png)，分别嵌入 PBL1、PBL2。两图把 draft、published 与结构错误、业务阻断的边界分别画清；两份报告均为 17 页。见 [CHG-20261121-008](../changes/2026-11-21-008-midterm-figure-expansion.md)。

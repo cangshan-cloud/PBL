@@ -799,3 +799,7 @@ C 的两份报告均扩展为 16 页，新增因子计算、时间对齐、截�
 ## 2026-11-21 M3 指标复算图（文档代生成）
 
 新增[指标独立复算链](../../outputs/pbl-midterm-reports-2026-11-21/assets/C_research_audit.png)，两份报告均嵌入，补充从参数、逐股观测、逐日指标到汇总报告的核对说明。PBL1/PBL2 均为 17 页。该图是复核方法示意，不能替代封存样本的实际复算输出。见 [CHG-20261121-007](../changes/2026-11-21-007-midterm-design-diagrams-and-code-notes.md)。
+
+## 2026-11-21 M3 指标依赖与截面决策图（文档代生成）
+
+新增[指标依赖关系](../../outputs/pbl-midterm-reports-2026-11-21/assets/C_metric_dependencies.png)和[逐日截面有效性决策](../../outputs/pbl-midterm-reports-2026-11-21/assets/C_valid_slice_decision.png)，分别嵌入 PBL1、PBL2。两份报告均为 17 页，并为研究代码节选补充唯一性、预处理和 IC/Rank IC 的验收观察。图示为方法与验证路径，不是实际收益曲线。见 [CHG-20261121-008](../changes/2026-11-21-008-midterm-figure-expansion.md)。

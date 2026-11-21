@@ -18,10 +18,21 @@ MODULES = {
 }
 
 FIGURE_ASSETS = {
-    "A": ("A_platform_architecture.png", "A_run_state_machine.png", "A_async_sequence.png", "A_module_integration.png", "A_permission_path.png", "A_recovery_path.png"),
-    "B": ("B_data_quality_gate.png", "B_version_lineage.png"),
-    "C": ("C_signal_return_alignment.png", "C_research_audit.png"),
-    "D": ("D_run_delivery_identity.png", "D_request_identity.png"),
+    "A": ("A_platform_architecture.png", "A_run_state_machine.png", "A_async_sequence.png", "A_module_integration.png", "A_permission_path.png", "A_recovery_path.png", "A_task_failure_branches.png", "A_domain_model.png", "A_role_matrix.png", "A_release_gate.png"),
+    "B": ("B_data_quality_gate.png", "B_version_lineage.png", "B_dataset_lifecycle.png", "B_quality_decision.png"),
+    "C": ("C_signal_return_alignment.png", "C_research_audit.png", "C_metric_dependencies.png", "C_valid_slice_decision.png"),
+    "D": ("D_run_delivery_identity.png", "D_request_identity.png", "D_workspace_map.png", "D_ui_state_machine.png"),
+}
+
+NEW_CAPTIONS = {
+    ("A", "PBL1"): ("图6 异步任务三个故障阶段", "图7 研究任务持久化领域模型"),
+    ("A", "PBL2"): ("图5 三类角色的服务端资源权限矩阵", "图6 组长组织的交付放行流程"),
+    ("B", "PBL1"): ("图4 数据版本从导入到发布的生命周期",),
+    ("B", "PBL2"): ("图4 数据发布的结构与业务质量决策",),
+    ("C", "PBL1"): ("图4 逐日研究指标的输入依赖",),
+    ("C", "PBL2"): ("图4 逐日截面有效性判断及跳过分支",),
+    ("D", "PBL1"): ("图4 研究工作台的页面与交付架构",),
+    ("D", "PBL2"): ("图4 研究任务页面状态与可用操作",),
 }
 
 REQUIRED = {
@@ -76,7 +87,8 @@ def main() -> int:
             "identity placeholder": "【待填写：" in text,
             "individual scope": "个人模块" in text,
             "code location": code_path in text,
-            "diagram count": len(document.inline_shapes) >= (6 if code == "A" and course == "PBL1" else 5 if code == "A" else 4),
+            "diagram count": len(document.inline_shapes) >= (8 if code == "A" and course == "PBL1" else 7 if code == "A" else 5),
+            "new figure captions": all(caption in text for caption in NEW_CAPTIONS[(code, course)]),
             "substantial content": len(text) >= (10_000 if code == "A" else 7_400),
             "design decisions": ("关键设计决策" in text or "组长架构决策" in text),
             "domain model": "数据与领域模型" in text,

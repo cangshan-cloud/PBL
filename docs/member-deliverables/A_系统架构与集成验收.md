@@ -798,3 +798,7 @@ A 的 PBL1/PBL2 进一步扩展为 20/19 页，新增认证、版本、Run、取
 
 新增[后端授权路径](../../outputs/pbl-midterm-reports-2026-11-21/assets/A_permission_path.png)和[故障恢复核对顺序](../../outputs/pbl-midterm-reports-2026-11-21/assets/A_recovery_path.png)，分别嵌入 PBL1、PBL2。前者说明角色、Run 归属与派生产物的检查顺序；后者要求服务恢复后核对旧数据及新任务。两份报告均为 20 页，正文约 12,288/10,677 字符；图为代码依据支持的设计说明，不代替实机验收。见 [CHG-20261121-007](../changes/2026-11-21-007-midterm-design-diagrams-and-code-notes.md)。
 
+## 2026-11-21 M1 多类型设计图扩充（文档代生成）
+
+新增[异步任务故障分支](../../outputs/pbl-midterm-reports-2026-11-21/assets/A_task_failure_branches.png)、[研究任务领域模型](../../outputs/pbl-midterm-reports-2026-11-21/assets/A_domain_model.png)、[角色权限矩阵](../../outputs/pbl-midterm-reports-2026-11-21/assets/A_role_matrix.png)和[组长交付放行流程](../../outputs/pbl-midterm-reports-2026-11-21/assets/A_release_gate.png)。前两张嵌入 PBL1，后两张嵌入 PBL2；组长两份报告分别为 21/20 页。两份报告的 Celery 代码节选均补充关键行与验收观察。这些图是架构与验收设计材料，不能替代实际部署恢复记录。见 [CHG-20261121-008](../changes/2026-11-21-008-midterm-figure-expansion.md)。
+
