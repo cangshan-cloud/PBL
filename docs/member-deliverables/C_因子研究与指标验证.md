@@ -804,6 +804,6 @@ C 的两份报告均扩展为 16 页，新增因子计算、时间对齐、截�
 
 新增[指标依赖关系](../../outputs/pbl-midterm-reports-2026-11-21/assets/C_metric_dependencies.png)和[逐日截面有效性决策](../../outputs/pbl-midterm-reports-2026-11-21/assets/C_valid_slice_decision.png)，分别嵌入 PBL1、PBL2。两份报告均为 17 页，并为研究代码节选补充唯一性、预处理和 IC/Rank IC 的验收观察。图示为方法与验证路径，不是实际收益曲线。见 [CHG-20261121-008](../changes/2026-11-21-008-midterm-figure-expansion.md)。
 
-## 2026-11-22 M3 独立图件附录（文档代生成）
+## 2026-11-22 M3 独立图件附录撤回
 
-[C 的 4 页设计图件附录](../../outputs/pbl-figure-appendices-2026-11-22/final/C_因子计算与研究检验_设计图件附录.docx)收录时间对齐、指标复算、依赖关系和截面有效性判断，每页附核对路径。图件是方法示意，不能代替真实样本计算输出。见[附录总索引](../PBL_FIGURE_APPENDICES_2026-11-22.md)及 [CHG-20261122-001](../changes/2026-11-22-001-standalone-figure-appendices.md)。
+此前制作经过保留在 [CHG-20261122-001](../changes/2026-11-22-001-standalone-figure-appendices.md)。现按用户要求只交付 [PBL1](../../outputs/pbl-midterm-reports-2026-11-21/final/C_因子计算与研究检验_PBL1_中期报告.docx) 与 [PBL2](../../outputs/pbl-midterm-reports-2026-11-21/final/C_因子计算与研究检验_PBL2_中期报告.docx) 两份中期报告，图件保留在正文。见 [CHG-20261122-002](../changes/2026-11-22-002-withdraw-figure-appendices.md)。

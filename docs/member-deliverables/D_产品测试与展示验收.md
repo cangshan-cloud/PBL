@@ -801,6 +801,6 @@ D 的两份报告均扩展为 16 页，新增配置、轮询、图表、下载�
 
 新增[工作台页面架构](../../outputs/pbl-midterm-reports-2026-11-21/assets/D_workspace_map.png)和[任务页面状态机](../../outputs/pbl-midterm-reports-2026-11-21/assets/D_ui_state_machine.png)，分别嵌入 PBL1、PBL2。两份报告均为 17 页，代码节选另补当前 Run 下载、无选择与失败提示的验收观察。设计图不能替代队长最终浏览器操作截图。见 [CHG-20261121-008](../changes/2026-11-21-008-midterm-figure-expansion.md)。
 
-## 2026-11-22 M4 独立图件附录（文档代生成）
+## 2026-11-22 M4 独立图件附录撤回
 
-[D 的 4 页设计图件附录](../../outputs/pbl-figure-appendices-2026-11-22/final/D_研究工作台与报告交付_设计图件附录.docx)收录同 Run 交付、请求身份、页面架构和页面状态图，逐图写明浏览器验收提示。设计图与实际页面截图需区分。见[附录总索引](../PBL_FIGURE_APPENDICES_2026-11-22.md)及 [CHG-20261122-001](../changes/2026-11-22-001-standalone-figure-appendices.md)。
+此前制作经过保留在 [CHG-20261122-001](../changes/2026-11-22-001-standalone-figure-appendices.md)。现按用户要求只交付 [PBL1](../../outputs/pbl-midterm-reports-2026-11-21/final/D_研究工作台与报告交付_PBL1_中期报告.docx) 与 [PBL2](../../outputs/pbl-midterm-reports-2026-11-21/final/D_研究工作台与报告交付_PBL2_中期报告.docx) 两份中期报告，图件保留在正文。见 [CHG-20261122-002](../changes/2026-11-22-002-withdraw-figure-appendices.md)。

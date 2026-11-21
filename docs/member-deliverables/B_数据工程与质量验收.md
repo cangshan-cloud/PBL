@@ -802,6 +802,6 @@ B 的两份报告均扩展为 16 页，新增解析、唯一性、业务质量�
 
 新增[数据版本生命周期](../../outputs/pbl-midterm-reports-2026-11-21/assets/B_dataset_lifecycle.png)和[发布质量决策树](../../outputs/pbl-midterm-reports-2026-11-21/assets/B_quality_decision.png)，分别嵌入 PBL1、PBL2。两图把 draft、published 与结构错误、业务阻断的边界分别画清；两份报告均为 17 页。见 [CHG-20261121-008](../changes/2026-11-21-008-midterm-figure-expansion.md)。
 
-## 2026-11-22 M2 独立图件附录（文档代生成）
+## 2026-11-22 M2 独立图件附录撤回
 
-[B 的 4 页设计图件附录](../../outputs/pbl-figure-appendices-2026-11-22/final/B_数据集管理与质量控制_设计图件附录.docx)收录质量门禁、血缘、生命周期和质量决策图，逐图配代码依据与验收提示。见[附录总索引](../PBL_FIGURE_APPENDICES_2026-11-22.md)及 [CHG-20261122-001](../changes/2026-11-22-001-standalone-figure-appendices.md)。
+此前制作经过保留在 [CHG-20261122-001](../changes/2026-11-22-001-standalone-figure-appendices.md)。现按用户要求只交付 [PBL1](../../outputs/pbl-midterm-reports-2026-11-21/final/B_数据集管理与质量控制_PBL1_中期报告.docx) 与 [PBL2](../../outputs/pbl-midterm-reports-2026-11-21/final/B_数据集管理与质量控制_PBL2_中期报告.docx) 两份中期报告，图件保留在正文。见 [CHG-20261122-002](../changes/2026-11-22-002-withdraw-figure-appendices.md)。
