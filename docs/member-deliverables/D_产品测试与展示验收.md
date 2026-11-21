@@ -784,3 +784,7 @@ D 的两份报告补充工作台与 M1/M2/M3 的结果消费边界、服务端�
 ## 2026-11-21 M4 可提交图件（文档代生成）
 
 新增[同一 Run 的页面与交付图](../../outputs/pbl-midterm-reports-2026-11-21/assets/D_run_delivery_identity.png)，说明配置、任务回看、逐日诊断、报告和导出身份，已嵌入 PBL1/PBL2 中期报告。代码依据和图题见[图册索引](../PBL_MIDTERM_FIGURE_CATALOG_2026-11-21.md)及 [CHG-20261121-004](../changes/2026-11-21-004-midterm-submission-figures.md)。
+
+## 2026-11-21 M4 中期报告内容深化（文档代生成）
+
+D 的 PBL1/PBL2 均扩展为 14 页，增加页面功能清单、任务状态行为、离线文件身份、5 个非理想交互场景和个人阶段工作分解。内容对应 `frontend/src/main.tsx::downloadReport`、完整 Run ID、空值断线、旧响应保护和窄屏验收边界；仍需队长用实际页面完成最终人工检查。见 [CHG-20261121-005](../changes/2026-11-21-005-midterm-content-depth.md)及[总索引](../PBL_MIDTERM_REPORTS_2026-11-21.md)。

@@ -786,3 +786,7 @@ A 作为组长的两份报告已重点扩写：除 M1 的认证、Run、异步�
 
 组长新增 [五服务部署图](../../outputs/pbl-midterm-reports-2026-11-21/assets/A_platform_architecture.png)、[Run 状态机](../../outputs/pbl-midterm-reports-2026-11-21/assets/A_run_state_machine.png)、[异步任务时序图](../../outputs/pbl-midterm-reports-2026-11-21/assets/A_async_sequence.png)及[四模块集成契约图](../../outputs/pbl-midterm-reports-2026-11-21/assets/A_module_integration.png)，均已嵌入两份中期报告的相应章节。用途与代码依据见[图册索引](../PBL_MIDTERM_FIGURE_CATALOG_2026-11-21.md)及 [CHG-20261121-004](../changes/2026-11-21-004-midterm-submission-figures.md)。这些是设计图，不是队长本人实机截图。
 
+## 2026-11-21 M1 中期报告内容深化（文档代生成）
+
+A 的 PBL1/PBL2 均扩展为 17 页，增加权限与资源归属、异步异常分类、部署恢复检查、需求到证据追踪矩阵、8 个集成验收场景、组长阶段工作分解和架构取舍反思。正文提取量约为 9,844/8,851 字符，继续明显高于其他成员。深化内容对应 `backend/app/tasks.py`、Run/Artifact 模型、Compose/迁移/健康检查和最终人工验收边界，不使用空白页凑页数。见 [CHG-20261121-005](../changes/2026-11-21-005-midterm-content-depth.md)及[总索引](../PBL_MIDTERM_REPORTS_2026-11-21.md)。
+

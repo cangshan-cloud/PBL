@@ -785,3 +785,7 @@ B 的两份报告补充数据版本责任、与 M1/M3 的协作边界、不可�
 ## 2026-11-21 M2 可提交图件（文档代生成）
 
 新增[数据版本与质量门禁图](../../outputs/pbl-midterm-reports-2026-11-21/assets/B_data_quality_gate.png)，说明导入、字段检查、哈希、阻断错误和发布的关系，已嵌入 PBL1/PBL2 中期报告。代码依据和图题见[图册索引](../PBL_MIDTERM_FIGURE_CATALOG_2026-11-21.md)及 [CHG-20261121-004](../changes/2026-11-21-004-midterm-submission-figures.md)。
+
+## 2026-11-21 M2 中期报告内容深化（文档代生成）
+
+B 的 PBL1/PBL2 均扩展为 14 页，增加数据字典、结构错误/业务阻断/风险警告分级、版本生命周期、5 个数据异常场景和个人阶段工作分解。内容对应 `backend/app/services/datasets.py::import_csv`、DatasetVersion、QualityReport 和历史封存包检查；身份信息与来源许可仍保留待确认边界。见 [CHG-20261121-005](../changes/2026-11-21-005-midterm-content-depth.md)及[总索引](../PBL_MIDTERM_REPORTS_2026-11-21.md)。
