@@ -77,13 +77,15 @@ def main() -> int:
             "individual scope": "个人模块" in text,
             "code location": code_path in text,
             "diagram count": len(document.inline_shapes) >= (5 if code == "A" and course == "PBL1" else 4 if code == "A" else 3),
-            "substantial content": len(text) >= (8500 if code == "A" else 6200),
+            "substantial content": len(text) >= (10_000 if code == "A" else 7_400),
             "design decisions": ("关键设计决策" in text or "组长架构决策" in text),
             "domain model": "数据与领域模型" in text,
             "risk controls": "风险与应对" in text,
             "deep design": "操作流程与完成标准" in text,
             "acceptance scenarios": "典型验收场景" in text,
             "design boundary": "阶段反思与设计边界" in text,
+            "code evidence mapping": ("代码能力与证据映射" in text if course == "PBL1" else "产品接口契约" in text),
+            "submission checklist": "最终验收与提交检查清单" in text,
         }
         if code == "A" and course == "PBL1":
             checks["leader architecture decisions"] = "组长架构决策" in text
