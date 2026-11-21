@@ -777,3 +777,7 @@ IC 验算输入按 SHA-256 固定私有观测文件，拒绝重复证券日期�
 ## 2026-11-21 M2 PBL 中期报告（文档代生成）
 
 B 的两份中期报告聚焦数据导入、不可变版本、SHA-256、质量门禁、历史包和授权边界，使用 `backend/app/services/datasets.py::import_csv` 真实片段说明版本注册。成品为 [PBL1 中期报告](../../outputs/pbl-midterm-reports-2026-11-21/final/B_数据集管理与质量控制_PBL1_中期报告.docx)和 [PBL2 中期报告](../../outputs/pbl-midterm-reports-2026-11-21/final/B_数据集管理与质量控制_PBL2_中期报告.docx)。结构、事实边界和占位符见[总索引](../PBL_MIDTERM_REPORTS_2026-11-21.md)及 [CHG-20261121-002](../changes/2026-11-21-002-four-member-pbl-midterm-reports.md)。实际生成与核验者为 Codex，按约定不要求成员另行签收。
+
+## 2026-11-21 M2 PBL 中期报告扩写（文档代生成）
+
+B 的两份报告补充数据版本责任、与 M1/M3 的协作边界、不可变版本与发布门禁的设计依据、DatasetVersion/质量报告模型、接口、验收证据、授权风险和阶段计划。PBL1/PBL2 均为 12 页。见[CHG-20261121-003](../changes/2026-11-21-003-expanded-pbl-midterm-reports.md)和[总索引](../PBL_MIDTERM_REPORTS_2026-11-21.md)。实际生成与排版核验者为 Codex，成员本人尚待填写身份信息并最终查看。

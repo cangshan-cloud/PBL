@@ -36,6 +36,18 @@ COMMON_OVERVIEW = (
     "产品部分把因子研究方法固化为可操作流程，形成因子检验报告与研究报告。"
 )
 
+COMMON_BACKGROUND = (
+    "因子研究同时依赖数据口径、计算规则和运行环境。若研究人员直接用零散脚本处理这些内容，"
+    "同一因子可能因为数据版本、日期对齐、缺失值处理或费用参数不同而得到无法比较的结果。"
+    "因此，本项目先建立统一的平台能力，再把数据导入、因子配置、研究检验和报告交付组织为连续业务流程。"
+)
+
+COMMON_WORKFLOW = (
+    "管理员先导入并发布通过质量检查的数据版本；研究员选择数据、因子、日期和预处理参数后创建 Experiment 与 Run；"
+    "API 保存参数快照并把长任务交给 Worker；计算完成后，系统保存逐日结果、汇总指标、日志和报告；"
+    "研究员或查看者随后可按权限回看任务、比较实验并下载报告与复现材料。"
+)
+
 COMMON_SCOPE = (
     "课程验收范围限定为国内股票市场的研究工具，不连接真实资金账户，不生成交易指令。"
     "首期采用模块化单体、PostgreSQL、Redis、Celery 和 Docker Compose，兼顾私域部署与课程周期，"
@@ -177,6 +189,149 @@ for trade_date, daily in sorted(by_date.items()):
 }
 
 
+EXTENDED = {
+    "A": {
+        "role": (
+            "作为组长，我负责把课程目标转成可验收的软件范围，并维护四个模块之间的技术契约。"
+            "本阶段的重点不是包办每个模块的全部细节，而是确定系统边界、统一 Run 与版本身份、协调接口顺序、"
+            "组织自动化验证和文档归档，并在出现进度或环境风险时决定取舍。"
+        ),
+        "decisions": [
+            ("采用模块化单体", "团队只有队长具备较完整编程能力，课程周期不适合维护多套独立服务契约。", "业务仍按认证、数据、研究、报告分层；部署只维护一套 API 和一个 Worker。"),
+            ("长任务使用 Celery", "研究计算可能超过普通 HTTP 请求时长，浏览器连接不应决定任务是否完成。", "API 只创建 Run 并入队；Worker 独立写入状态、日志、结果和报告。"),
+            ("PostgreSQL 与 Redis 分工", "业务记录需要持久化，队列消息只需短期传递。", "用户、版本、Run 和产物索引进入 PostgreSQL；Redis 不作为研究事实来源。"),
+            ("完整 Run ID 贯穿交付", "短 ID 或页面临时状态容易让任务、报告和导出文件串档。", "工作台、任务中心、报告、CSV、JSON 和复现包均保留同一完整 Run ID。"),
+            ("权限在后端执行", "隐藏前端按钮不能阻止直接调用接口。", "API 按角色和资源归属拒绝越权；前端提示只改善使用体验。"),
+        ],
+        "collaboration": (
+            "M1 向 M2 提供身份、版本持久化和发布接口基础；向 M3 提供可重复的任务生命周期、参数快照和结果保存；"
+            "向 M4 提供状态、日志、报告索引和下载授权。反向依赖只通过明确的数据版本 ID、Run ID 和结构化结果传递，"
+            "避免前端或报告服务直接访问计算过程中的临时对象。"
+        ),
+        "evidence": [
+            ("认证与角色矩阵", "后端认证、依赖注入及越权回归测试", "三类角色的读写边界可以由 API 独立验证"),
+            ("任务生命周期", "Run 服务、Celery 任务和持久化测试", "提交、认领、取消、失败、重试和成功状态有统一入口"),
+            ("并发与幂等", "条件更新认领及重复消息回归", "同一 pending Run 只能被一个 Worker 认领，迟到消息不重复计算"),
+            ("部署与恢复", "Docker Compose、迁移、健康检查和 OrbStack 验收记录", "Web、API、Worker、PostgreSQL、Redis 可按统一配置启动"),
+            ("交付一致性", "报告下载、V2 复现包和离线核对工具", "任务、结构化结果、报告和复现材料使用同一 Run 身份"),
+        ],
+        "governance": [
+            ("范围控制", "把国内股票研究、少量用户和课程验收列为必做；真实交易、微服务拆分和 Windows 实机部署不作为当前前置条件。"),
+            ("接口协调", "先冻结数据版本、Run 状态和结果结构，再允许页面与报告依赖，减少并行修改造成的返工。"),
+            ("质量管理", "每次修改同步代码位置、决策原因、验证结果和四人责任材料；自动检查失败时不得写成已验收。"),
+            ("交付组织", "统一文件命名、报告事实口径和占位符，最终由组长提交；成员材料按功能模块区分。"),
+        ],
+        "models": [
+            ("User", "id、username、role、is_active", "创建任务和读取资源时生成身份上下文"),
+            ("Experiment", "id、owner_id、name、created_at", "组织同一研究问题下的多个 Run"),
+            ("Run", "id、experiment_id、status、progress、params、result", "绑定一次不可混淆的研究执行"),
+            ("RunLog", "run_id、level、stage、message、created_at", "记录可定位的阶段和失败原因"),
+            ("Artifact", "run_id、kind、path、checksum", "索引报告、导出和复现材料"),
+        ],
+        "risks": [
+            ("队长成为单点", "关键实现和文档只存在于个人环境", "把脚本、测试、部署说明和变更记录提交仓库，使其他成员能按材料说明模块。"),
+            ("异步状态竞态", "取消、认领和失败标记同时发生", "使用数据库条件更新和合法状态转换，保留最终一致的单一结果。"),
+            ("范围继续膨胀", "新增微服务、实时交易或复杂协同需求", "以课程验收矩阵为准，扩展项必须先记录收益、成本和退出条件。"),
+            ("环境差异", "本机可运行但容器或他人电脑不可运行", "依赖锁定、迁移检查、健康接口和 Compose 预检共同约束环境。"),
+            ("材料与代码不一致", "报告沿用旧路径或夸大人工验收", "生成文档引用真实代码位置；明确自动化、代执行和待队长亲测的边界。"),
+        ],
+        "plan": [
+            ("范围冻结", "冻结 API、数据库迁移、Run 状态和最终样本版本", "自动测试与 Compose 配置通过，未决扩展不进入主线"),
+            ("人工验收", "按管理员、研究员和查看者路径完成队长实测", "记录输入、Run ID、结果、下载文件和发现的问题"),
+            ("证据收口", "核对四个模块的报告、代码位置、截图和变更记录", "总索引无断链，事实口径与当前系统一致"),
+            ("最终提交", "填写四人身份信息，统一命名并在 Word/WPS 逐页检查", "提交平台中的文件数量、版本和本地归档一致"),
+        ],
+    },
+    "B": {
+        "role": "本人负责把来源不同的数据转换成平台可识别、可追踪的数据版本，并在发布前给出明确的质量结论和限制说明。",
+        "decisions": [
+            ("内容哈希与业务质量分开", "文件未变化不等于字段、日期和复权口径正确。", "SHA-256 证明字节一致，质量报告证明已执行约定规则。"),
+            ("发布状态不可跳过", "研究直接读取草稿数据会使结果缺少稳定输入。", "研究任务只能选择 published 版本，阻断错误存在时拒绝发布。"),
+            ("私有数据不入仓库", "真实行情可能存在授权和体积限制。", "仓库保存来源说明、manifest、哈希和验收记录，不公开原始字节。"),
+        ],
+        "collaboration": "M2 使用 M1 的权限与持久化能力注册版本，向 M3 提供已发布 DatasetVersion ID 和质量摘要，并向 M4 提供预览、覆盖和风险提示。",
+        "evidence": [
+            ("CSV 解析", "数据集服务及字段/日期/重复键测试", "非法结构在写入研究链路前被拒绝"),
+            ("历史封存包", "manifest、逐文件哈希和只读复验工具", "包内文件被修改时停止加载"),
+            ("质量披露", "数据集页面与报告中的覆盖、复权和来源提醒", "研究员在提交前后都能看到同一版本限制"),
+        ],
+        "models": [
+            ("Dataset", "dataset_key、name、market、frequency", "表示逻辑数据集合"),
+            ("DatasetVersion", "version、date range、row/symbol count、checksum、status", "表示不可变研究输入"),
+            ("QualityReport", "blocking_errors、warnings、coverage、price_basis", "决定能否发布并提供风险说明"),
+        ],
+        "risks": [
+            ("来源授权不清", "只有下载文件而无来源说明", "发布材料中单独记录来源、许可和使用边界，不以哈希代替授权。"),
+            ("停牌缺失误判", "把无交易与采集失败都视作空值", "保留交易状态和覆盖摘要，由研究层按明确口径处理。"),
+            ("重复复权", "已复权数据再次应用调整因子", "在提交前检查价格基础和调整列，冲突时直接拒绝。"),
+        ],
+        "plan": [
+            ("版本冻结", "选定最终演示与真实私有版本", "manifest、哈希和摘要可重复核验"),
+            ("授权说明", "补齐来源与许可边界", "文档不把技术完整性写成授权认证"),
+            ("人工抽查", "抽取证券日期核对价格、状态和覆盖", "抽查记录能定位到具体版本和文件"),
+        ],
+    },
+    "C": {
+        "role": "本人负责把因子定义、预处理和检验口径转成可重复计算的研究组件，并保存足以解释汇总指标的逐日证据。",
+        "decisions": [
+            ("信号日对齐下一期收益", "同日收益可能已经包含信号形成后的信息。", "所有检验明确保存 signal date 和 return date，降低未来函数风险。"),
+            ("不可计算写空值", "常数截面或样本不足时写零会改变均值和图形。", "结果保存跳过原因和样本数，展示层保留断线。"),
+            ("多因子使用共同样本", "不同因子覆盖不同，直接比较会混入样本差异。", "合成与成分诊断在相同证券日期键上计算。"),
+        ],
+        "collaboration": "M3 只读取 M2 已发布版本，并由 M1 创建和执行 Run；输出结构化逐日序列、摘要和限制说明供 M4 展示，不要求前端重新计算指标。",
+        "evidence": [
+            ("黄金样例", "固定观测与独立期望值测试", "IC、Rank IC、分组和成本口径可复核"),
+            ("边界样例", "窗口不足、空值、常数截面和重复观测测试", "异常数据不会静默变成有效结果"),
+            ("真实样本审计", "逐日 CSV、V2 复现包和独立核对工具", "保存结果可以在不依赖页面的情况下重新检查"),
+        ],
+        "models": [
+            ("FactorObservation", "trade_date、symbol、factor、forward_return", "形成截面检验的最小观测"),
+            ("DailyMetric", "date、ic、rank_ic、observations、status", "保留逐日结果和不可计算原因"),
+            ("ResearchResult", "summary、daily series、groups、cost、limitations", "作为页面、报告和复现包共同来源"),
+        ],
+        "risks": [
+            ("未来函数", "信号和标签使用同一时点信息", "在数据准备阶段显式错位，并用构造样例验证日期。"),
+            ("样本选择偏差", "只保留最终股票池或完整数据证券", "报告披露历史成分、覆盖和幸存者偏差边界。"),
+            ("回溯过拟合", "根据已知结果反复调整参数", "冻结参数并保留研究期/验证期摘要，不把历史表现外推为收益承诺。"),
+        ],
+        "plan": [
+            ("口径冻结", "固定因子窗口、去极值、分组和费用参数", "报告与代码参数表一致"),
+            ("结果复核", "对最终 Run 执行独立逐日和汇总核对", "差异为零或有可解释的版本原因"),
+            ("局限说明", "整理数据、样本和统计限制", "结论只描述历史软件检验"),
+        ],
+    },
+    "D": {
+        "role": "本人负责把已保存的研究数据组织成可操作页面和可核对交付文件，保证不同入口不会混用 Run 或隐藏缺失。",
+        "decisions": [
+            ("前端不重算指标", "浏览器实现与后端算法可能产生口径差异。", "页面、报告和导出均读取 Run 保存结果。"),
+            ("空值在图中断线", "把缺失补零会制造不存在的研究信号。", "日期并集保留，未知值不连线，并提供逐日原值检查。"),
+            ("下载保留完整身份", "文件离开系统后仍需判断来源。", "CSV、JSON、HTML 写入完整 Run ID、版本和日期信息。"),
+        ],
+        "collaboration": "M4 从 M1 获取授权、任务状态和报告索引，显示 M2 的版本/质量提示，并直接展示 M3 的结构化结果。任何页面切换都以完整 Run ID 作为归属判断。",
+        "evidence": [
+            ("请求竞态", "轮询、页面切换和旧响应覆盖测试", "当前选择不会被过期响应替换"),
+            ("图表语义", "已知日期并集、空值断线和原值检查器测试", "图形与保存数据逐点对应"),
+            ("交付文件", "浏览器下载与 API 字节/摘要核对", "实际保存文件与授权响应一致"),
+        ],
+        "models": [
+            ("ResearchConfig", "dataset、factor、dates、preprocess、cost", "提交前形成完整参数对象"),
+            ("TaskView", "run_id、status、progress、logs、result", "驱动任务中心和历史回看"),
+            ("DeliverySummary", "run_id、versions、files、checksums", "连接报告预览和多格式下载"),
+        ],
+        "risks": [
+            ("旧响应覆盖", "用户快速切换 Run 时前一请求较晚返回", "取消或忽略过期请求，并在写状态前核对 Run ID。"),
+            ("导出串档", "页面选择与下载请求使用不同身份", "下载函数只接受当前完整 Run ID，文件内再次写入身份。"),
+            ("窄屏不可用", "宽表把整页撑出视口", "关键表格在局部容器滚动，操作按钮保持可达。"),
+        ],
+        "plan": [
+            ("页面复核", "按队长实测修正文案、提示和移动布局", "核心路径无阻断，错误信息可操作"),
+            ("交付核对", "下载并比对最终 CSV、JSON、HTML 和复现包", "Run ID、版本和摘要一致"),
+            ("使用说明", "整理配置、回看和下载步骤", "新研究人员可按文档完成一次闭环"),
+        ],
+    },
+}
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -264,12 +419,18 @@ def add_common_status(doc: Document) -> None:
 
 def build_pbl1(doc: Document, code: str, module: dict, diagram: Path) -> None:
     extra = EXTRAS[code]
+    extended = EXTENDED[code]
     add_title(doc, "PBL1", module)
     common.add_heading(doc, "一 项目概述")
     common.add_body(doc, COMMON_OVERVIEW)
+    common.add_body(doc, COMMON_BACKGROUND)
     common.add_body(doc, COMMON_SCOPE)
     common.add_heading(doc, "1 项目目标与范围", level=2)
     common.add_body(doc, "目标是让研究人员从可追溯的数据版本出发，按统一口径运行单因子或多因子研究，并获得可检查、可下载、可复现的结果。当前重点是准时完成课程验收闭环，而不是扩展实时交易或大规模协作。")
+    common.add_heading(doc, "2 业务流程", level=2)
+    common.add_body(doc, COMMON_WORKFLOW)
+    common.add_heading(doc, "3 个人职责", level=2)
+    common.add_body(doc, extended["role"])
     add_common_status(doc)
 
     heading = common.add_heading(doc, "二 技术架构")
@@ -288,44 +449,60 @@ def build_pbl1(doc: Document, code: str, module: dict, diagram: Path) -> None:
         [1.0, 2.0, 3.1],
         font_size=8.8,
     )
+    common.add_heading(doc, "1 模块协作边界", level=2)
+    common.add_body(doc, extended["collaboration"])
+    if code == "A":
+        common.add_heading(doc, "2 组长架构决策", level=2)
+        common.add_table(doc, ["决策", "选择依据", "落地方式"], extended["decisions"], [1.35, 2.45, 2.4], font_size=8.6)
 
     heading = common.add_heading(doc, "三 个人技术实现")
-    heading.paragraph_format.page_break_before = True
     common.add_body(doc, f"本人的课程责任范围为{module['name']}。{module['architecture']}")
     common.add_table(doc, ["技术单元", "已实现内容"], extra["implementation"], [1.55, 4.6], font_size=9.0)
-    common.add_heading(doc, "1 关键接口与约束", level=2)
+    if code != "A":
+        common.add_heading(doc, "1 关键设计决策", level=2)
+        common.add_table(doc, ["决策", "选择依据", "实现结果"], extended["decisions"], [1.45, 2.35, 2.4], font_size=8.6)
+    common.add_heading(doc, "2 数据与领域模型", level=2)
+    common.add_table(doc, ["对象", "核心字段", "作用"], extended["models"], [1.25, 2.45, 2.5], font_size=8.5)
+    common.add_heading(doc, "3 关键接口与约束", level=2)
     common.add_table(doc, ["接口或方法", "输入", "输出", "关键约束"], module["interfaces"], [1.45, 1.4, 1.4, 1.9], font_size=8.5)
 
     heading = common.add_heading(doc, "四 个人项目进展")
-    heading.paragraph_format.page_break_before = True
     common.add_table(doc, ["工作项", "状态", "中期证据"], extra["progress"], [1.2, 0.9, 4.1], font_size=8.8)
     common.add_body(doc, "总体判断：核心闭环已经具备，当前工作从功能扩展转向冻结、复核和材料归档。这里的“已完成”指现有自动化或开发者代执行证据通过，不等同于成员本人已经完成最终人工产品验收。")
+    common.add_heading(doc, "1 阶段证据与验收对应", level=2)
+    common.add_table(doc, ["能力", "证据位置或类型", "能够说明的结论"], extended["evidence"], [1.35, 2.45, 2.4], font_size=8.5)
+    if code == "A":
+        common.add_heading(doc, "2 组长项目治理", level=2)
+        common.add_table(doc, ["管理事项", "执行方式"], extended["governance"], [1.35, 4.85], font_size=8.7)
     common.add_heading(doc, "五 挑战与学习")
     common.add_body(doc, extra["challenge"], bold_lead="难点：")
     common.add_body(doc, extra["learning"], bold_lead="学习：")
+    common.add_heading(doc, "1 风险与应对", level=2)
+    common.add_table(doc, ["风险", "具体表现", "控制方式"], extended["risks"], [1.25, 2.25, 2.7], font_size=8.5)
 
     heading = common.add_heading(doc, "六 未来计划")
-    heading.paragraph_format.page_break_before = True
     common.add_body(doc, extra["next"])
+    common.add_table(doc, ["阶段", "主要工作", "完成标准"], extended["plan"], [1.2, 2.65, 2.35], font_size=8.6)
     common.add_heading(doc, "七 相关代码")
     common.add_body(doc, "以下代码只节选与本模块中期内容直接相关的核心片段，完整上下文和测试以仓库为准。")
     add_code_block(doc, extra["code_path"], extra["code"])
-    common.add_heading(doc, "八 中期结论")
-    common.add_body(doc, f"{module['name']}已经形成可说明、可测试、可追踪的中期成果。下一阶段坚持范围冻结和证据收口，优先保证课程验收材料与现有系统行为一致。")
 
 
 def build_pbl2(doc: Document, code: str, module: dict, diagram: Path) -> None:
     extra = EXTRAS[code]
+    extended = EXTENDED[code]
     add_title(doc, "PBL2", module)
     common.add_heading(doc, "一 项目概述")
     common.add_body(doc, COMMON_OVERVIEW)
+    common.add_body(doc, COMMON_BACKGROUND)
     common.add_body(doc, "产品面向管理员、研究员和查看者。管理员维护账号和数据，研究员配置并运行研究，查看者只读核对授权结果。产品输出研究诊断和报告，不提供投资建议。")
     common.add_heading(doc, "1 产品范围与当前结论", level=2)
     common.add_body(doc, COMMON_SCOPE)
+    common.add_heading(doc, "2 产品业务流程", level=2)
+    common.add_body(doc, COMMON_WORKFLOW)
     add_common_status(doc)
 
     heading = common.add_heading(doc, "二 需求分析")
-    heading.paragraph_format.page_break_before = True
     common.add_table(
         doc,
         ["类别", "小组统一需求", "可检查标准"],
@@ -340,30 +517,40 @@ def build_pbl2(doc: Document, code: str, module: dict, diagram: Path) -> None:
         font_size=8.7,
     )
     common.add_body(doc, "非功能边界包括：单机私域部署、API 快速返回、长任务异步执行、服务重启后元数据保留，以及所有研究限制在报告中披露。")
+    common.add_heading(doc, "1 个人责任与协作关系", level=2)
+    common.add_body(doc, extended["role"])
+    common.add_body(doc, extended["collaboration"])
 
     heading = common.add_heading(doc, "三 个人功能设计")
-    heading.paragraph_format.page_break_before = True
     common.add_body(doc, f"本人的产品责任范围为{module['name']}。{extra['design']}")
     common.add_figure(doc, diagram, f"图1 {module['name']}业务流程")
     common.add_heading(doc, "1 功能模块与验收", level=2)
     common.add_table(doc, ["类别", "需求", "验收标准"], module["requirements"], [0.9, 2.2, 3.1], font_size=8.7)
+    common.add_heading(doc, "2 关键设计决策", level=2)
+    common.add_table(doc, ["决策", "选择依据", "实现结果"], extended["decisions"], [1.45, 2.35, 2.4], font_size=8.6)
 
-    heading = common.add_heading(doc, "2 算法 数据库与接口设计", level=2)
-    heading.paragraph_format.page_break_before = True
+    heading = common.add_heading(doc, "3 算法 数据库与接口设计", level=2)
     common.add_body(doc, module["tech"])
     common.add_heading(doc, "关键算法思路", level=2)
     common.add_pseudocode(doc, module["algorithm"])
+    common.add_heading(doc, "数据与领域模型", level=2)
+    common.add_table(doc, ["对象", "核心字段", "用途"], extended["models"], [1.25, 2.45, 2.5], font_size=8.5)
     common.add_heading(doc, "关键接口", level=2)
     common.add_table(doc, ["接口或方法", "输入", "输出", "错误与约束"], module["interfaces"], [1.45, 1.35, 1.4, 2.0], font_size=8.4)
     common.add_heading(doc, "验收用例", level=2)
     common.add_table(doc, ["编号", "场景", "预期结果"], module["acceptance"], [0.9, 2.45, 2.85], font_size=8.7)
 
     heading = common.add_heading(doc, "四 挑战与问题")
-    heading.paragraph_format.page_break_before = True
     common.add_body(doc, extra["challenge"])
     common.add_body(doc, f"当前限制：{module['innovation']} 该设计提高了可追踪性，但不能消除真实数据授权、样本偏差、回溯过拟合和最终人工验收风险。")
+    common.add_heading(doc, "1 风险与应对", level=2)
+    common.add_table(doc, ["风险", "触发情形", "应对措施"], extended["risks"], [1.25, 2.25, 2.7], font_size=8.5)
+    if code == "A":
+        common.add_heading(doc, "2 组长协同与交付组织", level=2)
+        common.add_table(doc, ["管理事项", "执行方式"], extended["governance"], [1.35, 4.85], font_size=8.7)
     common.add_heading(doc, "五 下一步计划")
     common.add_body(doc, extra["next"])
+    common.add_table(doc, ["阶段", "主要工作", "完成标准"], extended["plan"], [1.2, 2.65, 2.35], font_size=8.6)
     common.add_heading(doc, "六 相关代码")
     common.add_body(doc, "以下片段用于说明本模块的软件组件转化；完整实现、异常分支和测试仍以仓库为准。")
     add_code_block(doc, extra["code_path"], extra["code"])

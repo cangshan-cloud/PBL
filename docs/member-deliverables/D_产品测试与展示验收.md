@@ -776,3 +776,7 @@ CLI 对旧浏览器留存导出返回预期不一致，合成单测覆盖当前�
 ## 2026-11-21 M4 PBL 中期报告（文档代生成）
 
 D 的两份中期报告聚焦研究配置、异步状态回看、逐日图表与原值核对、报告预览、多格式导出和完整 Run 身份，使用 `frontend/src/main.tsx::downloadReport` 真实片段说明报告下载。成品为 [PBL1 中期报告](../../outputs/pbl-midterm-reports-2026-11-21/final/D_研究工作台与报告交付_PBL1_中期报告.docx)和 [PBL2 中期报告](../../outputs/pbl-midterm-reports-2026-11-21/final/D_研究工作台与报告交付_PBL2_中期报告.docx)。结构、事实边界和占位符见[总索引](../PBL_MIDTERM_REPORTS_2026-11-21.md)及 [CHG-20261121-002](../changes/2026-11-21-002-four-member-pbl-midterm-reports.md)。实际生成与核验者为 Codex，按约定不要求成员另行签收。
+
+## 2026-11-21 M4 PBL 中期报告扩写（文档代生成）
+
+D 的两份报告补充工作台与 M1/M2/M3 的结果消费边界、服务端报告与完整 Run ID 的设计依据、TaskView/ReportArtifact 等模型、下载接口、窄屏和旧 Run 风险以及阶段计划。PBL1/PBL2 均为 12 页。见[CHG-20261121-003](../changes/2026-11-21-003-expanded-pbl-midterm-reports.md)和[总索引](../PBL_MIDTERM_REPORTS_2026-11-21.md)。实际生成与排版核验者为 Codex，成员本人尚待填写身份信息并最终查看。

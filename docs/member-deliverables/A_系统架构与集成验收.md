@@ -778,3 +778,7 @@ OrbStack 恢复后，专用 QA Compose 预检通过；只重建 db/redis/api/web
 
 A 的两份中期报告聚焦 RBAC、Experiment/Run、Celery Worker、数据库持久化、部署和审计边界，使用 `backend/app/tasks.py` 真实片段说明任务执行组件。成品为 [PBL1 中期报告](../../outputs/pbl-midterm-reports-2026-11-21/final/A_平台基础与任务运行_PBL1_中期报告.docx)和 [PBL2 中期报告](../../outputs/pbl-midterm-reports-2026-11-21/final/A_平台基础与任务运行_PBL2_中期报告.docx)。结构、事实边界和占位符见[总索引](../PBL_MIDTERM_REPORTS_2026-11-21.md)及 [CHG-20261121-002](../changes/2026-11-21-002-four-member-pbl-midterm-reports.md)。实际生成与核验者为 Codex，按约定不要求成员另行签收。
 
+## 2026-11-21 M1 PBL 中期报告扩写（文档代生成）
+
+A 作为组长的两份报告已重点扩写：除 M1 的认证、Run、异步任务、持久化和部署外，新增模块化单体取舍、PostgreSQL/Redis 分工、完整 Run ID、后端权限、跨模块接口冻结、范围控制、质量管理、风险矩阵和最终交付组织。PBL1/PBL2 分别为 12/13 页，内容量高于其他成员且不占用 M2—M4 的个人成果。见[CHG-20261121-003](../changes/2026-11-21-003-expanded-pbl-midterm-reports.md)和[总索引](../PBL_MIDTERM_REPORTS_2026-11-21.md)。实际生成与排版核验者为 Codex，成员本人尚待填写身份信息并最终查看。
+

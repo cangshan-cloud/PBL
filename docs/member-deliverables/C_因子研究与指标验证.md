@@ -779,3 +779,7 @@ V2 同时保留结果 SHA 并将因子版本/公式、任务参数纳入整包�
 ## 2026-11-21 M3 PBL 中期报告（文档代生成）
 
 C 的两份中期报告聚焦因子预处理、信号与下一期收益对齐、IC/Rank IC、分组、多空成本和共同样本审计，使用 `backend/app/domain/research.py::evaluate` 真实片段说明研究检验。成品为 [PBL1 中期报告](../../outputs/pbl-midterm-reports-2026-11-21/final/C_因子计算与研究检验_PBL1_中期报告.docx)和 [PBL2 中期报告](../../outputs/pbl-midterm-reports-2026-11-21/final/C_因子计算与研究检验_PBL2_中期报告.docx)。结构、事实边界和占位符见[总索引](../PBL_MIDTERM_REPORTS_2026-11-21.md)及 [CHG-20261121-002](../changes/2026-11-21-002-four-member-pbl-midterm-reports.md)。实际生成与核验者为 Codex，按约定不要求成员另行签收。
+
+## 2026-11-21 M3 PBL 中期报告扩写（文档代生成）
+
+C 的两份报告补充信号—收益时序、共同样本与防前视设计依据，增加 Observation/ResearchResult 等领域模型、研究接口、验收证据、统计误读风险和阶段计划。PBL1/PBL2 均为 12 页。见[CHG-20261121-003](../changes/2026-11-21-003-expanded-pbl-midterm-reports.md)和[总索引](../PBL_MIDTERM_REPORTS_2026-11-21.md)。实际生成与排版核验者为 Codex，成员本人尚待填写身份信息并最终查看。

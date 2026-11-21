@@ -70,8 +70,16 @@ def main() -> int:
             "individual scope": "个人模块" in text,
             "code location": code_path in text,
             "diagram": len(document.inline_shapes) >= 2,
-            "substantial content": len(text) >= 3500,
+            "substantial content": len(text) >= (5800 if code == "A" else 4500),
+            "design decisions": ("关键设计决策" in text or "组长架构决策" in text),
+            "domain model": "数据与领域模型" in text,
+            "risk controls": "风险与应对" in text,
         }
+        if code == "A" and course == "PBL1":
+            checks["leader architecture decisions"] = "组长架构决策" in text
+            checks["leader project governance"] = "组长项目治理" in text
+        if code == "A" and course == "PBL2":
+            checks["leader delivery governance"] = "组长协同与交付组织" in text
         for heading in REQUIRED[course]:
             checks[f"heading {heading}"] = heading in text
         for label, ok in checks.items():
