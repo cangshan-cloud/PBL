@@ -802,3 +802,7 @@ A 的 PBL1/PBL2 进一步扩展为 20/19 页，新增认证、版本、Run、取
 
 新增[异步任务故障分支](../../outputs/pbl-midterm-reports-2026-11-21/assets/A_task_failure_branches.png)、[研究任务领域模型](../../outputs/pbl-midterm-reports-2026-11-21/assets/A_domain_model.png)、[角色权限矩阵](../../outputs/pbl-midterm-reports-2026-11-21/assets/A_role_matrix.png)和[组长交付放行流程](../../outputs/pbl-midterm-reports-2026-11-21/assets/A_release_gate.png)。前两张嵌入 PBL1，后两张嵌入 PBL2；组长两份报告分别为 21/20 页。两份报告的 Celery 代码节选均补充关键行与验收观察。这些图是架构与验收设计材料，不能替代实际部署恢复记录。见 [CHG-20261121-008](../changes/2026-11-21-008-midterm-figure-expansion.md)。
 
+## 2026-11-22 M1 独立图件附录（文档代生成）
+
+[A 的 10 页设计图件附录](../../outputs/pbl-figure-appendices-2026-11-22/final/A_平台基础与任务运行_设计图件附录.docx)已整理全部 10 张平台与组长图，每页列出图种、建议章节、代码依据和验收提示，适合与个人报告一起提交或抽页用于答辩。图件说明设计与验收口径，不是组长本人完成恢复演练的证据。见[附录总索引](../PBL_FIGURE_APPENDICES_2026-11-22.md)及 [CHG-20261122-001](../changes/2026-11-22-001-standalone-figure-appendices.md)。
+

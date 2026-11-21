@@ -8,6 +8,7 @@
 
 | ID | 日期 | 类型／状态 | 内容 | 记录 | 对应位置 |
 | --- | --- | --- | --- | --- | --- |
+| CHG-20261122-001 | 2026-11-22 | document appendix / generated + rendered | 四人各生成一份一图一页的独立 Word 图件附录，共 22 页；补图意、代码依据和验收提示 | [记录](changes/2026-11-22-001-standalone-figure-appendices.md) | `tools/build_pbl_figure_appendices.py`、`tools/check_pbl_figure_appendices.py`、四份 Word、图件附录总索引与 A/B/C/D 责任材料（无应用代码改动） |
 | CHG-20261121-008 | 2026-11-21 | document figure expansion / generated + rendered | 增加十张流程、模型、权限、决策和页面状态图，八份中期报告按模块嵌入并补代码验收说明 | [记录](changes/2026-11-21-008-midterm-figure-expansion.md) | `tools/build_pbl_midterm_figures.py`、`tools/build_pbl_midterm_reports.py`、检查脚本、22 张图册、8 份 Word 与 A/B/C/D 材料（无应用代码改动） |
 | CHG-20261121-007 | 2026-11-21 | document figures and evidence / generated + rendered | 四人八份中期报告增加权限、恢复、血缘、复算和请求身份五张图；B 补代码验收说明 | [记录](changes/2026-11-21-007-midterm-design-diagrams-and-code-notes.md) | `tools/build_pbl_midterm_figures.py`、`tools/build_pbl_midterm_reports.py`、检查脚本、8 份 Word、图册与 A/B/C/D 材料（无应用代码改动） |
 | CHG-20261121-006 | 2026-11-21 | document evidence and defense / generated + rendered | 增加代码证据映射、测试边界、故障处置、接口契约、答辩问答和最终清单；A 达 20/19 页，B/C/D 均达 16 页 | [记录](changes/2026-11-21-006-midterm-evidence-and-defense.md) | `tools/build_pbl_midterm_reports.py`、检查脚本、8 份 Word、总索引与 A/B/C/D 四份材料（无应用代码改动） |
